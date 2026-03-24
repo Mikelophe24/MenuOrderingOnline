@@ -119,6 +119,7 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<OnlineMenu.API.Middleware.ExceptionMiddleware>();
 app.UseWebSockets();
 app.UseCors();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 

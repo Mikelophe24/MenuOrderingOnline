@@ -21,7 +21,10 @@
       "Bash(ls:*)",
       "Bash(dotnet build:*)",
       "Bash(ipconfig)",
-      "Bash(ngrok version:*)"
+      "Bash(ngrok version:*)",
+      "Bash(xargs grep:*)",
+      "Bash(find /d/OnlineMenuApp/server -type f \\\\\\(-name *table* -o -name *ban* \\\\\\))",
+      "Bash(grep -E \"\\\\.\\(ts|js|tsx|jsx\\)$\")"
     ]
   }
 }

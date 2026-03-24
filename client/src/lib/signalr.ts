@@ -1,7 +1,6 @@
 import * as signalR from '@microsoft/signalr'
 
 let connection: signalR.HubConnection | null = null
-let retryTimeout: ReturnType<typeof setTimeout> | null = null
 
 function createConnection(): signalR.HubConnection {
   return new signalR.HubConnectionBuilder()
@@ -20,64 +19,35 @@ function createConnection(): signalR.HubConnection {
     .build()
 }
 
-export function getSignalRConnection(): signalR.HubConnection {
+export function getConnection(): signalR.HubConnection {
   if (!connection) {
     connection = createConnection()
   }
   return connection
 }
 
-export async function startConnection(signal?: { cancelled: boolean }) {
-  // Cancel any pending retry
-  if (retryTimeout) {
-    clearTimeout(retryTimeout)
-    retryTimeout = null
+export async function startConnection(): Promise<signalR.HubConnection | null> {
+  const conn = getConnection()
+
+  if (conn.state === signalR.HubConnectionState.Connected) {
+    return conn
   }
 
-  // Stop existing connection
-  if (connection) {
-    try {
-      await connection.stop()
-    } catch {
-      // ignore
-    }
-    connection = null
-  }
-
-  // If already cancelled (StrictMode unmount), bail out
-  if (signal?.cancelled) return null
-
-  const conn = getSignalRConnection()
-  try {
-    await conn.start()
-    // Check cancellation after async operation
-    if (signal?.cancelled) {
-      await conn.stop()
-      connection = null
-      return null
-    }
-    console.log('SignalR Connected')
-  } catch (err) {
-    // Don't retry if cancelled
-    if (signal?.cancelled) {
-      connection = null
-      return null
-    }
-    console.warn('SignalR connection failed, retrying in 5s...', err)
-    connection = null
-    retryTimeout = setTimeout(() => startConnection(signal), 5000)
+  if (conn.state !== signalR.HubConnectionState.Disconnected) {
     return null
   }
-  return conn
+
+  try {
+    await conn.start()
+    console.log('SignalR Connected')
+    return conn
+  } catch (err) {
+    console.warn('SignalR connection failed:', err)
+    return null
+  }
 }
 
 export async function stopConnection() {
-  // Cancel any pending retry
-  if (retryTimeout) {
-    clearTimeout(retryTimeout)
-    retryTimeout = null
-  }
-
   if (connection) {
     try {
       await connection.stop()

@@ -105,6 +105,7 @@ public class DishesController : ControllerBase
 
         await _dishRepo.UpdateAsync(dish);
 
+
         return Ok(ApiResponse<object>.Success(null!, "Updated"));
     }
 

@@ -22,11 +22,36 @@ export function useOrder(id: number) {
   })
 }
 
+export function useGuestOrders(params?: { tableNumber?: number; token?: string }) {
+  return useQuery({
+    queryKey: ['guest-orders', params],
+    queryFn: () =>
+      http.get<ApiResponse<Order[]>>('/guest/orders', {
+        params: {
+          tableNumber: String(params?.tableNumber),
+          token: params?.token ?? '',
+        },
+      }),
+    enabled: !!params?.tableNumber && !!params?.token,
+  })
+}
+
 export function useCreateGuestOrder() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (data: { tableNumber: number; tableToken: string; guestName?: string; items: GuestOrder[] }) =>
       http.post<ApiResponse<Order>>('/guest/orders', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['guest-orders'] })
+    },
+  })
+}
+
+export function useDeleteOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => http.delete<ApiResponse<null>>(`/orders/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     },

@@ -54,3 +54,14 @@ export function useDeleteTable() {
     },
   })
 }
+
+export function useChangeToken() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) =>
+      http.post<ApiResponse<Table>>(`/tables/${id}/change-token`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
+    },
+  })
+}

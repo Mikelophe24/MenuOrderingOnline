@@ -49,7 +49,7 @@ public class AuthService : IAuthService
             Name = name,
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            Role = Core.Enums.Role.Owner,
+            Role = Core.Enums.Role.Employee,
         };
 
         await _accountRepo.AddAsync(account);
@@ -106,7 +106,7 @@ public class AuthService : IAuthService
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
                 Avatar = avatar,
-                Role = Core.Enums.Role.Owner,
+                Role = Core.Enums.Role.Employee,
             };
             await _accountRepo.AddAsync(account);
         }

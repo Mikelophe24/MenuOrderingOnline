@@ -31,6 +31,12 @@ public class OrderHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, $"table-{tableNumber}");
     }
 
+    // Notify management when table status changes
+    public async Task NotifyTableStatusChanged(object table)
+    {
+        await Clients.Group("management").SendAsync("TableStatusChanged", table);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         await base.OnDisconnectedAsync(exception);

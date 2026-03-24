@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import http from '@/lib/http'
 import type { Account, ApiResponse, PaginatedResponse } from '@/types'
+import { Role } from '@/types'
 import { toast } from 'sonner'
 
 export default function ManageEmployeesPage() {
@@ -21,6 +22,15 @@ export default function ManageEmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] })
       toast.success('Xóa nhân viên thành công')
+    },
+  })
+
+  const updateRole = useMutation({
+    mutationFn: ({ id, name, role }: { id: number; name: string; role: string }) =>
+      http.put<ApiResponse<null>>(`/accounts/${id}`, { name, role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] })
+      toast.success('Cập nhật role thành công')
     },
   })
 
@@ -54,7 +64,23 @@ export default function ManageEmployeesPage() {
                 <tr key={emp.id} className="border-b">
                   <td className="px-4 py-3 text-sm">{emp.name}</td>
                   <td className="px-4 py-3 text-sm">{emp.email}</td>
-                  <td className="px-4 py-3 text-sm">{emp.role}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <select
+                      value={emp.role}
+                      onChange={(e) =>
+                        updateRole.mutate({ id: emp.id, name: emp.name, role: e.target.value })
+                      }
+                      className={`rounded-full px-2 py-1 text-xs border-none cursor-pointer ${
+                        emp.role === 'Owner'
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                      }`}
+                    >
+                      {Object.values(Role).map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <Link

@@ -76,6 +76,9 @@ public class OrdersController : ControllerBase
         if (table == null || table.Token != request.TableToken)
             return BadRequest(ApiResponse<object>.Fail("Invalid table or token"));
 
+        if (table.Status == TableStatus.Occupied)
+            return BadRequest(ApiResponse<object>.Fail("Bàn đang có khách, không thể đặt thêm"));
+
         var order = new Order
         {
             TableNumber = request.TableNumber,
@@ -104,11 +107,33 @@ public class OrdersController : ControllerBase
         order.TotalPrice = totalPrice;
         await _orderRepo.AddAsync(order);
 
+        // Update table status to Occupied
+        if (table.Status != TableStatus.Occupied)
+        {
+            table.Status = TableStatus.Occupied;
+            await _tableRepo.UpdateAsync(table);
+            await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
+                new { table.Id, table.Number, Status = table.Status.ToString() });
+        }
+
         // Notify management via SignalR
         var orderDto = MapToDto(order);
         await _hubContext.Clients.Group("management").SendAsync("NewOrder", orderDto);
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponse<OrderDto>.Success(orderDto, "Order created", 201));
+    }
+
+    // Guest views their orders by table number + token
+    [HttpGet("guest/orders")]
+    public async Task<IActionResult> GetGuestOrders([FromQuery] int tableNumber, [FromQuery] string token)
+    {
+        var table = await _tableRepo.GetByNumberAsync(tableNumber);
+        if (table == null || table.Token != token)
+            return BadRequest(ApiResponse<object>.Fail("Invalid table or token"));
+
+        var orders = await _orderRepo.GetByTableNumberAsync(tableNumber);
+        var dtos = orders.Select(MapToDto).ToList();
+        return Ok(ApiResponse<List<OrderDto>>.Success(dtos));
     }
 
     [Authorize(Roles = "Owner,Employee")]
@@ -121,12 +146,70 @@ public class OrdersController : ControllerBase
         order.Status = Enum.Parse<OrderStatus>(request.Status);
         await _orderRepo.UpdateAsync(order);
 
+        // If order is Paid or Cancelled, check if table can be set back to Available
+        if ((order.Status == OrderStatus.Paid || order.Status == OrderStatus.Cancelled) && order.TableId.HasValue)
+        {
+            var tableId = order.TableId.Value;
+            var hasActiveOrders = await _orderRepo.ExistsAsync(o =>
+                o.TableId == tableId
+                && o.Id != order.Id
+                && o.Status != OrderStatus.Paid
+                && o.Status != OrderStatus.Cancelled);
+
+            if (!hasActiveOrders)
+            {
+                var table = await _tableRepo.GetByIdAsync(tableId);
+                if (table != null && table.Status == TableStatus.Occupied)
+                {
+                    table.Status = TableStatus.Available;
+                    await _tableRepo.UpdateAsync(table);
+                    await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
+                        new { table.Id, table.Number, Status = table.Status.ToString() });
+                }
+            }
+        }
+
         // Notify table and management
         var orderDto = MapToDto(order);
         await _hubContext.Clients.Group($"table-{order.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
         await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
 
         return Ok(ApiResponse<OrderDto>.Success(orderDto, "Status updated"));
+    }
+
+    [Authorize(Roles = "Owner,Employee")]
+    [HttpDelete("orders/{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var order = await _orderRepo.GetWithItemsAsync(id);
+        if (order == null) return NotFound(ApiResponse<object>.Fail("Order not found", 404));
+
+        await _orderRepo.DeleteAsync(order);
+
+        // If table has no more active orders, set it back to Available
+        if (order.TableId.HasValue)
+        {
+            var tableId = order.TableId.Value;
+            var hasActiveOrders = await _orderRepo.ExistsAsync(o =>
+                o.TableId == tableId
+                && o.Id != order.Id
+                && o.Status != OrderStatus.Paid
+                && o.Status != OrderStatus.Cancelled);
+
+            if (!hasActiveOrders)
+            {
+                var table = await _tableRepo.GetByIdAsync(tableId);
+                if (table != null && table.Status == TableStatus.Occupied)
+                {
+                    table.Status = TableStatus.Available;
+                    await _tableRepo.UpdateAsync(table);
+                    await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
+                        new { table.Id, table.Number, Status = table.Status.ToString() });
+                }
+            }
+        }
+
+        return Ok(ApiResponse<object>.Success(null!, "Order deleted"));
     }
 
     private static OrderDto MapToDto(Order order) => new(

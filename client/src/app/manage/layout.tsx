@@ -8,6 +8,7 @@ import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { useProfile, useLogout } from '@/hooks/use-auth'
 import { useAuthStore } from '@/stores/auth.store'
 import { getAccessToken } from '@/lib/tokens'
+import { startConnection, stopConnection, getConnection } from '@/lib/signalr'
 import type { ReactNode } from 'react'
 
 export default function ManageLayout({ children }: { children: ReactNode }) {
@@ -22,6 +23,37 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       router.push('/login')
     }
   }, [router])
+
+  // SignalR: connect once for all manage pages
+  useEffect(() => {
+    let cancelled = false
+
+    async function connect() {
+      const conn = await startConnection()
+      if (!conn || cancelled) return
+      try {
+        await conn.invoke('JoinManagementGroup')
+      } catch {
+        // ignore
+      }
+
+      // Re-join on reconnect
+      conn.onreconnected(async () => {
+        try {
+          await conn.invoke('JoinManagementGroup')
+        } catch {
+          // ignore
+        }
+      })
+    }
+
+    connect()
+
+    return () => {
+      cancelled = true
+      stopConnection()
+    }
+  }, [])
 
   if (isLoading) {
     return (

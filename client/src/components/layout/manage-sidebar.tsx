@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth.store'
 import { Role } from '@/types'
 import {
+  Home,
   LayoutDashboard,
   ClipboardList,
   UtensilsCrossed,
@@ -14,12 +15,15 @@ import {
   Users,
   UserCircle,
   Settings,
+  FolderOpen,
 } from 'lucide-react'
 
 const getNavItems = (role: Role | undefined) => {
   const items = [
+    { href: '/manage/home', icon: Home, labelKey: 'home' },
     { href: '/manage/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
     { href: '/manage/orders', icon: ClipboardList, labelKey: 'orders' },
+    { href: '/manage/categories', icon: FolderOpen, labelKey: 'categories' },
     { href: '/manage/dishes', icon: UtensilsCrossed, labelKey: 'dishes' },
     { href: '/manage/tables', icon: Armchair, labelKey: 'tables' },
   ]

@@ -48,9 +48,11 @@
     }
   },
   "manage": {
+    "home": "Home",
     "dashboard": "Dashboard",
     "orders": "Order management",
     "tables": "Table management",
+    "categories": "Categories",
     "dishes": "Dish management",
     "employees": "Employee management",
     "account": "Account",
