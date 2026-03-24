@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useOrderStore } from '@/stores/order.store'
 import { useDishes } from '@/hooks/use-dishes'
 import { formatCurrency } from '@/lib/utils'
@@ -9,18 +9,63 @@ import { toast } from 'sonner'
 import type { Dish } from '@/types'
 import Link from 'next/link'
 
+function GuestLoginForm({ onSubmit }: { onSubmit: (name: string) => void }) {
+  const [name, setName] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) {
+      toast.error('Vui lòng nhập tên của bạn')
+      return
+    }
+    onSubmit(trimmed)
+  }
+
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="mx-auto w-full max-w-md space-y-6 rounded-lg border p-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Chào mừng!</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Vui lòng nhập tên để bắt đầu đặt món
+          </p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Tên của bạn</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+              placeholder="Nhập tên..."
+              autoFocus
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Tiếp tục
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function TableMenuPage() {
   const params = useParams<{ number: string }>()
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const { setTable, addToCart, getTotalItems } = useOrderStore()
+  const { setTable, setGuestName, guestName, addToCart, getTotalItems, tableNumber } = useOrderStore()
   const { data, isLoading } = useDishes({ status: 'Available' })
 
   useEffect(() => {
-    const tableNumber = Number(params.number)
+    const num = Number(params.number)
     const token = searchParams.get('token')
-    if (tableNumber && token) {
-      setTable(tableNumber, token)
+    if (num && token) {
+      setTable(num, token)
     }
   }, [params.number, searchParams, setTable])
 
@@ -32,11 +77,19 @@ export default function TableMenuPage() {
     toast.success(`${dish.name} đã thêm vào giỏ hàng`)
   }
 
+  // Step 1: Guest enters name
+  if (!guestName) {
+    return <GuestLoginForm onSubmit={setGuestName} />
+  }
+
+  // Step 2: Show menu
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold">Bàn {params.number}</h1>
-        <p className="text-muted-foreground">Chọn món ăn yêu thích của bạn</p>
+        <p className="text-muted-foreground">
+          Xin chào <span className="font-medium">{guestName}</span>, chọn món ăn yêu thích của bạn
+        </p>
       </div>
 
       {isLoading ? (

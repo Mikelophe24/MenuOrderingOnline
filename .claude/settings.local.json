@@ -19,7 +19,9 @@
       "Bash(xargs head:*)",
       "Bash(dotnet add:*)",
       "Bash(ls:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(ipconfig)",
+      "Bash(ngrok version:*)"
     ]
   }
 }

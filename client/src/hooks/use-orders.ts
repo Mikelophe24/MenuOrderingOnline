@@ -25,7 +25,7 @@ export function useOrder(id: number) {
 export function useCreateGuestOrder() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: { tableNumber: number; tableToken: string; items: GuestOrder[] }) =>
+    mutationFn: (data: { tableNumber: number; tableToken: string; guestName?: string; items: GuestOrder[] }) =>
       http.post<ApiResponse<Order>>('/guest/orders', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })

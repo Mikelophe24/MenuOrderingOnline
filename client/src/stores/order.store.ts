@@ -9,7 +9,9 @@ interface OrderState {
   cart: CartItem[]
   tableNumber: number | null
   tableToken: string | null
+  guestName: string | null
   setTable: (number: number, token: string) => void
+  setGuestName: (name: string) => void
   addToCart: (dish: Dish, quantity?: number, note?: string) => void
   removeFromCart: (dishId: number) => void
   updateQuantity: (dishId: number, quantity: number) => void
@@ -23,8 +25,10 @@ export const useOrderStore = create<OrderState>((set, get) => ({
   cart: [],
   tableNumber: null,
   tableToken: null,
+  guestName: null,
 
   setTable: (number, token) => set({ tableNumber: number, tableToken: token }),
+  setGuestName: (name) => set({ guestName: name }),
 
   addToCart: (dish, quantity = 1, note) => {
     const cart = get().cart

@@ -4,15 +4,20 @@ import { useOrderStore } from '@/stores/order.store'
 import { useCreateGuestOrder } from '@/hooks/use-orders'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function OrderPage() {
-  const { cart, tableNumber, tableToken, clearCart, getTotalPrice, updateQuantity, removeFromCart } =
+  const { cart, tableNumber, tableToken, guestName, clearCart, getTotalPrice, updateQuantity, removeFromCart } =
     useOrderStore()
   const createOrder = useCreateGuestOrder()
 
   const handlePlaceOrder = async () => {
     if (!tableNumber || !tableToken) {
       toast.error('Vui lòng quét mã QR tại bàn để đặt món')
+      return
+    }
+    if (!guestName) {
+      toast.error('Vui lòng nhập tên của bạn')
       return
     }
     if (cart.length === 0) {
@@ -24,6 +29,7 @@ export default function OrderPage() {
       {
         tableNumber,
         tableToken,
+        guestName,
         items: cart.map(({ dishId, quantity, note }) => ({ dishId, quantity, note })),
       },
       {
@@ -40,7 +46,23 @@ export default function OrderPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">Giỏ hàng</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Giỏ hàng</h1>
+        {tableNumber && (
+          <Link
+            href={`/tables/${tableNumber}`}
+            className="text-sm text-primary underline"
+          >
+            Quay lại thực đơn
+          </Link>
+        )}
+      </div>
+
+      {guestName && (
+        <p className="text-sm text-muted-foreground">
+          Khách: <span className="font-medium">{guestName}</span> — Bàn {tableNumber}
+        </p>
+      )}
 
       {cart.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">
@@ -54,7 +76,15 @@ export default function OrderPage() {
                 key={item.dishId}
                 className="flex items-center gap-4 rounded-lg border p-4"
               >
-                <div className="h-16 w-16 shrink-0 rounded-md bg-muted" />
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                  {item.dish.image ? (
+                    <img
+                      src={item.dish.image}
+                      alt={item.dish.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : null}
+                </div>
                 <div className="flex-1">
                   <h3 className="font-medium">{item.dish.name}</h3>
                   <p className="text-sm text-muted-foreground">
