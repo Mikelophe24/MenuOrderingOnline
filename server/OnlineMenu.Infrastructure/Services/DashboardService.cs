@@ -16,8 +16,8 @@ public class DashboardService : IDashboardService
 
     public async Task<DashboardData> GetDashboardDataAsync(DateTime? fromDate, DateTime? toDate)
     {
-        var from = fromDate ?? DateTime.UtcNow.AddDays(-30);
-        var to = toDate ?? DateTime.UtcNow;
+        var from = fromDate ?? DateTime.Now.AddDays(-30);
+        var to = (toDate ?? DateTime.Now.Date).Date.AddDays(1).AddTicks(-1);
 
         var orders = _context.Orders
             .Where(o => o.CreatedAt >= from && o.CreatedAt <= to && o.Status == OrderStatus.Paid);
@@ -28,6 +28,10 @@ public class DashboardService : IDashboardService
         var allOrders = _context.Orders
             .Where(o => o.CreatedAt >= from && o.CreatedAt <= to);
         var totalGuests = await allOrders.Select(o => o.TableNumber).Distinct().CountAsync();
+
+        var activeTables = await _context.Tables
+            .Where(t => t.Status == TableStatus.Occupied)
+            .CountAsync();
 
         var topDishes = await _context.OrderItems
             .Include(oi => oi.Dish)
@@ -58,6 +62,7 @@ public class DashboardService : IDashboardService
             TotalRevenue = totalRevenue,
             TotalOrders = totalOrders,
             TotalGuests = totalGuests,
+            ActiveTables = activeTables,
             TopDishes = topDishes,
             RevenueByDate = revenueByDate,
         };

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Cookies from 'js-cookie'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
@@ -54,10 +55,7 @@ const request = async <T>(method: HttpMethod, url: string, options?: RequestOpti
 
   // Add access token from cookie on client side
   if (isClient) {
-    const accessToken = document.cookie
-      .split('; ')
-      .find((row) => row.startsWith('accessToken='))
-      ?.split('=')[1]
+    const accessToken = Cookies.get('accessToken')
     if (accessToken) {
       baseHeaders['Authorization'] = `Bearer ${accessToken}`
     }

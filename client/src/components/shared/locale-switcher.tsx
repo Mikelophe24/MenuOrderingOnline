@@ -1,9 +1,9 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Cookies from 'js-cookie'
 import { useRouter } from 'next/navigation'
-import { LOCALES, type Locale } from '@/config/constants'
+import { LOCALES, DEFAULT_LOCALE, type Locale } from '@/config/constants'
 import { Globe } from 'lucide-react'
 
 const LOCALE_LABELS: Record<Locale, string> = {
@@ -14,11 +14,15 @@ const LOCALE_LABELS: Record<Locale, string> = {
 export function LocaleSwitcher() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [currentLocale, setCurrentLocale] = useState<Locale>(DEFAULT_LOCALE)
 
-  const currentLocale = (Cookies.get('locale') || 'vi') as Locale
+  useEffect(() => {
+    setCurrentLocale((Cookies.get('locale') || DEFAULT_LOCALE) as Locale)
+  }, [])
 
   const handleChange = (locale: Locale) => {
     Cookies.set('locale', locale, { path: '/' })
+    setCurrentLocale(locale)
     startTransition(() => {
       router.refresh()
     })

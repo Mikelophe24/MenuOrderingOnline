@@ -9,9 +9,11 @@ import { useCreateDish } from '@/hooks/use-dishes'
 import { useUploadImage } from '@/hooks/use-upload'
 import { useCategories } from '@/hooks/use-categories'
 import { toast } from 'sonner'
+import { useTranslations } from 'next-intl'
 import { ImagePlus } from 'lucide-react'
 
 export default function AddDishPage() {
+  const t = useTranslations()
   const router = useRouter()
   const createDish = useCreateDish()
   const uploadImage = useUploadImage()
@@ -40,7 +42,7 @@ export default function AddDishPage() {
   const onSubmit = (data: DishFormValues) => {
     createDish.mutate(data, {
       onSuccess: () => {
-        toast.success('Thêm món ăn thành công')
+        toast.success(t('manage.addDishSuccess'))
         router.push('/manage/dishes')
       },
     })
@@ -48,12 +50,12 @@ export default function AddDishPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">Thêm món ăn</h1>
+      <h1 className="text-2xl font-bold">{t('manage.addDish')}</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Image upload */}
         <div>
-          <label className="text-sm font-medium">Hình ảnh</label>
+          <label className="text-sm font-medium">{t('common.image')}</label>
           <div className="mt-1">
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 hover:bg-accent/50 transition-colors">
               {preview ? (
@@ -61,8 +63,8 @@ export default function AddDishPage() {
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <ImagePlus className="h-10 w-10" />
-                  <span className="text-sm">Click để chọn ảnh</span>
-                  <span className="text-xs">JPEG, PNG, WebP (max 5MB)</span>
+                  <span className="text-sm">{t('common.clickToSelectImage')}</span>
+                  <span className="text-xs">{t('common.imageFormats')}</span>
                 </div>
               )}
               <input
@@ -73,13 +75,13 @@ export default function AddDishPage() {
               />
             </label>
             {uploadImage.isPending && (
-              <p className="mt-1 text-sm text-muted-foreground">Đang tải ảnh lên...</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t('common.uploadingImage')}</p>
             )}
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-medium">Tên món ăn</label>
+          <label className="text-sm font-medium">{t('menu.dishName')}</label>
           <input
             {...register('name')}
             className="mt-1 w-full rounded-md border bg-background px-3 py-2"
@@ -88,7 +90,7 @@ export default function AddDishPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">Giá (VND)</label>
+          <label className="text-sm font-medium">{t('menu.priceVND')}</label>
           <input
             type="number"
             {...register('price')}
@@ -98,7 +100,7 @@ export default function AddDishPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">Mô tả</label>
+          <label className="text-sm font-medium">{t('common.description')}</label>
           <textarea
             {...register('description')}
             rows={3}
@@ -107,12 +109,12 @@ export default function AddDishPage() {
         </div>
 
         <div>
-          <label className="text-sm font-medium">Danh mục</label>
+          <label className="text-sm font-medium">{t('menu.category')}</label>
           <select
             {...register('categoryId')}
             className="mt-1 w-full rounded-md border bg-background px-3 py-2"
           >
-            <option value={0}>-- Chọn danh mục --</option>
+            <option value={0}>{t('menu.selectCategory')}</option>
             {(categoriesData?.data ?? []).map((cat: { id: number; name: string }) => (
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}

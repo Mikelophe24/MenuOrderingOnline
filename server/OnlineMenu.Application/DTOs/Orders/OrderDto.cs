@@ -6,6 +6,7 @@ public record OrderDto(
     string? GuestName,
     string Status,
     decimal TotalPrice,
+    string? ProcessedByName,
     List<OrderItemDto> OrderItems,
     DateTime CreatedAt,
     DateTime UpdatedAt
@@ -31,3 +32,5 @@ public record CreateGuestOrderRequest(
 public record GuestOrderItem(int DishId, int Quantity, string? Note);
 
 public record UpdateOrderStatusRequest(string Status);
+
+public record GuestCancelRequest(int TableNumber, string TableToken);

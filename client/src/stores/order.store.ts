@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { GuestOrder, Dish } from '@/types'
 
 interface CartItem extends GuestOrder {
@@ -21,7 +22,7 @@ interface OrderState {
   getTotalItems: () => number
 }
 
-export const useOrderStore = create<OrderState>((set, get) => ({
+export const useOrderStore = create<OrderState>()(persist((set, get) => ({
   cart: [],
   tableNumber: null,
   tableToken: null,
@@ -71,4 +72,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   getTotalItems: () =>
     get().cart.reduce((total, item) => total + item.quantity, 0),
+}), {
+  name: 'order-store',
+  storage: createJSONStorage(() => sessionStorage),
 }))

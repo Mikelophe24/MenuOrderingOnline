@@ -21,10 +21,15 @@ interface Category {
 export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: Category[] }) {
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [activeCategory, setActiveCategory] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 8
 
   const filtered = activeCategory
     ? dishes.filter((d) => d.categoryId === activeCategory)
     : dishes
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage)
+  const paginatedDishes = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   return (
     <>
@@ -32,7 +37,7 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
       {categories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => setActiveCategory(null)}
+            onClick={() => { setActiveCategory(null); setCurrentPage(1) }}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
               !activeCategory
                 ? 'bg-primary text-primary-foreground shadow-md'
@@ -44,7 +49,7 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              onClick={() => { setActiveCategory(cat.id); setCurrentPage(1) }}
               className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 activeCategory === cat.id
                   ? 'bg-primary text-primary-foreground shadow-md'
@@ -62,7 +67,7 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
         <p className="py-12 text-center text-muted-foreground">Chưa có món ăn nào.</p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((dish) => (
+          {paginatedDishes.map((dish) => (
             <button
               key={dish.id}
               onClick={() => setSelectedDish(dish)}
@@ -95,6 +100,39 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
               </div>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="rounded-md border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
+          >
+            Trước
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                currentPage === page
+                  ? 'bg-primary text-primary-foreground'
+                  : 'border hover:bg-accent'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="rounded-md border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
+          >
+            Sau
+          </button>
         </div>
       )}
 

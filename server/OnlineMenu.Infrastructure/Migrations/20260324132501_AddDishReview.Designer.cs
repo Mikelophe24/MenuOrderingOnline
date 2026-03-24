@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OnlineMenu.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using OnlineMenu.Infrastructure.Data;
 namespace OnlineMenu.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260324132501_AddDishReview")]
+    partial class AddDishReview
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -147,39 +150,6 @@ namespace OnlineMenu.Infrastructure.Migrations
                     b.ToTable("Dishes");
                 });
 
-            modelBuilder.Entity("OnlineMenu.Core.Entities.DishIngredient", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DishId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("IngredientId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("QuantityNeeded")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IngredientId");
-
-                    b.HasIndex("DishId", "IngredientId")
-                        .IsUnique();
-
-                    b.ToTable("DishIngredients");
-                });
-
             modelBuilder.Entity("OnlineMenu.Core.Entities.DishReview", b =>
                 {
                     b.Property<int>("Id")
@@ -215,41 +185,6 @@ namespace OnlineMenu.Infrastructure.Migrations
                     b.HasIndex("DishId");
 
                     b.ToTable("DishReviews");
-                });
-
-            modelBuilder.Entity("OnlineMenu.Core.Entities.Ingredient", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentStock")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MinStock")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Ingredients");
                 });
 
             modelBuilder.Entity("OnlineMenu.Core.Entities.Order", b =>
@@ -381,25 +316,6 @@ namespace OnlineMenu.Infrastructure.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("OnlineMenu.Core.Entities.DishIngredient", b =>
-                {
-                    b.HasOne("OnlineMenu.Core.Entities.Dish", "Dish")
-                        .WithMany("DishIngredients")
-                        .HasForeignKey("DishId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("OnlineMenu.Core.Entities.Ingredient", "Ingredient")
-                        .WithMany("DishIngredients")
-                        .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dish");
-
-                    b.Navigation("Ingredient");
-                });
-
             modelBuilder.Entity("OnlineMenu.Core.Entities.DishReview", b =>
                 {
                     b.HasOne("OnlineMenu.Core.Entities.Dish", "Dish")
@@ -459,14 +375,7 @@ namespace OnlineMenu.Infrastructure.Migrations
 
             modelBuilder.Entity("OnlineMenu.Core.Entities.Dish", b =>
                 {
-                    b.Navigation("DishIngredients");
-
                     b.Navigation("OrderItems");
-                });
-
-            modelBuilder.Entity("OnlineMenu.Core.Entities.Ingredient", b =>
-                {
-                    b.Navigation("DishIngredients");
                 });
 
             modelBuilder.Entity("OnlineMenu.Core.Entities.Order", b =>

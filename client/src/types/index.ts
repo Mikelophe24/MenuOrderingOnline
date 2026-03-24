@@ -102,6 +102,7 @@ export interface Order {
   guestName?: string
   status: OrderStatus
   totalPrice: number
+  processedByName?: string
   orderItems: OrderItem[]
   createdAt: string
   updatedAt: string
@@ -127,7 +128,8 @@ export interface DashboardData {
   totalRevenue: number
   totalOrders: number
   totalGuests: number
-  topDishes: { dish: Dish; orderCount: number }[]
+  activeTables: number
+  topDishes: { dishId: number; dishName: string; orderCount: number }[]
   revenueByDate: { date: string; revenue: number }[]
 }
 

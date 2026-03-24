@@ -22,7 +22,7 @@ export function useOrder(id: number) {
   })
 }
 
-export function useGuestOrders(params?: { tableNumber?: number; token?: string }) {
+export function useGuestOrders(params?: { tableNumber?: number; token?: string; guestName?: string }) {
   return useQuery({
     queryKey: ['guest-orders', params],
     queryFn: () =>
@@ -30,9 +30,21 @@ export function useGuestOrders(params?: { tableNumber?: number; token?: string }
         params: {
           tableNumber: String(params?.tableNumber),
           token: params?.token ?? '',
+          ...(params?.guestName ? { guestName: params.guestName } : {}),
         },
       }),
     enabled: !!params?.tableNumber && !!params?.token,
+  })
+}
+
+export function useCancelGuestOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, tableNumber, tableToken }: { id: number; tableNumber: number; tableToken: string }) =>
+      http.patch<ApiResponse<Order>>(`/guest/orders/${id}/cancel`, { tableNumber, tableToken }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-orders'] })
+    },
   })
 }
 
@@ -54,6 +66,8 @@ export function useDeleteOrder() {
     mutationFn: (id: number) => http.delete<ApiResponse<null>>(`/orders/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
     },
   })
 }
@@ -65,6 +79,8 @@ export function useUpdateOrderStatus() {
       http.patch<ApiResponse<Order>>(`/orders/${id}/status`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
     },
   })
 }

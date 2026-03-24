@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema, registerSchema, type LoginFormValues, type RegisterFormValues } from '@/schemas/auth.schema'
@@ -10,7 +11,7 @@ import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { UtensilsCrossed, Phone } from 'lucide-react'
 
-function LoginForm({ onSwitch }: { onSwitch: () => void }) {
+function LoginForm({ onSwitch, t }: { onSwitch: () => void; t: (key: string) => string }) {
   const loginMutation = useLogin()
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -20,8 +21,8 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <h2 className="text-xl font-bold">Đăng nhập</h2>
-        <p className="text-sm text-muted-foreground">Đăng nhập để quản lý nhà hàng</p>
+        <h2 className="text-xl font-bold">{t('auth.login')}</h2>
+        <p className="text-sm text-muted-foreground">{t('auth.loginSubtitle')}</p>
       </div>
       <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-3">
         <div>
@@ -29,7 +30,7 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
             type="email"
             {...register('email')}
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder="Email"
+            placeholder={t('auth.email')}
           />
           {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
         </div>
@@ -38,7 +39,7 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
             type="password"
             {...register('password')}
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder="Mật khẩu"
+            placeholder={t('auth.password')}
           />
           {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
         </div>
@@ -47,25 +48,25 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
           disabled={loginMutation.isPending}
           className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {loginMutation.isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {loginMutation.isPending ? t('auth.loggingIn') : t('auth.login')}
         </button>
       </form>
       <div className="relative">
         <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Hoặc</span>
+          <span className="bg-background px-2 text-muted-foreground">{t('common.or')}</span>
         </div>
       </div>
       <GoogleLoginButton />
       <p className="text-center text-sm text-muted-foreground">
-        Chưa có tài khoản?{' '}
-        <button onClick={onSwitch} className="text-primary underline">Đăng ký</button>
+        {t('auth.noAccount')}{' '}
+        <button onClick={onSwitch} className="text-primary underline">{t('auth.register')}</button>
       </p>
     </div>
   )
 }
 
-function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
+function RegisterForm({ onSwitch, t }: { onSwitch: () => void; t: (key: string) => string }) {
   const registerMutation = useRegister()
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -75,8 +76,8 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
   return (
     <div className="space-y-4">
       <div className="text-center">
-        <h2 className="text-xl font-bold">Đăng ký</h2>
-        <p className="text-sm text-muted-foreground">Tạo tài khoản nhân viên</p>
+        <h2 className="text-xl font-bold">{t('auth.register')}</h2>
+        <p className="text-sm text-muted-foreground">{t('auth.registerSubtitle')}</p>
       </div>
       <form onSubmit={handleSubmit((data) => registerMutation.mutate(data))} className="space-y-3">
         <div>
@@ -84,7 +85,7 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
             type="text"
             {...register('name')}
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder="Họ và tên"
+            placeholder={t('auth.fullName')}
           />
           {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
         </div>
@@ -93,7 +94,7 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
             type="email"
             {...register('email')}
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder="Email"
+            placeholder={t('auth.email')}
           />
           {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
         </div>
@@ -102,7 +103,7 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
             type="password"
             {...register('password')}
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder="Mật khẩu"
+            placeholder={t('auth.password')}
           />
           {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
         </div>
@@ -111,7 +112,7 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
             type="password"
             {...register('confirmPassword')}
             className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder="Xác nhận mật khẩu"
+            placeholder={t('auth.confirmPassword')}
           />
           {errors.confirmPassword && <p className="mt-1 text-xs text-destructive">{errors.confirmPassword.message}</p>}
         </div>
@@ -120,25 +121,26 @@ function RegisterForm({ onSwitch }: { onSwitch: () => void }) {
           disabled={registerMutation.isPending}
           className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {registerMutation.isPending ? 'Đang đăng ký...' : 'Đăng ký'}
+          {registerMutation.isPending ? t('auth.registering') : t('auth.register')}
         </button>
       </form>
       <div className="relative">
         <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">Hoặc</span>
+          <span className="bg-background px-2 text-muted-foreground">{t('common.or')}</span>
         </div>
       </div>
       <GoogleLoginButton />
       <p className="text-center text-sm text-muted-foreground">
-        Đã có tài khoản?{' '}
-        <button onClick={onSwitch} className="text-primary underline">Đăng nhập</button>
+        {t('auth.hasAccount')}{' '}
+        <button onClick={onSwitch} className="text-primary underline">{t('auth.login')}</button>
       </p>
     </div>
   )
 }
 
 export default function WelcomePage() {
+  const t = useTranslations()
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   return (
     <div className="min-h-screen flex flex-col">
@@ -162,25 +164,24 @@ export default function WelcomePage() {
           {/* Left: Hero text */}
           <div className="space-y-6">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-              Chào mừng đến với
+              {t('landing.welcome')}
               <span className="text-primary block mt-1">Online Menu</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-md">
-              Hệ thống gọi món trực tuyến dành cho nhà hàng.
-              Khách hàng quét QR, chọn món và đặt hàng ngay tại bàn.
+              {t('landing.description')}
             </p>
             <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-green-500" />
-                Đặt món nhanh chóng
+                {t('landing.fastOrdering')}
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-blue-500" />
-                Quản lý realtime
+                {t('landing.realtimeManagement')}
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-purple-500" />
-                Thống kê doanh thu
+                {t('landing.revenueStats')}
               </div>
             </div>
           </div>
@@ -188,9 +189,9 @@ export default function WelcomePage() {
           {/* Right: Auth form */}
           <div className="mx-auto w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
             {authMode === 'login' ? (
-              <LoginForm onSwitch={() => setAuthMode('register')} />
+              <LoginForm onSwitch={() => setAuthMode('register')} t={t} />
             ) : (
-              <RegisterForm onSwitch={() => setAuthMode('login')} />
+              <RegisterForm onSwitch={() => setAuthMode('login')} t={t} />
             )}
           </div>
         </div>

@@ -37,6 +37,19 @@ public class OrderHub : Hub
         await Clients.Group("management").SendAsync("TableStatusChanged", table);
     }
 
+    // Notify when ingredient stock changes
+    public async Task NotifyStockChanged(object ingredient)
+    {
+        await Clients.Group("management").SendAsync("StockChanged", ingredient);
+    }
+
+    // Notify when dish availability changes (auto-hide/show)
+    public async Task NotifyDishStatusChanged(object dish)
+    {
+        await Clients.Group("management").SendAsync("DishStatusChanged", dish);
+        await Clients.All.SendAsync("DishStatusChanged", dish);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         await base.OnDisconnectedAsync(exception);

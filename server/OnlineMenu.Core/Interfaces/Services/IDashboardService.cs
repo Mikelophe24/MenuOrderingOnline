@@ -10,6 +10,7 @@ public class DashboardData
     public decimal TotalRevenue { get; set; }
     public int TotalOrders { get; set; }
     public int TotalGuests { get; set; }
+    public int ActiveTables { get; set; }
     public List<TopDishItem> TopDishes { get; set; } = new();
     public List<RevenueByDate> RevenueByDate { get; set; } = new();
 }

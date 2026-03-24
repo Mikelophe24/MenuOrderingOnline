@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTables, useCreateTable, useDeleteTable, useChangeToken, useUpdateTable } from '@/hooks/use-tables'
 import { getConnection } from '@/lib/signalr'
@@ -15,13 +15,11 @@ export default function ManageTablesPage() {
   const deleteTable = useDeleteTable()
   const changeToken = useChangeToken()
   const updateTable = useUpdateTable()
-  const [showQR, setShowQR] = useState<number | null>(null)
-
   // Listen for realtime table status updates via SignalR
   useEffect(() => {
     const conn = getConnection()
-    const onTableChanged = () => refetch()
-    const onNewOrder = () => refetch()
+    const onTableChanged = () => { void refetch() }
+    const onNewOrder = () => { void refetch() }
 
     conn.on('TableStatusChanged', onTableChanged)
     conn.on('NewOrder', onNewOrder)
@@ -33,16 +31,16 @@ export default function ManageTablesPage() {
   }, [refetch])
 
   const handleDelete = (id: number, number: number) => {
-    if (!confirm(`Bạn có chắc muốn xóa bàn ${number}?`)) return
+    if (!confirm(t('manage.deleteTableConfirm', { number }))) return
     deleteTable.mutate(id, {
-      onSuccess: () => toast.success('Xóa bàn thành công'),
+      onSuccess: () => toast.success(t('manage.deleteTableSuccess')),
     })
   }
 
   const handleChangeToken = (id: number, number: number) => {
-    if (!confirm(`Đổi QR Code bàn ${number}? QR Code cũ sẽ không còn hoạt động.`)) return
+    if (!confirm(t('manage.changeQRConfirm', { number }))) return
     changeToken.mutate(id, {
-      onSuccess: () => toast.success(`Đã đổi QR Code bàn ${number}`),
+      onSuccess: () => toast.success(t('manage.changeQRSuccess', { number })),
     })
   }
 
@@ -57,17 +55,17 @@ export default function ManageTablesPage() {
           onClick={() =>
             createTable.mutate(
               { number: (data?.data?.data?.length ?? 0) + 1, capacity: 4, status: 'Available' },
-              { onSuccess: () => toast.success('Thêm bàn thành công') }
+              { onSuccess: () => toast.success(t('manage.addTableSuccess')) }
             )
           }
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
-          {t('common.add')} bàn
+          {t('manage.addTable')}
         </button>
       </div>
 
       {isLoading ? (
-        <div className="text-center text-muted-foreground">Đang tải...</div>
+        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data?.data?.data?.map((table: Table) => {
@@ -76,13 +74,13 @@ export default function ManageTablesPage() {
               <div key={table.id} className="rounded-lg border p-4 space-y-3">
                 {/* Header: Table number + Status */}
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">Bàn {table.number}</h3>
+                  <h3 className="font-semibold">{t('common.table')} {table.number}</h3>
                   <select
                     value={table.status}
                     onChange={(e) =>
                       updateTable.mutate(
                         { id: table.id, data: { number: table.number, capacity: table.capacity, status: e.target.value } },
-                        { onSuccess: () => toast.success(`Cập nhật trạng thái bàn ${table.number}`) }
+                        { onSuccess: () => toast.success(t('manage.updateTableStatus', { number: table.number })) }
                       )
                     }
                     className={`rounded-full px-2 py-1 text-xs border-none cursor-pointer ${
@@ -107,32 +105,23 @@ export default function ManageTablesPage() {
                 </p>
 
                 {/* QR Code + URL */}
-                {showQR === table.id && (
-                  <div className="space-y-2">
-                    <div className="flex justify-center p-2 bg-white rounded">
-                      <QRCodeSVG value={qrUrl} size={150} />
-                    </div>
-                    <div className="rounded bg-muted p-2">
-                      <p className="text-xs font-medium text-muted-foreground mb-1">URL:</p>
-                      <p className="text-xs break-all select-all font-mono">{qrUrl}</p>
-                    </div>
+                <div className="space-y-2">
+                  <div className="flex justify-center p-2 bg-white rounded">
+                    <QRCodeSVG value={qrUrl} size={150} />
                   </div>
-                )}
+                  <div className="rounded bg-muted p-2">
+                    <p className="text-xs break-all select-all font-mono">{qrUrl}</p>
+                  </div>
+                </div>
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setShowQR(showQR === table.id ? null : table.id)}
-                    className="flex-1 rounded-md border px-2 py-1 text-sm hover:bg-accent"
-                  >
-                    {t('table.qrCode')}
-                  </button>
                   <button
                     onClick={() => handleChangeToken(table.id, table.number)}
                     disabled={changeToken.isPending}
                     className="flex-1 rounded-md border border-orange-300 px-2 py-1 text-sm text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950"
                   >
-                    Đổi QR
+                    {t('table.changeQR')}
                   </button>
                   <button
                     onClick={() => handleDelete(table.id, table.number)}

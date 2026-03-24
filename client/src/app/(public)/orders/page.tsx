@@ -1,20 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useOrderStore } from '@/stores/order.store'
-import { useCreateGuestOrder, useGuestOrders } from '@/hooks/use-orders'
+import { useCreateGuestOrder, useGuestOrders, useCancelGuestOrder } from '@/hooks/use-orders'
+import { getConnection, startConnection } from '@/lib/signalr'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import type { Order } from '@/types'
-
-const statusLabels: Record<string, string> = {
-  Pending: 'Chờ xác nhận',
-  Processing: 'Đang chế biến',
-  Delivered: 'Đã giao',
-  Paid: 'Đã thanh toán',
-  Cancelled: 'Đã hủy',
-}
 
 const statusColors: Record<string, string> = {
   Pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
@@ -25,28 +19,58 @@ const statusColors: Record<string, string> = {
 }
 
 export default function OrderPage() {
+  const t = useTranslations()
   const { cart, tableNumber, tableToken, guestName, clearCart, getTotalPrice, updateQuantity, removeFromCart } =
     useOrderStore()
   const createOrder = useCreateGuestOrder()
+  const cancelOrder = useCancelGuestOrder()
   const { data: guestOrdersData, refetch: refetchOrders } = useGuestOrders({
     tableNumber: tableNumber ?? undefined,
     token: tableToken ?? undefined,
+    guestName: guestName ?? undefined,
   })
   const [tab, setTab] = useState<'cart' | 'orders'>('cart')
 
-  const guestOrders: Order[] = guestOrdersData?.data?.data ?? []
+  const guestOrders: Order[] = (guestOrdersData?.data ?? []).filter((o: Order) => o.status !== 'Cancelled')
+
+  const statusLabels: Record<string, string> = {
+    Pending: t('order.status.pending'),
+    Processing: t('order.status.processing'),
+    Delivered: t('order.status.delivered'),
+    Paid: t('order.status.paid'),
+    Cancelled: t('order.status.cancelled'),
+  }
+
+  // Listen for realtime order status updates via SignalR
+  useEffect(() => {
+    if (!tableNumber) return
+
+    const conn = getConnection()
+    const onStatusChanged = () => { void refetchOrders() }
+
+    conn.on('OrderStatusChanged', onStatusChanged)
+    void startConnection().then(async (c) => {
+      if (c) {
+        try { await c.invoke('JoinTableGroup', tableNumber) } catch { /* ignore */ }
+      }
+    })
+
+    return () => {
+      conn.off('OrderStatusChanged', onStatusChanged)
+    }
+  }, [tableNumber, refetchOrders])
 
   const handlePlaceOrder = async () => {
     if (!tableNumber || !tableToken) {
-      toast.error('Vui lòng quét mã QR tại bàn để đặt món')
+      toast.error(t('guest.scanQR'))
       return
     }
     if (!guestName) {
-      toast.error('Vui lòng nhập tên của bạn')
+      toast.error(t('guest.enterNameError'))
       return
     }
     if (cart.length === 0) {
-      toast.error('Giỏ hàng trống')
+      toast.error(t('guest.emptyCartError'))
       return
     }
 
@@ -59,7 +83,7 @@ export default function OrderPage() {
       },
       {
         onSuccess: () => {
-          toast.success('Đặt món thành công!')
+          toast.success(t('order.toast.placed'))
           clearCart()
           refetchOrders()
           setTab('orders')
@@ -67,7 +91,7 @@ export default function OrderPage() {
         onError: (error: unknown) => {
           const message = error instanceof Error && 'payload' in error
             ? String((error as { payload: unknown }).payload)
-            : 'Đặt món thất bại, vui lòng thử lại'
+            : t('order.toast.placeFailed')
           toast.error(message)
         },
       }
@@ -77,20 +101,20 @@ export default function OrderPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Đơn hàng</h1>
+        <h1 className="text-2xl font-bold">{t('order.title')}</h1>
         {tableNumber && (
           <Link
             href={`/tables/${tableNumber}?token=${tableToken}`}
             className="text-sm text-primary underline"
           >
-            Quay lại thực đơn
+            {t('order.backToMenu')}
           </Link>
         )}
       </div>
 
       {guestName && (
         <p className="text-sm text-muted-foreground">
-          Khách: <span className="font-medium">{guestName}</span> — Bàn {tableNumber}
+          {t('guest.guest')}: <span className="font-medium">{guestName}</span> — {t('common.table')} {tableNumber}
         </p>
       )}
 
@@ -104,7 +128,7 @@ export default function OrderPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Giỏ hàng ({cart.length})
+          {t('order.cart')} ({cart.length})
         </button>
         <button
           onClick={() => { setTab('orders'); refetchOrders() }}
@@ -114,7 +138,7 @@ export default function OrderPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Đã đặt ({guestOrders.length})
+          {t('order.ordered')} ({guestOrders.length})
         </button>
       </div>
 
@@ -123,7 +147,7 @@ export default function OrderPage() {
         <>
           {cart.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">
-              Giỏ hàng trống. Hãy chọn món ăn từ thực đơn.
+              {t('order.emptyCart')}
             </p>
           ) : (
             <>
@@ -167,7 +191,7 @@ export default function OrderPage() {
                       onClick={() => removeFromCart(item.dishId)}
                       className="text-destructive text-sm"
                     >
-                      Xóa
+                      {t('common.delete')}
                     </button>
                   </div>
                 ))}
@@ -175,7 +199,7 @@ export default function OrderPage() {
 
               <div className="border-t pt-4">
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>Tổng cộng:</span>
+                  <span>{t('order.total')}:</span>
                   <span>{formatCurrency(getTotalPrice())}</span>
                 </div>
                 <button
@@ -183,7 +207,7 @@ export default function OrderPage() {
                   disabled={createOrder.isPending}
                   className="mt-4 w-full rounded-lg bg-primary px-4 py-3 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {createOrder.isPending ? 'Đang đặt món...' : 'Đặt món'}
+                  {createOrder.isPending ? t('order.placingOrder') : t('order.placeOrder')}
                 </button>
               </div>
             </>
@@ -196,42 +220,64 @@ export default function OrderPage() {
         <>
           {guestOrders.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">
-              Chưa có đơn hàng nào.
+              {t('order.noOrders')}
             </p>
           ) : (
             <div className="space-y-4">
               {guestOrders.map((order) => (
                 <div key={order.id} className="rounded-lg border p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">Đơn #{order.id}</h3>
+                    <h3 className="font-semibold">{t('order.orderNumber')} #{order.id}</h3>
                     <span className={`rounded-full px-2 py-1 text-xs ${statusColors[order.status] ?? ''}`}>
                       {statusLabels[order.status] ?? order.status}
                     </span>
                   </div>
 
                   <div className="space-y-2">
-                    {order.orderItems.map((item) => (
+                    {order.orderItems.map((item: any) => (
                       <div key={item.id} className="flex items-center gap-3 text-sm">
                         <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
-                          {item.dish?.image ? (
-                            <img src={item.dish.image} alt={item.dish.name} className="h-full w-full object-cover" />
+                          {(item.dishImage ?? item.dish?.image) ? (
+                            <img src={item.dishImage ?? item.dish?.image} alt={item.dishName ?? item.dish?.name} className="h-full w-full object-cover" />
                           ) : null}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium">{item.dish?.name}</p>
+                          <p className="font-medium">{item.dishName ?? item.dish?.name}</p>
                           {item.note && <p className="text-xs text-muted-foreground">{item.note}</p>}
                         </div>
                         <span className="text-muted-foreground">x{item.quantity}</span>
-                        <span className="font-medium">{formatCurrency((item.dish?.price ?? 0) * item.quantity)}</span>
+                        <span className="font-medium">{formatCurrency((item.dishPrice ?? item.dish?.price ?? 0) * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="flex justify-between border-t pt-2 text-sm">
+                  <div className="flex items-center justify-between border-t pt-2 text-sm">
                     <span className="text-muted-foreground">
                       {new Date(order.createdAt).toLocaleString('vi-VN')}
                     </span>
-                    <span className="font-semibold">{formatCurrency(order.totalPrice)}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold">{formatCurrency(order.totalPrice)}</span>
+                      <button
+                        onClick={() => {
+                          if (order.status !== 'Pending') {
+                            toast.error(t('order.toast.cannotCancel'))
+                            return
+                          }
+                          if (!confirm(t('order.toast.confirmCancel'))) return
+                          cancelOrder.mutate(
+                            { id: order.id, tableNumber: tableNumber!, tableToken: tableToken! },
+                            {
+                              onSuccess: () => { toast.success(t('order.toast.cancelled')); void refetchOrders() },
+                              onError: (err: any) => toast.error(err?.payload?.message ?? err?.message ?? t('order.toast.cannotCancelError')),
+                            }
+                          )
+                        }}
+                        disabled={cancelOrder.isPending}
+                        className="rounded-md border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                      >
+                        {t('order.cancelOrder')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

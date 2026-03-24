@@ -15,4 +15,5 @@ public class Dish : BaseEntity
 
     // Navigation
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public ICollection<DishIngredient> DishIngredients { get; set; } = new List<DishIngredient>();
 }

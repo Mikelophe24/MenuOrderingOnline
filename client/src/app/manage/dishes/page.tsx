@@ -1,20 +1,35 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useDishes, useDeleteDish } from '@/hooks/use-dishes'
+import { Search } from 'lucide-react'
 import type { Dish } from '@/types'
 import { toast } from 'sonner'
 
 export default function ManageDishesPage() {
   const t = useTranslations()
+  const router = useRouter()
   const { data, isLoading } = useDishes({ limit: 100 })
   const deleteDish = useDeleteDish()
+  const [search, setSearch] = useState('')
 
-  const handleDelete = (id: number, name: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa "${name}"?`)) return
+  const allDishes: Dish[] = data?.data?.data ?? []
+  const filteredDishes = useMemo(() => {
+    if (!search.trim()) return allDishes
+    const q = search.toLowerCase()
+    return allDishes.filter((d) =>
+      d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
+    )
+  }, [allDishes, search])
+
+  const handleDelete = (e: React.MouseEvent, id: number, name: string) => {
+    e.stopPropagation()
+    if (!confirm(t('manage.deleteDishConfirm', { name }))) return
     deleteDish.mutate(id, {
-      onSuccess: () => toast.success('Xóa món ăn thành công'),
+      onSuccess: () => toast.success(t('manage.deleteDishSuccess')),
     })
   }
 
@@ -26,28 +41,39 @@ export default function ManageDishesPage() {
           href="/manage/dishes/add"
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          {t('common.add')} món ăn
+          {t('manage.addDish')}
         </Link>
       </div>
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('common.search') + '...'}
+          className="w-full rounded-md border bg-background pl-10 pr-3 py-2 text-sm"
+        />
+      </div>
+
       {isLoading ? (
-        <div className="text-center text-muted-foreground">Đang tải...</div>
+        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
       ) : (
         <div className="rounded-lg border">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left text-sm font-medium">Hình ảnh</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Tên</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Mô tả</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Giá</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Trạng thái</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Thao tác</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.image')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.description')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.price')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {data?.data?.data?.map((dish: Dish) => (
-                <tr key={dish.id} className="border-b">
+              {filteredDishes.map((dish: Dish) => (
+                <tr key={dish.id} onClick={() => router.push(`/manage/dishes/${dish.id}/edit`)} className="border-b cursor-pointer hover:bg-accent/50 transition-colors">
                   <td className="px-4 py-4">
                     <div className="h-20 w-20 overflow-hidden rounded-lg bg-muted">
                       {dish.image ? (
@@ -67,12 +93,13 @@ export default function ManageDishesPage() {
                     <div className="flex gap-2">
                       <Link
                         href={`/manage/dishes/${dish.id}/edit`}
+                        onClick={(e) => e.stopPropagation()}
                         className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
                       >
                         {t('common.edit')}
                       </Link>
                       <button
-                        onClick={() => handleDelete(dish.id, dish.name)}
+                        onClick={(e) => handleDelete(e, dish.id, dish.name)}
                         className="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
                       >
                         {t('common.delete')}

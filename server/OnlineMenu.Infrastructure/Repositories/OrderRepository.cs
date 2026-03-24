@@ -27,5 +27,6 @@ public class OrderRepository : Repository<Order>, IOrderRepository
     public async Task<Order?> GetWithItemsAsync(int id)
         => await _dbSet
             .Include(o => o.OrderItems).ThenInclude(oi => oi.Dish)
+            .Include(o => o.ProcessedBy)
             .FirstOrDefaultAsync(o => o.Id == id);
 }

@@ -13,6 +13,9 @@ public class AppDbContext : DbContext
     public DbSet<Table> Tables => Set<Table>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<DishReview> DishReviews => Set<DishReview>();
+    public DbSet<Ingredient> Ingredients => Set<Ingredient>();
+    public DbSet<DishIngredient> DishIngredients => Set<DishIngredient>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,6 +93,32 @@ public class AppDbContext : DbContext
                   .WithMany(d => d.OrderItems)
                   .HasForeignKey(e => e.DishId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Ingredient
+        modelBuilder.Entity<Ingredient>(entity =>
+        {
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Unit).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CurrentStock).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.MinStock).HasColumnType("decimal(18,2)");
+        });
+
+        // DishIngredient
+        modelBuilder.Entity<DishIngredient>(entity =>
+        {
+            entity.HasIndex(e => new { e.DishId, e.IngredientId }).IsUnique();
+            entity.Property(e => e.QuantityNeeded).HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Dish)
+                  .WithMany(d => d.DishIngredients)
+                  .HasForeignKey(e => e.DishId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Ingredient)
+                  .WithMany(i => i.DishIngredients)
+                  .HasForeignKey(e => e.IngredientId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
