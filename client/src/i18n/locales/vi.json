@@ -1,0 +1,77 @@
+{
+  "common": {
+    "appName": "Online Menu",
+    "loading": "Đang tải...",
+    "error": "Có lỗi xảy ra",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "add": "Thêm",
+    "search": "Tìm kiếm",
+    "confirm": "Xác nhận",
+    "back": "Quay lại",
+    "actions": "Thao tác",
+    "status": "Trạng thái",
+    "noData": "Không có dữ liệu"
+  },
+  "auth": {
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "register": "Đăng ký",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "forgotPassword": "Quên mật khẩu?",
+    "loginWithGoogle": "Đăng nhập với Google",
+    "changePassword": "Đổi mật khẩu"
+  },
+  "menu": {
+    "title": "Thực đơn",
+    "category": "Danh mục",
+    "addToCart": "Thêm vào giỏ",
+    "viewDetail": "Xem chi tiết"
+  },
+  "order": {
+    "title": "Đơn hàng",
+    "myOrders": "Đơn hàng của tôi",
+    "cart": "Giỏ hàng",
+    "placeOrder": "Đặt món",
+    "totalPrice": "Tổng tiền",
+    "quantity": "Số lượng",
+    "note": "Ghi chú",
+    "status": {
+      "pending": "Chờ xử lý",
+      "processing": "Đang xử lý",
+      "delivered": "Đã giao",
+      "paid": "Đã thanh toán",
+      "cancelled": "Đã hủy"
+    }
+  },
+  "manage": {
+    "dashboard": "Tổng quan",
+    "orders": "Quản lý đơn hàng",
+    "tables": "Quản lý bàn ăn",
+    "dishes": "Quản lý món ăn",
+    "employees": "Quản lý nhân viên",
+    "account": "Tài khoản",
+    "settings": "Cài đặt"
+  },
+  "dashboard": {
+    "totalRevenue": "Tổng doanh thu",
+    "totalOrders": "Tổng đơn hàng",
+    "totalGuests": "Lượng khách",
+    "topDishes": "Món ăn được gọi nhiều nhất",
+    "revenueChart": "Biểu đồ doanh thu"
+  },
+  "table": {
+    "number": "Số bàn",
+    "capacity": "Số chỗ ngồi",
+    "status": {
+      "available": "Trống",
+      "occupied": "Đang sử dụng",
+      "reserved": "Đã đặt trước"
+    },
+    "qrCode": "Mã QR",
+    "changeQR": "Đổi QR Code"
+  }
+}

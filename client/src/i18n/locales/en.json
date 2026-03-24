@@ -1,0 +1,77 @@
+{
+  "common": {
+    "appName": "Online Menu",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "confirm": "Confirm",
+    "back": "Back",
+    "actions": "Actions",
+    "status": "Status",
+    "noData": "No data"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "loginWithGoogle": "Login with Google",
+    "changePassword": "Change password"
+  },
+  "menu": {
+    "title": "Menu",
+    "category": "Category",
+    "addToCart": "Add to cart",
+    "viewDetail": "View detail"
+  },
+  "order": {
+    "title": "Orders",
+    "myOrders": "My orders",
+    "cart": "Cart",
+    "placeOrder": "Place order",
+    "totalPrice": "Total",
+    "quantity": "Quantity",
+    "note": "Note",
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "delivered": "Delivered",
+      "paid": "Paid",
+      "cancelled": "Cancelled"
+    }
+  },
+  "manage": {
+    "dashboard": "Dashboard",
+    "orders": "Order management",
+    "tables": "Table management",
+    "dishes": "Dish management",
+    "employees": "Employee management",
+    "account": "Account",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "totalRevenue": "Total Revenue",
+    "totalOrders": "Total Orders",
+    "totalGuests": "Total Guests",
+    "topDishes": "Top Dishes",
+    "revenueChart": "Revenue Chart"
+  },
+  "table": {
+    "number": "Table Number",
+    "capacity": "Capacity",
+    "status": {
+      "available": "Available",
+      "occupied": "Occupied",
+      "reserved": "Reserved"
+    },
+    "qrCode": "QR Code",
+    "changeQR": "Change QR Code"
+  }
+}

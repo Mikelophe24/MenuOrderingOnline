@@ -1,0 +1,29 @@
+# Dependencies
+client/node_modules/
+client/.next/
+client/out/
+
+# Environment
+client/.env.local
+client/.env.*.local
+
+# .NET
+server/**/bin/
+server/**/obj/
+server/**/.vs/
+server/**/*.user
+*.suo
+*.cache
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
