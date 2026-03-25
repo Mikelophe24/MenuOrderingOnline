@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Cookies from 'js-cookie'
+import { getRefreshToken, setTokens, removeTokens } from '@/lib/tokens'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
@@ -33,8 +34,52 @@ class EntityError extends HttpError {
 }
 
 let clientLogoutRequest: Promise<Response> | null = null
+let refreshTokenPromise: Promise<boolean> | null = null
 
 const isClient = typeof window !== 'undefined'
+
+async function tryRefreshToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return false
+
+  // Deduplicate: if a refresh is already in progress, wait for it
+  if (refreshTokenPromise) return refreshTokenPromise
+
+  refreshTokenPromise = (async () => {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      })
+
+      if (!res.ok) return false
+
+      const data = await res.json()
+      const { accessToken, refreshToken: newRefreshToken } = data.data
+      setTokens(accessToken, newRefreshToken)
+      return true
+    } catch {
+      return false
+    } finally {
+      refreshTokenPromise = null
+    }
+  })()
+
+  return refreshTokenPromise
+}
+
+function forceLogout() {
+  if (clientLogoutRequest) return
+  clientLogoutRequest = fetch('/api/auth', { method: 'DELETE' })
+  clientLogoutRequest
+    .finally(() => {
+      removeTokens()
+      clientLogoutRequest = null
+      location.href = '/'
+    })
+}
 
 const request = async <T>(method: HttpMethod, url: string, options?: RequestOptions): Promise<T> => {
   const baseUrl = (options?.baseUrl ?? process.env.NEXT_PUBLIC_API_URL) || ''
@@ -53,7 +98,6 @@ const request = async <T>(method: HttpMethod, url: string, options?: RequestOpti
 
   const baseHeaders = headers as Record<string, string>
 
-  // Add access token from cookie on client side
   if (isClient) {
     const accessToken = Cookies.get('accessToken')
     if (accessToken) {
@@ -67,36 +111,42 @@ const request = async <T>(method: HttpMethod, url: string, options?: RequestOpti
     body: options?.body ? JSON.stringify(options.body) : undefined,
   }
 
-  const response = await fetch(fullUrl.toString(), config)
+  let response = await fetch(fullUrl.toString(), config)
+
+  // On 401: try refresh token before giving up
+  const isAuthEndpoint = url.startsWith('/auth/login') || url.startsWith('/auth/register') || url.startsWith('/auth/refresh')
+  if (response.status === AUTHENTICATION_ERROR_STATUS && !isAuthEndpoint && isClient) {
+    const refreshed = await tryRefreshToken()
+
+    if (refreshed) {
+      // Retry the original request with the new access token
+      const newAccessToken = Cookies.get('accessToken')
+      if (newAccessToken) {
+        baseHeaders['Authorization'] = `Bearer ${newAccessToken}`
+      }
+      response = await fetch(fullUrl.toString(), { ...config, headers: baseHeaders })
+    }
+
+    // If refresh failed or retry still 401, force logout
+    if (response.status === AUTHENTICATION_ERROR_STATUS) {
+      forceLogout()
+      throw new HttpError(401, 'Session expired')
+    }
+  }
+
+  // Server-side 401: redirect to login
+  if (response.status === AUTHENTICATION_ERROR_STATUS && !isAuthEndpoint && !isClient) {
+    const accessToken = (baseHeaders['Authorization'] as string)?.split(' ')[1]
+    redirect(`/logout?accessToken=${accessToken}`)
+  }
 
   const text = await response.text()
   const payload = text ? JSON.parse(text) : null
 
   if (!response.ok) {
-    // Only auto-logout on 401 for authenticated API calls.
-    // Skip for auth endpoints (login, register, refresh) where 401 means wrong credentials.
-    const isAuthEndpoint = url.startsWith('/auth/login') || url.startsWith('/auth/register') || url.startsWith('/auth/refresh')
-    if (response.status === AUTHENTICATION_ERROR_STATUS && !isAuthEndpoint) {
-      if (isClient) {
-        if (!clientLogoutRequest) {
-          clientLogoutRequest = fetch('/api/auth', { method: 'DELETE' })
-          try {
-            await clientLogoutRequest
-          } finally {
-            clientLogoutRequest = null
-            location.href = '/'
-          }
-        }
-      } else {
-        const accessToken = (baseHeaders['Authorization'] as string)?.split(' ')[1]
-        redirect(`/logout?accessToken=${accessToken}`)
-      }
-    }
-
     if (response.status === 422) {
       throw new EntityError(payload)
     }
-
     throw new HttpError(response.status, payload?.message || `HTTP Error: ${response.status}`)
   }
 

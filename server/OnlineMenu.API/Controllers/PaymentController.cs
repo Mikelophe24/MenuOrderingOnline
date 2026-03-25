@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.SignalR;
 using OnlineMenu.API.Extensions;
 using OnlineMenu.API.Hubs;
 using OnlineMenu.Application.DTOs;
+using Microsoft.EntityFrameworkCore;
 using OnlineMenu.Core.Enums;
 using OnlineMenu.Core.Interfaces.Repositories;
+using OnlineMenu.Infrastructure.Data;
 
 namespace OnlineMenu.API.Controllers;
 
@@ -19,19 +21,22 @@ public class PaymentController : ControllerBase
     private readonly IHubContext<OrderHub> _hubContext;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PaymentController> _logger;
+    private readonly AppDbContext _context;
 
     public PaymentController(
         IOrderRepository orderRepo,
         ITableRepository tableRepo,
         IHubContext<OrderHub> hubContext,
         IConfiguration configuration,
-        ILogger<PaymentController> logger)
+        ILogger<PaymentController> logger,
+        AppDbContext context)
     {
         _orderRepo = orderRepo;
         _tableRepo = tableRepo;
         _hubContext = hubContext;
         _configuration = configuration;
         _logger = logger;
+        _context = context;
     }
 
     /// <summary>
@@ -99,9 +104,19 @@ public class PaymentController : ControllerBase
                 continue;
             }
 
-            // Mark order as Paid
-            order.Status = OrderStatus.Paid;
-            await _orderRepo.UpdateAsync(order);
+            // Atomic status update: only mark as Paid if not already Paid/Cancelled
+            // This prevents race conditions from duplicate webhook calls
+            var updated = await _context.Orders
+                .Where(o => o.Id == orderId && o.Status != OrderStatus.Paid && o.Status != OrderStatus.Cancelled)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(o => o.Status, OrderStatus.Paid)
+                    .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
+
+            if (updated == 0)
+            {
+                _logger.LogInformation("Payment webhook: order {OrderId} already processed (race condition avoided)", orderId);
+                continue;
+            }
 
             await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
 

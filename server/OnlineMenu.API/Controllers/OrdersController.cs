@@ -85,6 +85,12 @@ public class OrdersController : ControllerBase
     [HttpPost("guest/orders")]
     public async Task<IActionResult> CreateGuestOrder([FromBody] CreateGuestOrderRequest request)
     {
+        if (request.Items == null || request.Items.Count == 0)
+            return BadRequest(ApiResponse<object>.Fail("Order must have at least one item"));
+
+        if (request.Items.Any(i => i.Quantity <= 0))
+            return BadRequest(ApiResponse<object>.Fail("Quantity must be greater than 0"));
+
         var table = await _tableRepo.GetByNumberAsync(request.TableNumber);
         if (table == null || table.Token != request.TableToken)
             return BadRequest(ApiResponse<object>.Fail("Invalid table or token"));
@@ -189,6 +195,7 @@ public class OrdersController : ControllerBase
         var order = await _orderRepo.GetWithItemsAsync(id);
         if (order == null) return NotFound(ApiResponse<object>.Fail("Order not found", 404));
 
+        var previousStatus = order.Status;
         order.Status = Enum.Parse<OrderStatus>(request.Status);
         var userIdClaim = User.FindFirst("userId")?.Value;
         if (int.TryParse(userIdClaim, out var userId))
@@ -197,8 +204,8 @@ public class OrdersController : ControllerBase
         }
         await _orderRepo.UpdateAsync(order);
 
-        // Deduct stock when order moves to Processing
-        if (order.Status == OrderStatus.Processing)
+        // Deduct stock only when transitioning INTO Processing (not if already Processing)
+        if (order.Status == OrderStatus.Processing && previousStatus != OrderStatus.Processing)
         {
             foreach (var item in order.OrderItems)
             {
@@ -218,6 +225,27 @@ public class OrdersController : ControllerBase
             await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
 
             // Notify stock changed
+            await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
+        }
+
+        // Restore stock when cancelling an order that was already Processing
+        if (order.Status == OrderStatus.Cancelled && previousStatus == OrderStatus.Processing)
+        {
+            foreach (var item in order.OrderItems)
+            {
+                var dishIngredients = await _context.DishIngredients
+                    .Where(di => di.DishId == item.DishId)
+                    .Include(di => di.Ingredient)
+                    .ToListAsync();
+
+                foreach (var di in dishIngredients)
+                {
+                    di.Ingredient.CurrentStock += di.QuantityNeeded * item.Quantity;
+                }
+            }
+            await _context.SaveChangesAsync();
+
+            await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
             await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
         }
 
