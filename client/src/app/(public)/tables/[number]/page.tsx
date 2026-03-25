@@ -91,7 +91,7 @@ export default function TableMenuPage() {
     }
   }, [queryClient])
 
-  const allDishes: Dish[] = data?.data?.data?.data ?? data?.data?.data ?? []
+  const allDishes: Dish[] = (data as any)?.data?.data?.data ?? (data as any)?.data?.data ?? data?.data?.data ?? []
   const [search, setSearch] = useState('')
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const dishes = useMemo(() => {

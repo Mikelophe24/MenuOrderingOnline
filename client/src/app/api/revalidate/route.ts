@@ -6,6 +6,6 @@ export async function POST(request: Request) {
   if (!tag || typeof tag !== 'string') {
     return NextResponse.json({ message: 'Missing tag' }, { status: 400 })
   }
-  revalidateTag(tag)
+  ;(revalidateTag as (tag: string) => void)(tag)
   return NextResponse.json({ revalidated: true })
 }

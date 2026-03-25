@@ -45,7 +45,14 @@
       "WebFetch(domain:www.snapcalorie.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:next-intl.dev)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(node -e \"console.log\\(require\\(''next/package.json''\\).version\\)\")",
+      "Bash(npm outdated:*)",
+      "Bash(npm info:*)",
+      "Bash(node -e \":*)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet package:*)"
     ]
   }
 }

@@ -63,7 +63,7 @@ export default function ManageTablesPage() {
                     value={table.status}
                     onChange={(e) =>
                       updateTable.mutate(
-                        { id: table.id, data: { number: table.number, capacity: table.capacity, status: e.target.value } },
+                        { id: table.id, data: { number: table.number, capacity: table.capacity, status: e.target.value as 'Available' | 'Occupied' | 'Reserved' } },
                         { onSuccess: () => toast.success(t('manage.updateTableStatus', { number: table.number })) }
                       )
                     }
