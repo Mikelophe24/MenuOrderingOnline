@@ -219,7 +219,7 @@ export function DishGrid({ dishes, categories }: { dishes: DishGridDish[]; categ
 
                 {/* Nutrition stats */}
                 {(selectedDish.calories || selectedDish.protein || selectedDish.carbs) && (
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap justify-between gap-2">
                     {selectedDish.calories != null && (
                       <div className="flex items-center gap-2 rounded-lg bg-orange-500/10 px-3 py-2">
                         <Flame className="h-4 w-4 text-orange-500" />
