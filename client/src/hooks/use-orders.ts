@@ -72,6 +72,13 @@ export function useDeleteOrder() {
   })
 }
 
+export function usePaymentQR() {
+  return useMutation({
+    mutationFn: (orderId: number) =>
+      http.post<ApiResponse<{ qrDataURL: string; qrCode: string; orderId: number; amount: number; addInfo: string }>>(`/orders/${orderId}/payment-qr`, {}),
+  })
+}
+
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient()
   return useMutation({

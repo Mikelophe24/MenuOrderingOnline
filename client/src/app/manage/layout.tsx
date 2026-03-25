@@ -12,7 +12,7 @@ import { getAccessToken } from '@/lib/tokens'
 import { startConnection, stopConnection, getConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Bell } from 'lucide-react'
+import { Bell, CreditCard } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Order } from '@/types'
 
@@ -87,6 +87,27 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         showNewOrderNotification(order)
       })
 
+      conn.on('PaymentReceived', (order: Order) => {
+        toast.success(t('order.payment.received', { table: order.tableNumber, amount: order.totalPrice.toLocaleString('vi-VN') }), {
+          duration: 8000,
+          action: {
+            label: t('order.title'),
+            onClick: () => router.push('/manage/orders'),
+          },
+        })
+        playNotificationSound()
+        queryClient.invalidateQueries({ queryKey: ['orders'] })
+        queryClient.invalidateQueries({ queryKey: ['tables'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Online Menu - Thanh toan', {
+            body: `Ban ${order.tableNumber} da thanh toan ${order.totalPrice.toLocaleString('vi-VN')}d`,
+            icon: '/favicon.ico',
+          })
+        }
+      })
+
       conn.on('StockChanged', () => {
         queryClient.invalidateQueries({ queryKey: ['ingredients'] })
       })
@@ -117,6 +138,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       cancelled = true
       const conn = getConnection()
       conn.off('NewOrder')
+      conn.off('PaymentReceived')
       conn.off('StockChanged')
       conn.off('DishStatusChanged')
       stopConnection()

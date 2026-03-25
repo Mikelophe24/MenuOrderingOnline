@@ -99,6 +99,17 @@
       "cannotCancel": "Can only cancel pending orders",
       "confirmCancel": "Are you sure you want to cancel this order?",
       "cannotCancelError": "Cannot cancel order"
+    },
+    "payment": {
+      "title": "Bank Transfer Payment",
+      "scanToPay": "Scan QR code to pay",
+      "amount": "Amount",
+      "content": "Transfer content",
+      "close": "Close",
+      "payOnline": "Pay via QR",
+      "generating": "Generating QR...",
+      "failed": "Failed to generate payment QR",
+      "received": "Table {table} paid {amount}d"
     }
   },
   "guest": {

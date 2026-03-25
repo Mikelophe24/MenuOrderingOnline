@@ -76,6 +76,9 @@ builder.Services.AddCors(options =>
 // ===== SignalR =====
 builder.Services.AddSignalR();
 
+// ===== HttpClient for VietQR =====
+builder.Services.AddHttpClient();
+
 // ===== Controllers =====
 builder.Services.AddControllers();
 
@@ -125,5 +128,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<OrderHub>("/hubs/order");
+
 
 app.Run();

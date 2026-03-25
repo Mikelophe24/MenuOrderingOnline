@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useOrders, useUpdateOrderStatus, useDeleteOrder } from '@/hooks/use-orders'
+import { useOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
+import { formatCurrency } from '@/lib/utils'
 import { getConnection, startConnection } from '@/lib/signalr'
 import { OrderStatus, type Order } from '@/types'
 import { toast } from 'sonner'
-import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard } from 'lucide-react'
+import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X } from 'lucide-react'
 
 export default function ManageOrdersPage() {
   const t = useTranslations()
@@ -14,6 +15,8 @@ export default function ManageOrdersPage() {
   const { data, isLoading, refetch } = useOrders({ page, limit: 50 })
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
+  const paymentQR = usePaymentQR()
+  const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string } | null>(null)
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -101,6 +104,13 @@ export default function ManageOrdersPage() {
     deleteOrder.mutate(orderId, {
       onSuccess: () => { toast.success(t('order.toast.deleted')); void refetch() },
       onError: () => { toast.error(t('order.toast.cannotDeletePaid')) },
+    })
+  }
+
+  const handlePaymentQR = (orderId: number) => {
+    paymentQR.mutate(orderId, {
+      onSuccess: (res) => setQrData(res.data),
+      onError: () => toast.error(t('order.payment.failed')),
     })
   }
 
@@ -324,13 +334,25 @@ export default function ManageOrdersPage() {
                             {new Date(order.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
                           </td>
                           <td className="px-4 py-3 align-top" rowSpan={rowSpan}>
-                            <button
-                              onClick={() => handleDelete(order.id)}
-                              disabled={deleteOrder.isPending}
-                              className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
-                            >
-                              {t('common.delete')}
-                            </button>
+                            <div className="flex gap-1">
+                              {order.status !== 'Paid' && order.status !== 'Cancelled' && (
+                                <button
+                                  onClick={() => handlePaymentQR(order.id)}
+                                  disabled={paymentQR.isPending}
+                                  className="rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                                  title={t('order.payment.payOnline')}
+                                >
+                                  <QrCode className="h-4 w-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDelete(order.id)}
+                                disabled={deleteOrder.isPending}
+                                className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                              >
+                                {t('common.delete')}
+                              </button>
+                            </div>
                           </td>
                         </>
                       )}
@@ -367,19 +389,51 @@ export default function ManageOrdersPage() {
                       {new Date(order.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleDelete(order.id)}
-                        disabled={deleteOrder.isPending}
-                        className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
-                      >
-                        {t('common.delete')}
-                      </button>
+                      <div className="flex gap-1">
+                        {order.status !== 'Paid' && order.status !== 'Cancelled' && (
+                          <button
+                            onClick={() => handlePaymentQR(order.id)}
+                            disabled={paymentQR.isPending}
+                            className="rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                            title={t('order.payment.payOnline')}
+                          >
+                            <QrCode className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(order.id)}
+                          disabled={deleteOrder.isPending}
+                          className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                        >
+                          {t('common.delete')}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Payment QR Dialog */}
+      {qrData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setQrData(null)}>
+          <div className="relative mx-4 w-full max-w-sm rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setQrData(null)} className="absolute right-3 top-3 rounded-md p-1 hover:bg-accent">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="space-y-4 text-center">
+              <h3 className="text-lg font-bold">{t('order.payment.title')}</h3>
+              <p className="text-sm text-muted-foreground">{t('order.payment.scanToPay')}</p>
+              <img src={qrData.qrDataURL} alt="VietQR" className="mx-auto rounded-lg" />
+              <div className="space-y-1 text-sm">
+                <p>{t('order.payment.amount')}: <span className="font-bold text-primary">{formatCurrency(qrData.amount)}</span></p>
+                <p>{t('order.payment.content')}: <span className="font-mono font-medium">{qrData.addInfo}</span></p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

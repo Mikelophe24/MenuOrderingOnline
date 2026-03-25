@@ -99,6 +99,17 @@
       "cannotCancel": "Chỉ có thể hủy đơn hàng đang chờ xác nhận",
       "confirmCancel": "Bạn có chắc muốn hủy đơn hàng này?",
       "cannotCancelError": "Không thể hủy đơn hàng"
+    },
+    "payment": {
+      "title": "Thanh toán chuyển khoản",
+      "scanToPay": "Quét mã QR để thanh toán",
+      "amount": "Số tiền",
+      "content": "Nội dung CK",
+      "close": "Đóng",
+      "payOnline": "Thanh toán QR",
+      "generating": "Đang tạo QR...",
+      "failed": "Không thể tạo mã QR thanh toán",
+      "received": "Bàn {table} đã thanh toán {amount}đ"
     }
   },
   "guest": {

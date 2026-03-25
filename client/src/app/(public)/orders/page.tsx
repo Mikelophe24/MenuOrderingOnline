@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useOrderStore } from '@/stores/order.store'
-import { useCreateGuestOrder, useGuestOrders, useCancelGuestOrder } from '@/hooks/use-orders'
+import { useCreateGuestOrder, useGuestOrders, useCancelGuestOrder, usePaymentQR } from '@/hooks/use-orders'
 import { getConnection, startConnection } from '@/lib/signalr'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { QrCode, X } from 'lucide-react'
 import type { Order } from '@/types'
 
 const statusColors: Record<string, string> = {
@@ -29,6 +30,8 @@ export default function OrderPage() {
     token: tableToken ?? undefined,
     guestName: guestName ?? undefined,
   })
+  const paymentQR = usePaymentQR()
+  const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string } | null>(null)
   const [tab, setTab] = useState<'cart' | 'orders'>('cart')
 
   const guestOrders: Order[] = (guestOrdersData?.data ?? []).filter((o: Order) => o.status !== 'Cancelled')
@@ -257,6 +260,21 @@ export default function OrderPage() {
                     </span>
                     <div className="flex items-center gap-3">
                       <span className="font-semibold">{formatCurrency(order.totalPrice)}</span>
+                      {order.status !== 'Paid' && order.status !== 'Cancelled' && (
+                        <button
+                          onClick={() => {
+                            paymentQR.mutate(order.id, {
+                              onSuccess: (res) => setQrData(res.data),
+                              onError: () => toast.error(t('order.payment.failed')),
+                            })
+                          }}
+                          disabled={paymentQR.isPending}
+                          className="flex items-center gap-1 rounded-md border border-green-300 px-3 py-1 text-xs text-green-600 hover:bg-green-50 disabled:opacity-40 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950"
+                        >
+                          <QrCode className="h-3.5 w-3.5" />
+                          {t('order.payment.payOnline')}
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           if (order.status !== 'Pending') {
@@ -284,6 +302,26 @@ export default function OrderPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Payment QR Dialog */}
+      {qrData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setQrData(null)}>
+          <div className="relative mx-4 w-full max-w-sm rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setQrData(null)} className="absolute right-3 top-3 rounded-md p-1 hover:bg-accent">
+              <X className="h-5 w-5" />
+            </button>
+            <div className="space-y-4 text-center">
+              <h3 className="text-lg font-bold">{t('order.payment.title')}</h3>
+              <p className="text-sm text-muted-foreground">{t('order.payment.scanToPay')}</p>
+              <img src={qrData.qrDataURL} alt="VietQR" className="mx-auto rounded-lg" />
+              <div className="space-y-1 text-sm">
+                <p>{t('order.payment.amount')}: <span className="font-bold text-primary">{formatCurrency(qrData.amount)}</span></p>
+                <p>{t('order.payment.content')}: <span className="font-mono font-medium">{qrData.addInfo}</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

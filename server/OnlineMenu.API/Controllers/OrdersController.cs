@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -20,19 +22,25 @@ public class OrdersController : ControllerBase
     private readonly IDishRepository _dishRepo;
     private readonly IHubContext<OrderHub> _hubContext;
     private readonly Infrastructure.Data.AppDbContext _context;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
 
     public OrdersController(
         IOrderRepository orderRepo,
         ITableRepository tableRepo,
         IDishRepository dishRepo,
         IHubContext<OrderHub> hubContext,
-        Infrastructure.Data.AppDbContext context)
+        Infrastructure.Data.AppDbContext context,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration)
     {
         _orderRepo = orderRepo;
         _tableRepo = tableRepo;
         _dishRepo = dishRepo;
         _hubContext = hubContext;
         _context = context;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
     }
 
     [Authorize(Roles = "Owner,Employee")]
@@ -273,6 +281,56 @@ public class OrdersController : ControllerBase
         await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
 
         return Ok(ApiResponse<OrderDto>.Success(orderDto, "Status updated"));
+    }
+
+    [HttpPost("orders/{id}/payment-qr")]
+    public async Task<IActionResult> GeneratePaymentQR(int id)
+    {
+        var order = await _orderRepo.GetWithItemsAsync(id);
+        if (order == null) return NotFound(ApiResponse<object>.Fail("Order not found", 404));
+
+        var vietQR = _configuration.GetSection("VietQR");
+        var client = _httpClientFactory.CreateClient();
+
+        var requestBody = new
+        {
+            accountNo = vietQR["AccountNo"],
+            accountName = vietQR["AccountName"],
+            acqId = int.Parse(vietQR["AcqId"]!),
+            amount = (int)order.TotalPrice,
+            addInfo = $"DH{order.Id} Ban{order.TableNumber}",
+            format = "text",
+            template = "compact2"
+        };
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.vietqr.io/v2/generate");
+        request.Headers.Add("x-client-id", vietQR["ClientId"]);
+        request.Headers.Add("x-api-key", vietQR["ApiKey"]);
+        request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+        var response = await client.SendAsync(request);
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+            return BadRequest(ApiResponse<object>.Fail("Failed to generate VietQR"));
+
+        var qrResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+        var code = qrResponse.GetProperty("code").GetString();
+        if (code != "00")
+            return BadRequest(ApiResponse<object>.Fail("VietQR API error"));
+
+        var data = qrResponse.GetProperty("data");
+        var qrDataURL = data.GetProperty("qrDataURL").GetString();
+        var qrCode = data.GetProperty("qrCode").GetString();
+
+        return Ok(ApiResponse<object>.Success(new
+        {
+            qrDataURL,
+            qrCode,
+            orderId = order.Id,
+            amount = (int)order.TotalPrice,
+            addInfo = $"DH{order.Id} Ban{order.TableNumber}"
+        }));
     }
 
     [Authorize(Roles = "Owner,Employee")]
