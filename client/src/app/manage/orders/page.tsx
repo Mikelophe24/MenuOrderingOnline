@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
 import { useQueryClient } from '@tanstack/react-query'
@@ -17,7 +17,8 @@ export default function ManageOrdersPage() {
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
   const paymentQR = usePaymentQR()
-  const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string } | null>(null)
+  const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string; orderId?: number } | null>(null)
+  const qrOrderIdRef = useRef<number | null>(null)
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -33,16 +34,26 @@ export default function ManageOrdersPage() {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     }
 
+    const onPaymentReceived = (order: Order) => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      // Auto-close QR dialog if this is the order being paid
+      if (qrOrderIdRef.current === order.id) {
+        toast.success(t('order.payment.paymentSuccess'))
+        setQrData(null)
+        qrOrderIdRef.current = null
+      }
+    }
+
     conn.on('NewOrder', onUpdate)
     conn.on('OrderStatusChanged', onUpdate)
-    conn.on('PaymentReceived', onUpdate)
+    conn.on('PaymentReceived', onPaymentReceived)
 
     return () => {
       conn.off('NewOrder', onUpdate)
       conn.off('OrderStatusChanged', onUpdate)
-      conn.off('PaymentReceived', onUpdate)
+      conn.off('PaymentReceived', onPaymentReceived)
     }
-  }, [queryClient])
+  }, [queryClient, t])
 
   const allOrders: Order[] = data?.data?.data ?? []
 
@@ -113,7 +124,10 @@ export default function ManageOrdersPage() {
 
   const handlePaymentQR = (orderId: number) => {
     paymentQR.mutate(orderId, {
-      onSuccess: (res) => setQrData(res.data),
+      onSuccess: (res) => {
+        setQrData({ ...res.data, orderId })
+        qrOrderIdRef.current = orderId
+      },
       onError: () => toast.error(t('order.payment.failed')),
     })
   }

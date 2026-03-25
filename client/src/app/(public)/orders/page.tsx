@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useOrderStore } from '@/stores/order.store'
 import { useCreateGuestOrder, useGuestOrders, useCancelGuestOrder, usePaymentQR } from '@/hooks/use-orders'
@@ -31,7 +31,8 @@ export default function OrderPage() {
     guestName: guestName ?? undefined,
   })
   const paymentQR = usePaymentQR()
-  const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string } | null>(null)
+  const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string; orderId?: number } | null>(null)
+  const qrOrderIdRef = useRef<number | null>(null)
   const [tab, setTab] = useState<'cart' | 'orders'>('cart')
 
   const guestOrders: Order[] = (guestOrdersData?.data ?? []).filter((o: Order) => o.status !== 'Cancelled')
@@ -49,7 +50,15 @@ export default function OrderPage() {
     if (!tableNumber) return
 
     const conn = getConnection()
-    const onStatusChanged = () => { void refetchOrders() }
+    const onStatusChanged = (order: Order) => {
+      void refetchOrders()
+      // Auto-close QR and show toast when payment succeeds
+      if (order.status === 'Paid' && qrOrderIdRef.current === order.id) {
+        toast.success(t('order.payment.paymentSuccess'))
+        setQrData(null)
+        qrOrderIdRef.current = null
+      }
+    }
 
     conn.on('OrderStatusChanged', onStatusChanged)
     void startConnection().then(async (c) => {
@@ -61,7 +70,7 @@ export default function OrderPage() {
     return () => {
       conn.off('OrderStatusChanged', onStatusChanged)
     }
-  }, [tableNumber, refetchOrders])
+  }, [tableNumber, refetchOrders, t])
 
   const handlePlaceOrder = async () => {
     if (!tableNumber || !tableToken) {
@@ -264,7 +273,10 @@ export default function OrderPage() {
                         <button
                           onClick={() => {
                             paymentQR.mutate(order.id, {
-                              onSuccess: (res) => setQrData(res.data),
+                              onSuccess: (res) => {
+                                setQrData({ ...res.data, orderId: order.id })
+                                qrOrderIdRef.current = order.id
+                              },
                               onError: () => toast.error(t('order.payment.failed')),
                             })
                           }}
@@ -319,6 +331,7 @@ export default function OrderPage() {
                 <p>{t('order.payment.amount')}: <span className="font-bold text-primary">{formatCurrency(qrData.amount)}</span></p>
                 <p>{t('order.payment.content')}: <span className="font-mono font-medium">{qrData.addInfo}</span></p>
               </div>
+              <p className="text-xs text-muted-foreground">{t('order.payment.holdToSave')}</p>
             </div>
           </div>
         </div>

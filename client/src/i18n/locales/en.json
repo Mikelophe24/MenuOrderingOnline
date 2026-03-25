@@ -109,7 +109,9 @@
       "payOnline": "Pay via QR",
       "generating": "Generating QR...",
       "failed": "Failed to generate payment QR",
-      "received": "Table {table} paid {amount}d"
+      "received": "Table {table} paid {amount}d",
+      "paymentSuccess": "Payment successful!",
+      "holdToSave": "Hold the QR image to save to Photos"
     }
   },
   "guest": {

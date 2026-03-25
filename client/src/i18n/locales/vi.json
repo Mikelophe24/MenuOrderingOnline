@@ -109,7 +109,9 @@
       "payOnline": "Thanh toán QR",
       "generating": "Đang tạo QR...",
       "failed": "Không thể tạo mã QR thanh toán",
-      "received": "Bàn {table} đã thanh toán {amount}đ"
+      "received": "Bàn {table} đã thanh toán {amount}đ",
+      "paymentSuccess": "Thanh toán thành công!",
+      "holdToSave": "Nhấn giữ ảnh QR để lưu vào Ảnh"
     }
   },
   "guest": {
