@@ -1,6 +1,6 @@
 'use client'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import http from '@/lib/http'
 import type { ApiResponse, GuestOrder, Order, OrderStatus, PaginatedResponse } from '@/types'
 
@@ -20,6 +20,22 @@ export function useOrders(params?: { page?: number; limit?: number; status?: str
       http.get<ApiResponse<PaginatedResponse<Order>>>('/orders', {
         params: toStringParams(params),
       }),
+  })
+}
+
+export function useInfiniteOrders(params?: { limit?: number; status?: string }) {
+  const limit = params?.limit ?? 20
+  return useInfiniteQuery({
+    queryKey: ['orders-infinite', params],
+    queryFn: ({ pageParam = 1 }) =>
+      http.get<ApiResponse<PaginatedResponse<Order>>>('/orders', {
+        params: toStringParams({ ...params, page: pageParam, limit }),
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const { currentPage, totalPages } = lastPage.data
+      return currentPage < totalPages ? currentPage + 1 : undefined
+    },
   })
 }
 
@@ -64,6 +80,7 @@ export function useCreateGuestOrder() {
       http.post<ApiResponse<Order>>('/guest/orders', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
       queryClient.invalidateQueries({ queryKey: ['guest-orders'] })
     },
   })
@@ -75,6 +92,7 @@ export function useDeleteOrder() {
     mutationFn: (id: number) => http.delete<ApiResponse<null>>(`/orders/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
     },
@@ -95,6 +113,7 @@ export function useUpdateOrderStatus() {
       http.patch<ApiResponse<Order>>(`/orders/${id}/status`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['tables'] })
     },

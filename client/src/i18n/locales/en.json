@@ -95,6 +95,7 @@
       "cannotDeletePaid": "Cannot delete paid order",
       "confirmDelete": "Are you sure you want to delete this order?",
       "placed": "Order placed successfully!",
+      "itemsAdded": "Items added to existing order!",
       "placeFailed": "Failed to place order, please try again",
       "cancelled": "Order cancelled",
       "cannotCancel": "Can only cancel pending orders",

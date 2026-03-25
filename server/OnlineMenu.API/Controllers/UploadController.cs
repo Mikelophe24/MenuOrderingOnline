@@ -1,3 +1,5 @@
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineMenu.Application.DTOs;
@@ -9,11 +11,11 @@ namespace OnlineMenu.API.Controllers;
 [Authorize(Roles = "Owner,Employee")]
 public class UploadController : ControllerBase
 {
-    private readonly IWebHostEnvironment _env;
+    private readonly Cloudinary _cloudinary;
 
-    public UploadController(IWebHostEnvironment env)
+    public UploadController(Cloudinary cloudinary)
     {
-        _env = env;
+        _cloudinary = cloudinary;
     }
 
     [HttpPost("image")]
@@ -29,18 +31,19 @@ public class UploadController : ControllerBase
         if (file.Length > 5 * 1024 * 1024)
             return BadRequest(ApiResponse<object>.Fail("File size must be less than 5MB"));
 
-        var uploadsDir = Path.Combine(_env.ContentRootPath, "wwwroot", "uploads");
-        Directory.CreateDirectory(uploadsDir);
-
-        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-        var filePath = Path.Combine(uploadsDir, fileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        await using var stream = file.OpenReadStream();
+        var uploadParams = new ImageUploadParams
         {
-            await file.CopyToAsync(stream);
-        }
+            File = new FileDescription(file.FileName, stream),
+            Folder = "onlinemenu/dishes",
+            Transformation = new Transformation().Width(800).Crop("limit").Quality("auto").FetchFormat("auto"),
+        };
 
-        var url = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
-        return Ok(ApiResponse<object>.Success(new { url }, "Uploaded"));
+        var result = await _cloudinary.UploadAsync(uploadParams);
+
+        if (result.Error != null)
+            return BadRequest(ApiResponse<object>.Fail(result.Error.Message));
+
+        return Ok(ApiResponse<object>.Success(new { url = result.SecureUrl.ToString() }, "Uploaded"));
     }
 }

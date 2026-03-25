@@ -95,12 +95,14 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       conn.on('NewOrder', (order: Order) => {
         showNewOrderRef.current(order)
         queryClient.invalidateQueries({ queryKey: ['orders'] })
+        queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
         queryClient.invalidateQueries({ queryKey: ['tables'] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       })
 
       conn.on('OrderStatusChanged', () => {
         queryClient.invalidateQueries({ queryKey: ['orders'] })
+        queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
         queryClient.invalidateQueries({ queryKey: ['tables'] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       })
@@ -117,6 +119,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         playAmountVoice(order.totalPrice)
 
         queryClient.invalidateQueries({ queryKey: ['orders'] })
+        queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
         queryClient.invalidateQueries({ queryKey: ['tables'] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
 
@@ -226,7 +229,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       <ManageSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-14 items-center justify-between border-b px-6">
+        <header className="flex h-14 items-center justify-between border-b px-6 pl-14 md:pl-6">
           <h2 className="font-semibold">{t('manage.restaurant')}</h2>
           <div className="flex items-center gap-2">
             <div className="relative">

@@ -95,6 +95,7 @@
       "cannotDeletePaid": "Không thể xóa đơn hàng đã thanh toán",
       "confirmDelete": "Bạn có chắc chắn muốn xóa đơn hàng này?",
       "placed": "Đặt món thành công!",
+      "itemsAdded": "Đã thêm món vào đơn hàng!",
       "placeFailed": "Đặt món thất bại, vui lòng thử lại",
       "cancelled": "Đã hủy đơn hàng",
       "cannotCancel": "Chỉ có thể hủy đơn hàng đang chờ xác nhận",

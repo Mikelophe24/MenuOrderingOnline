@@ -1,18 +1,17 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
+import { useInfiniteOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
 import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
 import { getConnection } from '@/lib/signalr'
 import { OrderStatus, type Order } from '@/types'
 import { toast } from 'sonner'
-import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X } from 'lucide-react'
+import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2 } from 'lucide-react'
 
 export default function ManageOrdersPage() {
   const t = useTranslations()
-  const [page, setPage] = useState(1)
-  const { data, isLoading } = useOrders({ page, limit: 50 })
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteOrders({ limit: 20 })
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
   const paymentQR = usePaymentQR()
@@ -44,7 +43,28 @@ export default function ManageOrdersPage() {
     }
   }, [t])
 
-  const allOrders: Order[] = data?.data?.data ?? []
+  // Flatten all pages into one list
+  const allOrders: Order[] = useMemo(
+    () => data?.pages.flatMap((page) => page.data?.data ?? []) ?? [],
+    [data]
+  )
+
+  // Infinite scroll: observe last row to auto-load next page
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = loadMoreRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // Filter orders
   const filteredOrders = useMemo(() => {
@@ -481,30 +501,20 @@ export default function ManageOrdersPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {data?.data && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {t('common.table')} {data.data.currentPage} / {data.data.totalPages} ({data.data.totalItems} {t('order.title').toLowerCase()})
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
-            >
-              ←
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(data.data.totalPages, p + 1))}
-              disabled={page >= data.data.totalPages}
-              className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
-            >
-              →
-            </button>
+      {/* Lazy load sentinel */}
+      <div ref={loadMoreRef} className="py-4 text-center">
+        {isFetchingNextPage && (
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">{t('common.loading')}</span>
           </div>
-        </div>
-      )}
+        )}
+        {!hasNextPage && allOrders.length > 0 && (
+          <span className="text-sm text-muted-foreground">
+            {allOrders.length} {t('order.title').toLowerCase()}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

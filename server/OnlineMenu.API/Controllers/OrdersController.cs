@@ -132,19 +132,18 @@ public class OrdersController : ControllerBase
             }
         }
 
-        var order = new Order
-        {
-            TableNumber = request.TableNumber,
-            TableId = table.Id,
-            GuestName = request.GuestName,
-            Status = OrderStatus.Pending,
-        };
+        // Check if guest already has a Pending order at this table → add items to it
+        var existingOrders = await _orderRepo.GetByTableNumberAsync(request.TableNumber);
+        var existingOrder = existingOrders.FirstOrDefault(o =>
+            o.Status == OrderStatus.Pending
+            && o.GuestName == request.GuestName);
 
-        decimal totalPrice = 0;
+        decimal addedPrice = 0;
+        var newItems = new List<OrderItem>();
         foreach (var item in request.Items)
         {
             var dish = dishMap[item.DishId];
-            order.OrderItems.Add(new OrderItem
+            newItems.Add(new OrderItem
             {
                 DishId = item.DishId,
                 DishName = dish.Name,
@@ -153,12 +152,37 @@ public class OrdersController : ControllerBase
                 Quantity = item.Quantity,
                 Note = item.Note,
             });
-
-            totalPrice += dish.Price * item.Quantity;
+            addedPrice += dish.Price * item.Quantity;
         }
 
-        order.TotalPrice = totalPrice;
-        await _orderRepo.AddAsync(order);
+        Order order;
+        if (existingOrder != null)
+        {
+            // Add items to existing Pending order
+            foreach (var item in newItems)
+            {
+                item.OrderId = existingOrder.Id;
+                existingOrder.OrderItems.Add(item);
+            }
+            existingOrder.TotalPrice += addedPrice;
+            await _orderRepo.UpdateAsync(existingOrder);
+            await _context.SaveChangesAsync();
+            order = existingOrder;
+        }
+        else
+        {
+            // Create new order
+            order = new Order
+            {
+                TableNumber = request.TableNumber,
+                TableId = table.Id,
+                GuestName = request.GuestName,
+                Status = OrderStatus.Pending,
+                TotalPrice = addedPrice,
+            };
+            foreach (var item in newItems) order.OrderItems.Add(item);
+            await _orderRepo.AddAsync(order);
+        }
 
         // Update table status to Occupied
         if (table.Status != TableStatus.Occupied)

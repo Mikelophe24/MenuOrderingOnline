@@ -94,8 +94,9 @@ export default function OrderPage() {
         items: cart.map(({ dishId, quantity, note }) => ({ dishId, quantity, note })),
       },
       {
-        onSuccess: () => {
-          toast.success(t('order.toast.placed'))
+        onSuccess: (res) => {
+          const isExisting = guestOrders.some((o) => o.id === res.data?.id)
+          toast.success(isExisting ? t('order.toast.itemsAdded') : t('order.toast.placed'))
           clearCart()
           refetchOrders()
           setTab('orders')

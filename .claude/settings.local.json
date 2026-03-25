@@ -53,7 +53,8 @@
       "Bash(dotnet --version)",
       "Bash(dotnet --list-sdks)",
       "Bash(dotnet package:*)",
-      "Bash(grep -r \"process.env\\\\|NEXT_PUBLIC\" /d/OnlineMenuApp/client/src --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"process.env\\\\|NEXT_PUBLIC\" /d/OnlineMenuApp/client/src --include=*.ts --include=*.tsx)",
+      "Bash(dotnet list:*)"
     ]
   }
 }

@@ -76,6 +76,14 @@ builder.Services.AddCors(options =>
 // ===== SignalR =====
 builder.Services.AddSignalR();
 
+// ===== Cloudinary =====
+var cloudinaryConfig = builder.Configuration.GetSection("Cloudinary");
+var cloudinaryAccount = new CloudinaryDotNet.Account(
+    cloudinaryConfig["CloudName"],
+    cloudinaryConfig["ApiKey"],
+    cloudinaryConfig["ApiSecret"]);
+builder.Services.AddSingleton(new CloudinaryDotNet.Cloudinary(cloudinaryAccount));
+
 // ===== HttpClient for VietQR =====
 builder.Services.AddHttpClient();
 
