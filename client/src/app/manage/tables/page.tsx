@@ -1,10 +1,56 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTables, useCreateTable, useDeleteTable, useChangeToken, useUpdateTable } from '@/hooks/use-tables'
 import { QRCodeSVG } from 'qrcode.react'
 import { TableStatus, type Table } from '@/types'
 import { toast } from 'sonner'
+const statusStyles: Record<string, { active: string; inactive: string }> = {
+  Available: {
+    active: 'bg-green-500 text-white shadow-md shadow-green-500/30',
+    inactive: 'text-green-600 hover:bg-green-500/10 dark:text-green-400',
+  },
+  Occupied: {
+    active: 'bg-red-500 text-white shadow-md shadow-red-500/30',
+    inactive: 'text-red-600 hover:bg-red-500/10 dark:text-red-400',
+  },
+  Reserved: {
+    active: 'bg-yellow-500 text-white shadow-md shadow-yellow-500/30',
+    inactive: 'text-yellow-600 hover:bg-yellow-500/10 dark:text-yellow-400',
+  },
+}
+
+const allowedTransitions: Record<string, string[]> = {
+  Available: ['Occupied', 'Reserved'],
+  Reserved: ['Available', 'Occupied'],
+  Occupied: ['Available'],
+}
+
+function StatusToggle({ table, onUpdate, t }: { table: Table; onUpdate: (status: string) => void; t: (key: string) => string }) {
+  const allowed = allowedTransitions[table.status] ?? []
+  return (
+    <div className="flex rounded-lg border bg-muted/30 p-0.5 gap-0.5">
+      {Object.values(TableStatus).map((s) => {
+        const isActive = table.status === s
+        const isDisabled = !isActive && !allowed.includes(s)
+        const style = statusStyles[s] ?? statusStyles.Available
+        return (
+          <button
+            key={s}
+            onClick={() => { if (!isActive && !isDisabled) onUpdate(s) }}
+            disabled={isDisabled}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+              isActive ? style.active : isDisabled ? 'text-muted-foreground/30 cursor-not-allowed' : style.inactive
+            }`}
+          >
+            {t(`table.status.${s.toLowerCase()}`)}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function ManageTablesPage() {
   const t = useTranslations()
@@ -59,28 +105,16 @@ export default function ManageTablesPage() {
                 {/* Header: Table number + Status */}
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">{t('common.table')} {table.number}</h3>
-                  <select
-                    value={table.status}
-                    onChange={(e) =>
+                  <StatusToggle
+                    table={table}
+                    onUpdate={(status) =>
                       updateTable.mutate(
-                        { id: table.id, data: { number: table.number, capacity: table.capacity, status: e.target.value as 'Available' | 'Occupied' | 'Reserved' } },
+                        { id: table.id, data: { number: table.number, capacity: table.capacity, status: status as 'Available' | 'Occupied' | 'Reserved' } },
                         { onSuccess: () => toast.success(t('manage.updateTableStatus', { number: table.number })) }
                       )
                     }
-                    className={`rounded-full px-2 py-1 text-xs border-none cursor-pointer ${
-                      table.status === 'Available'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                        : table.status === 'Occupied'
-                          ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
-                          : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                    }`}
-                  >
-                    {Object.values(TableStatus).map((s) => (
-                      <option key={s} value={s}>
-                        {t(`table.status.${s.toLowerCase()}`)}
-                      </option>
-                    ))}
-                  </select>
+                    t={t}
+                  />
                 </div>
 
                 {/* Capacity */}
