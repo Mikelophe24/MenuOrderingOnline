@@ -82,6 +82,9 @@ public class AppDbContext : DbContext
         // OrderItem
         modelBuilder.Entity<OrderItem>(entity =>
         {
+            entity.Property(e => e.DishName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.DishPrice).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.DishImage).HasMaxLength(500);
             entity.Property(e => e.Note).HasMaxLength(500);
 
             entity.HasOne(e => e.Order)

@@ -20,9 +20,9 @@ public static class OrderHelper
         order.ProcessedBy?.Name,
         order.OrderItems.Select(oi => new OrderItemDto(
             oi.Id, oi.DishId,
-            oi.Dish?.Name ?? string.Empty,
-            oi.Dish?.Price ?? 0,
-            oi.Dish?.Image,
+            oi.DishName.Length > 0 ? oi.DishName : oi.Dish?.Name ?? string.Empty,
+            oi.DishPrice > 0 ? oi.DishPrice : oi.Dish?.Price ?? 0,
+            oi.DishImage ?? oi.Dish?.Image,
             oi.Quantity, oi.Note
         )).ToList(),
         order.CreatedAt,

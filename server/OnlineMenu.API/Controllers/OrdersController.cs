@@ -117,14 +117,18 @@ public class OrdersController : ControllerBase
         decimal totalPrice = 0;
         foreach (var item in request.Items)
         {
+            var dish = dishMap[item.DishId];
             order.OrderItems.Add(new OrderItem
             {
                 DishId = item.DishId,
+                DishName = dish.Name,
+                DishPrice = dish.Price,
+                DishImage = dish.Image,
                 Quantity = item.Quantity,
                 Note = item.Note,
             });
 
-            totalPrice += dishMap[item.DishId].Price * item.Quantity;
+            totalPrice += dish.Price * item.Quantity;
         }
 
         order.TotalPrice = totalPrice;
