@@ -61,7 +61,7 @@ export const useOrderStore = create<OrderState>()(persist((set, get) => ({
   updateNote: (dishId, note) =>
     set({
       cart: get().cart.map((item) =>
-        item.dishId === dishId ? { ...item, note } : item
+        item.dishId === dishId ? { ...item, note: note.slice(0, 200) } : item
       ),
     }),
 

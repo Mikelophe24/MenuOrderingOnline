@@ -21,7 +21,7 @@ const statusColors: Record<string, string> = {
 
 export default function OrderPage() {
   const t = useTranslations()
-  const { cart, tableNumber, tableToken, guestName, clearCart, getTotalPrice, updateQuantity, removeFromCart } =
+  const { cart, tableNumber, tableToken, guestName, clearCart, getTotalPrice, updateQuantity, updateNote, removeFromCart } =
     useOrderStore()
   const createOrder = useCreateGuestOrder()
   const cancelOrder = useCancelGuestOrder()
@@ -167,44 +167,55 @@ export default function OrderPage() {
                 {cart.map((item) => (
                   <div
                     key={item.dishId}
-                    className="flex items-center gap-4 rounded-lg border p-4"
+                    className="rounded-lg border p-4 space-y-3"
                   >
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                      {item.dish.image ? (
-                        <img
-                          src={item.dish.image}
-                          alt={item.dish.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : null}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium">{item.dish.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {formatCurrency(item.dish.price)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                        {item.dish.image ? (
+                          <img
+                            src={item.dish.image}
+                            alt={item.dish.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium">{item.dish.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {formatCurrency(item.dish.price)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(item.dishId, item.quantity - 1)}
+                          className="h-8 w-8 rounded-md border hover:bg-accent"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.dishId, item.quantity + 1)}
+                          className="h-8 w-8 rounded-md border hover:bg-accent"
+                        >
+                          +
+                        </button>
+                      </div>
                       <button
-                        onClick={() => updateQuantity(item.dishId, item.quantity - 1)}
-                        className="h-8 w-8 rounded-md border hover:bg-accent"
+                        onClick={() => removeFromCart(item.dishId)}
+                        className="text-destructive text-sm"
                       >
-                        -
-                      </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.dishId, item.quantity + 1)}
-                        className="h-8 w-8 rounded-md border hover:bg-accent"
-                      >
-                        +
+                        {t('common.delete')}
                       </button>
                     </div>
-                    <button
-                      onClick={() => removeFromCart(item.dishId)}
-                      className="text-destructive text-sm"
-                    >
-                      {t('common.delete')}
-                    </button>
+                    <textarea
+                      value={item.note ?? ''}
+                      onChange={(e) => updateNote(item.dishId, e.target.value.slice(0, 200))}
+                      maxLength={200}
+                      rows={1}
+                      placeholder={t('order.notePlaceholder')}
+                      className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground placeholder:text-muted-foreground/50"
+                      onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }}
+                    />
                   </div>
                 ))}
               </div>

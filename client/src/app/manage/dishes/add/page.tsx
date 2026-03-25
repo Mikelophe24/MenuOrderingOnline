@@ -27,7 +27,7 @@ export default function AddDishPage() {
     formState: { errors },
   } = useForm<DishFormValues>({
     resolver: zodResolver(dishSchema),
-    defaultValues: { name: '', price: 0, description: '', image: '', status: 'Available', categoryId: 0 },
+    defaultValues: { name: '', price: 0, description: '', image: '', status: 'Available', categoryId: 0, calories: null, protein: null, carbs: null },
   })
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,6 +132,25 @@ export default function AddDishPage() {
             <option value="Unavailable">Hết hàng</option>
             <option value="Hidden">Ẩn</option>
           </select>
+        </div>
+
+        {/* Nutrition info */}
+        <div>
+          <label className="text-sm font-medium">Thông tin dinh dưỡng (tùy chọn)</label>
+          <div className="mt-1 grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Calories</label>
+              <input type="number" {...register('calories')} placeholder="kcal" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Protein</label>
+              <input type="number" {...register('protein')} placeholder="g" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Carbs</label>
+              <input type="number" {...register('carbs')} placeholder="g" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-2 pt-4">

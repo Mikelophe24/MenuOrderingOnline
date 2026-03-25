@@ -74,6 +74,7 @@
     "cancelOrder": "Cancel order",
     "backToMenu": "Back to menu",
     "emptyCart": "Cart is empty. Choose dishes from the menu.",
+    "notePlaceholder": "Note: no onion, not spicy, less sugar...",
     "noOrders": "No orders yet.",
     "dishes": "Dishes",
     "handler": "Handled by",

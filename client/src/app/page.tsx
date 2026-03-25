@@ -149,7 +149,7 @@ export default function WelcomePage() {
         <div className="container flex h-14 items-center justify-between">
           <span className="flex items-center gap-2 font-bold text-xl">
             <UtensilsCrossed className="h-6 w-6 text-primary" />
-            Online Menu
+             Menu
           </span>
           <div className="flex items-center gap-2">
             <LocaleSwitcher />

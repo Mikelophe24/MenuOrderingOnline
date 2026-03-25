@@ -54,25 +54,28 @@ export function ManageSidebar() {
   return (
     <aside className="hidden w-64 shrink-0 border-r bg-background md:block">
       <div className="flex h-full flex-col gap-2 p-4">
-        <div className="mb-4 px-2">
-          <h2 className="text-lg font-semibold">Online Menu</h2>
-          <p className="text-sm text-muted-foreground">
-            {account?.name} ({account?.role})
-          </p>
+        <div className="mb-4 flex items-center gap-3 px-2">
+          <img src="/logo.jpg" alt="Online Menu" className="h-10 w-10 rounded-lg" />
+          <div>
+            <h2 className="text-lg font-semibold leading-tight">Online Menu</h2>
+            <p className="text-sm text-muted-foreground">
+              {account?.name} ({account?.role})
+            </p>
+          </div>
         </div>
-        <nav className="flex flex-col gap-1">
+        <nav className="flex flex-col gap-1.5">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent',
+                'flex items-center gap-3 rounded-lg px-4 py-3 text-base transition-all hover:bg-accent',
                 pathname.startsWith(item.href)
                   ? 'bg-accent text-accent-foreground font-medium'
                   : 'text-muted-foreground'
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-5 w-5" />
               {t(item.labelKey)}
             </Link>
           ))}

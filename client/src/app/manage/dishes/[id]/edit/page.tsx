@@ -39,6 +39,9 @@ export default function EditDishPage() {
         image: data.data.image,
         status: data.data.status,
         categoryId: data.data.categoryId,
+        calories: data.data.calories ?? null,
+        protein: data.data.protein ?? null,
+        carbs: data.data.carbs ?? null,
       })
       if (data.data.image) {
         setPreview(data.data.image)
@@ -155,6 +158,25 @@ export default function EditDishPage() {
             <option value="Unavailable">Hết hàng</option>
             <option value="Hidden">Ẩn</option>
           </select>
+        </div>
+
+        {/* Nutrition info */}
+        <div>
+          <label className="text-sm font-medium">Thông tin dinh dưỡng (tùy chọn)</label>
+          <div className="mt-1 grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Calories</label>
+              <input type="number" {...register('calories')} placeholder="kcal" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Protein</label>
+              <input type="number" {...register('protein')} placeholder="g" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Carbs</label>
+              <input type="number" {...register('carbs')} placeholder="g" className="mt-1 w-full rounded-md border bg-background px-3 py-2" />
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-2 pt-4">

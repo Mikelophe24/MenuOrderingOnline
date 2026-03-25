@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, UtensilsCrossed, Flame, Beef, Wheat } from 'lucide-react'
+import http from '@/lib/http'
+import type { ApiResponse } from '@/types'
 
 interface Dish {
   id: number
@@ -11,6 +13,9 @@ interface Dish {
   image: string
   categoryId: number
   categoryName?: string
+  calories?: number
+  protein?: number
+  carbs?: number
 }
 
 interface Category {
@@ -18,8 +23,25 @@ interface Category {
   name: string
 }
 
+interface Ingredient {
+  id: number
+  name: string
+  unit: string
+  currentStock: number
+  minStock: number
+  dishes: { id: number; name: string; quantityNeeded: number }[]
+}
+
+interface DishIngredient {
+  name: string
+  unit: string
+  quantityNeeded: number
+}
+
 export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: Category[] }) {
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
+  const [dishIngredients, setDishIngredients] = useState<DishIngredient[]>([])
+  const [loadingIngredients, setLoadingIngredients] = useState(false)
   const [activeCategory, setActiveCategory] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
@@ -30,6 +52,29 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage)
   const paginatedDishes = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  // Fetch ingredients when a dish is selected
+  useEffect(() => {
+    if (!selectedDish) {
+      setDishIngredients([])
+      return
+    }
+    setLoadingIngredients(true)
+    http.get<ApiResponse<Ingredient[]>>('/ingredients')
+      .then((res) => {
+        const ingredients = res.data ?? []
+        const linked: DishIngredient[] = []
+        for (const ing of ingredients) {
+          const link = ing.dishes?.find((d) => d.id === selectedDish.id)
+          if (link) {
+            linked.push({ name: ing.name, unit: ing.unit, quantityNeeded: link.quantityNeeded })
+          }
+        }
+        setDishIngredients(linked)
+      })
+      .catch(() => setDishIngredients([]))
+      .finally(() => setLoadingIngredients(false))
+  }, [selectedDish])
 
   return (
     <>
@@ -136,17 +181,16 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
         </div>
       )}
 
-      {/* Detail modal overlay */}
+      {/* Detail modal */}
       {selectedDish && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setSelectedDish(null)}
         >
           <div
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               onClick={() => setSelectedDish(null)}
               className="absolute right-3 top-3 z-10 rounded-full bg-background/80 p-2 backdrop-blur-sm transition-colors hover:bg-background"
@@ -156,7 +200,7 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
 
             <div className="grid gap-0 md:grid-cols-2">
               {/* Image */}
-              <div className="aspect-square overflow-hidden bg-muted">
+              <div className="aspect-square overflow-hidden bg-muted md:rounded-l-2xl">
                 {selectedDish.image ? (
                   <img
                     src={selectedDish.image}
@@ -171,18 +215,78 @@ export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: C
               </div>
 
               {/* Info */}
-              <div className="flex flex-col justify-center p-6 space-y-4">
+              <div className="p-6 space-y-5">
                 {selectedDish.categoryName && (
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {selectedDish.categoryName}
                   </span>
                 )}
-                <h2 className="text-2xl font-bold">{selectedDish.name}</h2>
-                <p className="text-3xl font-bold text-primary">
-                  {selectedDish.price.toLocaleString('vi-VN')}đ
-                </p>
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedDish.name}</h2>
+                  <p className="text-3xl font-bold text-primary mt-1">
+                    {selectedDish.price.toLocaleString('vi-VN')}đ
+                  </p>
+                </div>
                 {selectedDish.description && (
-                  <p className="text-muted-foreground leading-relaxed">{selectedDish.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedDish.description}</p>
+                )}
+
+                {/* Nutrition stats */}
+                {(selectedDish.calories || selectedDish.protein || selectedDish.carbs) && (
+                  <div className="flex gap-4">
+                    {selectedDish.calories != null && (
+                      <div className="flex items-center gap-2 rounded-lg bg-orange-500/10 px-3 py-2">
+                        <Flame className="h-4 w-4 text-orange-500" />
+                        <div>
+                          <p className="text-sm font-bold">{selectedDish.calories}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Cal</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedDish.protein != null && (
+                      <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-2">
+                        <Beef className="h-4 w-4 text-blue-500" />
+                        <div>
+                          <p className="text-sm font-bold">{selectedDish.protein}g</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Protein</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedDish.carbs != null && (
+                      <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2">
+                        <Wheat className="h-4 w-4 text-green-500" />
+                        <div>
+                          <p className="text-sm font-bold">{selectedDish.carbs}g</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Carbs</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Ingredients */}
+                {loadingIngredients ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    Đang tải nguyên liệu...
+                  </div>
+                ) : dishIngredients.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nguyên liệu</span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {dishIngredients.map((ing) => (
+                        <div key={ing.name} className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+                          <UtensilsCrossed className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="text-sm">{ing.name}</span>
+                          <span className="text-xs text-muted-foreground ml-auto">{ing.quantityNeeded}{ing.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

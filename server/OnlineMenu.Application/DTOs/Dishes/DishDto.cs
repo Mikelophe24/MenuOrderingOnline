@@ -9,6 +9,9 @@ public record DishDto(
     string Status,
     int CategoryId,
     string? CategoryName,
+    int? Calories,
+    int? Protein,
+    int? Carbs,
     DateTime CreatedAt,
     DateTime UpdatedAt
 );
@@ -19,7 +22,10 @@ public record CreateDishRequest(
     string? Description,
     string? Image,
     string Status,
-    int CategoryId
+    int CategoryId,
+    int? Calories,
+    int? Protein,
+    int? Carbs
 );
 
 public record UpdateDishRequest(
@@ -28,5 +34,8 @@ public record UpdateDishRequest(
     string? Description,
     string? Image,
     string Status,
-    int CategoryId
+    int CategoryId,
+    int? Calories,
+    int? Protein,
+    int? Carbs
 );

@@ -74,6 +74,9 @@ export interface Dish {
   status: DishStatus
   categoryId: number
   category?: Category
+  calories?: number
+  protein?: number
+  carbs?: number
   createdAt: string
   updatedAt: string
 }

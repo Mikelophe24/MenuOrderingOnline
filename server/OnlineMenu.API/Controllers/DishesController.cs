@@ -36,6 +36,7 @@ public class DishesController : ControllerBase
         var dtos = items.Select(d => new DishDto(
             d.Id, d.Name, d.Price, d.Description, d.Image,
             d.Status.ToString(), d.CategoryId, d.Category?.Name,
+            d.Calories, d.Protein, d.Carbs,
             d.CreatedAt, d.UpdatedAt
         )).ToList();
 
@@ -60,6 +61,7 @@ public class DishesController : ControllerBase
         var dto = new DishDto(
             dish.Id, dish.Name, dish.Price, dish.Description, dish.Image,
             dish.Status.ToString(), dish.CategoryId, dish.Category?.Name,
+            dish.Calories, dish.Protein, dish.Carbs,
             dish.CreatedAt, dish.UpdatedAt
         );
         return Ok(ApiResponse<DishDto>.Success(dto));
@@ -77,6 +79,9 @@ public class DishesController : ControllerBase
             Image = request.Image ?? string.Empty,
             Status = Enum.Parse<DishStatus>(request.Status),
             CategoryId = request.CategoryId,
+            Calories = request.Calories,
+            Protein = request.Protein,
+            Carbs = request.Carbs,
         };
 
         await _dishRepo.AddAsync(dish);
@@ -84,6 +89,7 @@ public class DishesController : ControllerBase
         var dto = new DishDto(
             dish.Id, dish.Name, dish.Price, dish.Description, dish.Image,
             dish.Status.ToString(), dish.CategoryId, null,
+            dish.Calories, dish.Protein, dish.Carbs,
             dish.CreatedAt, dish.UpdatedAt
         );
         return CreatedAtAction(nameof(GetById), new { id = dish.Id }, ApiResponse<DishDto>.Success(dto, "Created", 201));
@@ -102,6 +108,9 @@ public class DishesController : ControllerBase
         dish.Image = request.Image ?? dish.Image;
         dish.Status = Enum.Parse<DishStatus>(request.Status);
         dish.CategoryId = request.CategoryId;
+        dish.Calories = request.Calories;
+        dish.Protein = request.Protein;
+        dish.Carbs = request.Carbs;
 
         await _dishRepo.UpdateAsync(dish);
 

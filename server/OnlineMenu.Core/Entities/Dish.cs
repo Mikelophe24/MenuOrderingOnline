@@ -10,6 +10,11 @@ public class Dish : BaseEntity
     public string Image { get; set; } = string.Empty;
     public DishStatus Status { get; set; } = DishStatus.Available;
 
+    // Nutrition info (optional)
+    public int? Calories { get; set; }
+    public int? Protein { get; set; }
+    public int? Carbs { get; set; }
+
     public int CategoryId { get; set; }
     public Category Category { get; set; } = null!;
 

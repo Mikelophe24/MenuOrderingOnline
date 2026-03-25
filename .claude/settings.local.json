@@ -38,7 +38,14 @@
       "Bash(cp danhanduoc.mp3 /d/OnlineMenuApp/client/public/voice/da-nhan.mp3)",
       "Bash(cp \"dong \\(1\\).mp3\" /d/OnlineMenuApp/client/public/voice/dong.mp3)",
       "Bash(cp \"tram \\(1\\).mp3\" /d/OnlineMenuApp/client/public/voice/tram.mp3)",
-      "Bash(cp \"muoi \\(3\\).mp3\" /d/OnlineMenuApp/client/public/voice/muoi.mp3)"
+      "Bash(cp \"muoi \\(3\\).mp3\" /d/OnlineMenuApp/client/public/voice/muoi.mp3)",
+      "Bash(sqlcmd:*)",
+      "WebSearch",
+      "WebFetch(domain:www.myfitnesspal.com)",
+      "WebFetch(domain:www.snapcalorie.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:next-intl.dev)",
+      "WebFetch(domain:www.npmjs.com)"
     ]
   }
 }

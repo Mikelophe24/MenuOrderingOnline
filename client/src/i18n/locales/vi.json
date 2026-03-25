@@ -74,6 +74,7 @@
     "cancelOrder": "Hủy đơn",
     "backToMenu": "Quay lại thực đơn",
     "emptyCart": "Giỏ hàng trống. Hãy chọn món ăn từ thực đơn.",
+    "notePlaceholder": "Ghi chú: không hành, không cay, ít đường...",
     "noOrders": "Chưa có đơn hàng nào.",
     "dishes": "Món ăn",
     "handler": "Người xử lý",

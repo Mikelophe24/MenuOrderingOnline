@@ -68,7 +68,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Online Menu', {
         body: `${t('order.toast.newOrder', { table: order.tableNumber })}`,
-        icon: '/favicon.ico',
+        icon: '/logo.jpg',
       })
     }
   }, [t, router, playNotificationSound])
@@ -123,7 +123,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('Online Menu - Thanh toan', {
             body: `Ban ${order.tableNumber} da thanh toan ${order.totalPrice.toLocaleString('vi-VN')}d`,
-            icon: '/favicon.ico',
+            icon: '/logo.jpg',
           })
         }
       })
