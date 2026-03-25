@@ -36,7 +36,7 @@ export default async function RootLayout({
             <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
               <QueryProvider>
                 {children}
-                <Toaster richColors position="top-right" />
+                <Toaster richColors position="top-right" duration={2500} />
               </QueryProvider>
             </GoogleOAuthProvider>
           </ThemeProvider>

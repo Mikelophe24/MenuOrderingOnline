@@ -69,13 +69,6 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     }
   }, [t, router, playNotificationSound])
 
-  useEffect(() => {
-    const token = getAccessToken()
-    if (!token) {
-      router.push('/login')
-    }
-  }, [router])
-
   // SignalR: connect once for all manage pages
   useEffect(() => {
     let cancelled = false

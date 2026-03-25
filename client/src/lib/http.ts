@@ -81,7 +81,7 @@ const request = async <T>(method: HttpMethod, url: string, options?: RequestOpti
             await clientLogoutRequest
           } finally {
             clientLogoutRequest = null
-            location.href = '/login'
+            location.href = '/'
           }
         }
       } else {

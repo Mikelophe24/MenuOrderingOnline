@@ -79,14 +79,14 @@ export function useLogout() {
       removeTokens()
       logout()
       queryClient.clear()
-      router.push('/login')
+      router.push('/')
     },
     onError: () => {
       // Even if the API call fails, still clear local state
       removeTokens()
       logout()
       queryClient.clear()
-      router.push('/login')
+      router.push('/')
     },
   })
 }
