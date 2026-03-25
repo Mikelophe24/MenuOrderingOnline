@@ -81,6 +81,17 @@ public class OrdersController : ControllerBase
         return Ok(ApiResponse<OrderDto>.Success(OrderHelper.MapToDto(order)));
     }
 
+    // Guest checks table status before entering menu
+    [HttpGet("guest/table-status")]
+    public async Task<IActionResult> CheckTableStatus([FromQuery] int tableNumber, [FromQuery] string token)
+    {
+        var table = await _tableRepo.GetByNumberAsync(tableNumber);
+        if (table == null || table.Token != token)
+            return BadRequest(ApiResponse<object>.Fail("Invalid table or token"));
+
+        return Ok(ApiResponse<object>.Success(new { table.Number, Status = table.Status.ToString() }));
+    }
+
     // Guest creates an order
     [HttpPost("guest/orders")]
     public async Task<IActionResult> CreateGuestOrder([FromBody] CreateGuestOrderRequest request)
@@ -94,6 +105,9 @@ public class OrdersController : ControllerBase
         var table = await _tableRepo.GetByNumberAsync(request.TableNumber);
         if (table == null || table.Token != request.TableToken)
             return BadRequest(ApiResponse<object>.Fail("Invalid table or token"));
+
+        if (table.Status == TableStatus.Reserved)
+            return BadRequest(ApiResponse<object>.Fail("Bàn đã được đặt trước, vui lòng chọn bàn khác"));
 
         // Batch-fetch all requested dishes in one query instead of N+1
         var dishIds = request.Items.Select(i => i.DishId).Distinct().ToList();

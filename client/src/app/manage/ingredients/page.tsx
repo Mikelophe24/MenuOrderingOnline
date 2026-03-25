@@ -191,23 +191,6 @@ export default function ManageIngredientsPage() {
                 </div>
               </div>
 
-              {/* Quick stock update */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  defaultValue={ing.currentStock}
-                  onBlur={(e) => {
-                    const val = Number(e.target.value)
-                    if (val !== ing.currentStock) {
-                      updateStock.mutate({ id: ing.id, currentStock: val }, {
-                        onSuccess: () => toast.success(`Cập nhật tồn kho ${ing.name}`),
-                      })
-                    }
-                  }}
-                  className="w-24 rounded-md border bg-background px-2 py-1 text-sm"
-                />
-                <span className="text-sm text-muted-foreground">{ing.unit}</span>
-              </div>
 
               {/* Linked dishes */}
               {ing.dishes.length > 0 && (

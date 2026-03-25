@@ -8,6 +8,7 @@ import { useDishes } from '@/hooks/use-dishes'
 import { useQueryClient } from '@tanstack/react-query'
 import { getConnection, startConnection } from '@/lib/signalr'
 import { formatCurrency } from '@/lib/utils'
+import http from '@/lib/http'
 import { toast } from 'sonner'
 import { Search, X, Star } from 'lucide-react'
 import { useDishReviews, useCreateReview } from '@/hooks/use-reviews'
@@ -66,6 +67,8 @@ export default function TableMenuPage() {
   const searchParams = useSearchParams()
   const { setTable, setGuestName, guestName, addToCart, getTotalItems, tableNumber } = useOrderStore()
   const { data, isLoading } = useDishes({ status: 'Available', limit: 100 })
+  const [tableStatus, setTableStatus] = useState<string | null>(null)
+  const [checkingTable, setCheckingTable] = useState(true)
 
   const queryClient = useQueryClient()
 
@@ -74,6 +77,15 @@ export default function TableMenuPage() {
     const token = searchParams.get('token')
     if (num && token) {
       setTable(num, token)
+      // Check table status
+      http.get<{ data: { status: string } }>('/guest/table-status', {
+        params: { tableNumber: String(num), token },
+      })
+        .then((res) => setTableStatus(res.data.status))
+        .catch(() => setTableStatus('Invalid'))
+        .finally(() => setCheckingTable(false))
+    } else {
+      setCheckingTable(false)
     }
   }, [params.number, searchParams, setTable])
 
@@ -106,6 +118,34 @@ export default function TableMenuPage() {
   const handleAddToCart = (dish: Dish) => {
     addToCart(dish)
     toast.success(`${dish.name} ${t('guest.addToCart')}`)
+  }
+
+  // Step 0: Checking table status
+  if (checkingTable) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="animate-spin h-8 w-8 rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  // Table reserved or invalid
+  if (tableStatus === 'Reserved' || tableStatus === 'Invalid') {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="mx-auto w-full max-w-md space-y-4 rounded-lg border p-8 text-center">
+          <div className="text-5xl">🔒</div>
+          <h1 className="text-2xl font-bold">
+            {tableStatus === 'Reserved' ? t('table.reserved') : t('table.invalid')}
+          </h1>
+          <p className="text-muted-foreground">
+            {tableStatus === 'Reserved'
+              ? t('table.reservedMessage')
+              : t('table.invalidMessage')}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   // Step 1: Guest enters name

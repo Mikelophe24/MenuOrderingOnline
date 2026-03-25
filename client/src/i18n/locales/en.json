@@ -186,7 +186,11 @@
       "reserved": "Reserved"
     },
     "qrCode": "QR Code",
-    "changeQR": "Change QR Code"
+    "changeQR": "Change QR Code",
+    "reserved": "Table is Reserved",
+    "reservedMessage": "This table has been reserved, please choose another table.",
+    "invalid": "Invalid Table",
+    "invalidMessage": "The QR code is invalid or has expired."
   },
   "landing": {
     "welcome": "Welcome to",

@@ -186,7 +186,11 @@
       "reserved": "Đã đặt trước"
     },
     "qrCode": "Mã QR",
-    "changeQR": "Đổi QR Code"
+    "changeQR": "Đổi QR Code",
+    "reserved": "Bàn đã được đặt trước",
+    "reservedMessage": "Bàn này đã được đặt trước, vui lòng chọn bàn khác.",
+    "invalid": "Bàn không hợp lệ",
+    "invalidMessage": "Mã QR không hợp lệ hoặc đã hết hạn."
   },
   "landing": {
     "welcome": "Chào mừng đến với",
