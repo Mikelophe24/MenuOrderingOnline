@@ -13,6 +13,7 @@ import { startConnection, stopConnection, getConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { Bell, CreditCard } from 'lucide-react'
+import { playAmountVoice } from '@/lib/voice-amount'
 import type { ReactNode } from 'react'
 import type { Order } from '@/types'
 
@@ -96,7 +97,10 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
             onClick: () => router.push('/manage/orders'),
           },
         })
-        playNotificationSound()
+
+        // Play voice: "Đã nhận [amount] đồng"
+        playAmountVoice(order.totalPrice)
+
         queryClient.invalidateQueries({ queryKey: ['orders'] })
         queryClient.invalidateQueries({ queryKey: ['tables'] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })

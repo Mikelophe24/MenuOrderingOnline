@@ -28,7 +28,17 @@
       "Bash(npx tsc:*)",
       "Bash(find /d/OnlineMenuApp -type f -path */backend/* \\\\\\(-name *order* -o -name *payment* \\\\\\) \\\\\\(-name *.ts -o -name *.js \\\\\\))",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(mkdir -p /d/OnlineMenuApp/client/public/voice)",
+      "Bash(cp \"da nhan duoc.mp3\" /d/OnlineMenuApp/client/public/voice/da-nhan.mp3)",
+      "Bash(cp dong.mp3 /d/OnlineMenuApp/client/public/voice/dong.mp3)",
+      "Bash(cp nghin.mp3 /d/OnlineMenuApp/client/public/voice/nghin.mp3)",
+      "Bash(cp trieu.mp3 /d/OnlineMenuApp/client/public/voice/trieu.mp3)",
+      "Bash(rm -f /d/OnlineMenuApp/client/public/voice/*)",
+      "Bash(cp danhanduoc.mp3 /d/OnlineMenuApp/client/public/voice/da-nhan.mp3)",
+      "Bash(cp \"dong \\(1\\).mp3\" /d/OnlineMenuApp/client/public/voice/dong.mp3)",
+      "Bash(cp \"tram \\(1\\).mp3\" /d/OnlineMenuApp/client/public/voice/tram.mp3)",
+      "Bash(cp \"muoi \\(3\\).mp3\" /d/OnlineMenuApp/client/public/voice/muoi.mp3)"
     ]
   }
 }
