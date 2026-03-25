@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { X, UtensilsCrossed, Flame, Beef, Wheat } from 'lucide-react'
 import http from '@/lib/http'
-import type { ApiResponse } from '@/types'
+import type { ApiResponse, Category, Ingredient } from '@/types'
 
-interface Dish {
+interface DishGridDish {
   id: number
   name: string
   price: number
@@ -18,28 +18,14 @@ interface Dish {
   carbs?: number
 }
 
-interface Category {
-  id: number
-  name: string
-}
-
-interface Ingredient {
-  id: number
-  name: string
-  unit: string
-  currentStock: number
-  minStock: number
-  dishes: { id: number; name: string; quantityNeeded: number }[]
-}
-
 interface DishIngredient {
   name: string
   unit: string
   quantityNeeded: number
 }
 
-export function DishGrid({ dishes, categories }: { dishes: Dish[]; categories: Category[] }) {
-  const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
+export function DishGrid({ dishes, categories }: { dishes: DishGridDish[]; categories: Category[] }) {
+  const [selectedDish, setSelectedDish] = useState<DishGridDish | null>(null)
   const [dishIngredients, setDishIngredients] = useState<DishIngredient[]>([])
   const [loadingIngredients, setLoadingIngredients] = useState(false)
   const [activeCategory, setActiveCategory] = useState<number | null>(null)

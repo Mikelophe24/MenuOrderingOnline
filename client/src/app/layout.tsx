@@ -4,7 +4,6 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { QueryProvider } from '@/components/layout/query-provider'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -33,12 +32,10 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''}>
-              <QueryProvider>
-                {children}
-                <Toaster richColors position="top-right" duration={2500} />
-              </QueryProvider>
-            </GoogleOAuthProvider>
+            <QueryProvider>
+              {children}
+              <Toaster richColors position="top-right" duration={2500} />
+            </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

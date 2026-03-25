@@ -4,12 +4,21 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import http from '@/lib/http'
 import type { ApiResponse, GuestOrder, Order, OrderStatus, PaginatedResponse } from '@/types'
 
+function toStringParams(params?: Record<string, unknown>): Record<string, string> | undefined {
+  if (!params) return undefined
+  const result: Record<string, string> = {}
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null) result[key] = String(value)
+  }
+  return result
+}
+
 export function useOrders(params?: { page?: number; limit?: number; status?: string }) {
   return useQuery({
     queryKey: ['orders', params],
     queryFn: () =>
       http.get<ApiResponse<PaginatedResponse<Order>>>('/orders', {
-        params: params as Record<string, string>,
+        params: toStringParams(params),
       }),
   })
 }

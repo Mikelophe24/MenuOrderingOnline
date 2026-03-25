@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OnlineMenu.API.Extensions;
 using OnlineMenu.API.Hubs;
 using OnlineMenu.Application.DTOs;
 using OnlineMenu.Application.DTOs.Orders;
@@ -58,7 +59,7 @@ public class OrdersController : ControllerBase
 
         var (items, totalCount) = await _orderRepo.GetPagedAsync(page, limit, filter, includeProperties: "OrderItems,OrderItems.Dish,ProcessedBy");
 
-        var dtos = items.Select(MapToDto).ToList();
+        var dtos = items.Select(OrderHelper.MapToDto).ToList();
 
         var response = new PaginatedResponse<OrderDto>
         {
@@ -77,7 +78,7 @@ public class OrdersController : ControllerBase
     {
         var order = await _orderRepo.GetWithItemsAsync(id);
         if (order == null) return NotFound(ApiResponse<object>.Fail("Order not found", 404));
-        return Ok(ApiResponse<OrderDto>.Success(MapToDto(order)));
+        return Ok(ApiResponse<OrderDto>.Success(OrderHelper.MapToDto(order)));
     }
 
     // Guest creates an order
@@ -87,6 +88,17 @@ public class OrdersController : ControllerBase
         var table = await _tableRepo.GetByNumberAsync(request.TableNumber);
         if (table == null || table.Token != request.TableToken)
             return BadRequest(ApiResponse<object>.Fail("Invalid table or token"));
+
+        // Batch-fetch all requested dishes in one query instead of N+1
+        var dishIds = request.Items.Select(i => i.DishId).Distinct().ToList();
+        var dishes = await _dishRepo.FindAsync(d => dishIds.Contains(d.Id));
+        var dishMap = dishes.ToDictionary(d => d.Id);
+
+        foreach (var item in request.Items)
+        {
+            if (!dishMap.TryGetValue(item.DishId, out var dish) || dish.Status != DishStatus.Available)
+                return BadRequest(ApiResponse<object>.Fail($"Dish {item.DishId} not available"));
+        }
 
         var order = new Order
         {
@@ -99,10 +111,6 @@ public class OrdersController : ControllerBase
         decimal totalPrice = 0;
         foreach (var item in request.Items)
         {
-            var dish = await _dishRepo.GetByIdAsync(item.DishId);
-            if (dish == null || dish.Status != DishStatus.Available)
-                return BadRequest(ApiResponse<object>.Fail($"Dish {item.DishId} not available"));
-
             order.OrderItems.Add(new OrderItem
             {
                 DishId = item.DishId,
@@ -110,7 +118,7 @@ public class OrdersController : ControllerBase
                 Note = item.Note,
             });
 
-            totalPrice += dish.Price * item.Quantity;
+            totalPrice += dishMap[item.DishId].Price * item.Quantity;
         }
 
         order.TotalPrice = totalPrice;
@@ -126,7 +134,7 @@ public class OrdersController : ControllerBase
         }
 
         // Notify management via SignalR
-        var orderDto = MapToDto(order);
+        var orderDto = OrderHelper.MapToDto(order);
         await _hubContext.Clients.Group("management").SendAsync("NewOrder", orderDto);
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponse<OrderDto>.Success(orderDto, "Order created", 201));
@@ -145,7 +153,7 @@ public class OrdersController : ControllerBase
         {
             orders = orders.Where(o => o.GuestName == guestName);
         }
-        var dtos = orders.Select(MapToDto).ToList();
+        var dtos = orders.Select(OrderHelper.MapToDto).ToList();
         return Ok(ApiResponse<List<OrderDto>>.Success(dtos));
     }
 
@@ -165,26 +173,9 @@ public class OrdersController : ControllerBase
         order.Status = OrderStatus.Cancelled;
         await _orderRepo.UpdateAsync(order);
 
-        // Check if table can be set back to Available
-        if (order.TableId.HasValue)
-        {
-            var tableId = order.TableId.Value;
-            var hasActiveOrders = await _orderRepo.ExistsAsync(o =>
-                o.TableId == tableId
-                && o.Id != order.Id
-                && o.Status != OrderStatus.Paid
-                && o.Status != OrderStatus.Cancelled);
+        await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
 
-            if (!hasActiveOrders && table.Status == TableStatus.Occupied)
-            {
-                table.Status = TableStatus.Available;
-                await _tableRepo.UpdateAsync(table);
-                await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
-                    new { table.Id, table.Number, Status = table.Status.ToString() });
-            }
-        }
-
-        var orderDto = MapToDto(order);
+        var orderDto = OrderHelper.MapToDto(order);
         await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
         await _hubContext.Clients.Group($"table-{order.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
 
@@ -224,59 +215,20 @@ public class OrdersController : ControllerBase
             }
             await _context.SaveChangesAsync();
 
-            // Auto-hide dishes with insufficient stock
-            var allDishes = await _context.Dishes
-                .Include(d => d.DishIngredients).ThenInclude(di => di.Ingredient)
-                .Where(d => d.DishIngredients.Any())
-                .ToListAsync();
-            foreach (var dish in allDishes)
-            {
-                var oldStatus = dish.Status;
-                var enough = dish.DishIngredients.All(di => di.Ingredient.CurrentStock >= di.QuantityNeeded);
-                if (!enough && dish.Status == DishStatus.Available)
-                    dish.Status = DishStatus.Unavailable;
-                else if (enough && dish.Status == DishStatus.Unavailable)
-                    dish.Status = DishStatus.Available;
-
-                if (oldStatus != dish.Status)
-                {
-                    await _hubContext.Clients.Group("management").SendAsync("DishStatusChanged",
-                        new { dish.Id, dish.Name, Status = dish.Status.ToString() });
-                    await _hubContext.Clients.All.SendAsync("DishStatusChanged",
-                        new { dish.Id, dish.Name, Status = dish.Status.ToString() });
-                }
-            }
-            await _context.SaveChangesAsync();
+            await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
 
             // Notify stock changed
             await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
         }
 
         // If order is Paid or Cancelled, check if table can be set back to Available
-        if ((order.Status == OrderStatus.Paid || order.Status == OrderStatus.Cancelled) && order.TableId.HasValue)
+        if (order.Status == OrderStatus.Paid || order.Status == OrderStatus.Cancelled)
         {
-            var tableId = order.TableId.Value;
-            var hasActiveOrders = await _orderRepo.ExistsAsync(o =>
-                o.TableId == tableId
-                && o.Id != order.Id
-                && o.Status != OrderStatus.Paid
-                && o.Status != OrderStatus.Cancelled);
-
-            if (!hasActiveOrders)
-            {
-                var table = await _tableRepo.GetByIdAsync(tableId);
-                if (table != null && table.Status == TableStatus.Occupied)
-                {
-                    table.Status = TableStatus.Available;
-                    await _tableRepo.UpdateAsync(table);
-                    await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
-                        new { table.Id, table.Number, Status = table.Status.ToString() });
-                }
-            }
+            await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
         }
 
         // Notify table and management
-        var orderDto = MapToDto(order);
+        var orderDto = OrderHelper.MapToDto(order);
         await _hubContext.Clients.Group($"table-{order.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
         await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
 
@@ -345,47 +297,8 @@ public class OrdersController : ControllerBase
 
         await _orderRepo.DeleteAsync(order);
 
-        // If table has no more active orders, set it back to Available
-        if (order.TableId.HasValue)
-        {
-            var tableId = order.TableId.Value;
-            var hasActiveOrders = await _orderRepo.ExistsAsync(o =>
-                o.TableId == tableId
-                && o.Id != order.Id
-                && o.Status != OrderStatus.Paid
-                && o.Status != OrderStatus.Cancelled);
-
-            if (!hasActiveOrders)
-            {
-                var table = await _tableRepo.GetByIdAsync(tableId);
-                if (table != null && table.Status == TableStatus.Occupied)
-                {
-                    table.Status = TableStatus.Available;
-                    await _tableRepo.UpdateAsync(table);
-                    await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
-                        new { table.Id, table.Number, Status = table.Status.ToString() });
-                }
-            }
-        }
+        await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
 
         return Ok(ApiResponse<object>.Success(null!, "Order deleted"));
     }
-
-    private static OrderDto MapToDto(Order order) => new(
-        order.Id,
-        order.TableNumber,
-        order.GuestName,
-        order.Status.ToString(),
-        order.TotalPrice,
-        order.ProcessedBy?.Name,
-        order.OrderItems.Select(oi => new OrderItemDto(
-            oi.Id, oi.DishId,
-            oi.Dish?.Name ?? string.Empty,
-            oi.Dish?.Price ?? 0,
-            oi.Dish?.Image,
-            oi.Quantity, oi.Note
-        )).ToList(),
-        order.CreatedAt,
-        order.UpdatedAt
-    );
 }

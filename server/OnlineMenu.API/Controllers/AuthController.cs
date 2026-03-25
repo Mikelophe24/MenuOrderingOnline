@@ -1,4 +1,3 @@
-using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineMenu.Application.DTOs;
@@ -14,21 +13,26 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IAccountRepository _accountRepo;
-    private readonly IConfiguration _config;
 
-    public AuthController(IAuthService authService, IAccountRepository accountRepo, IConfiguration config)
+    public AuthController(IAuthService authService, IAccountRepository accountRepo)
     {
         _authService = authService;
         _accountRepo = accountRepo;
-        _config = config;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var (account, accessToken, refreshToken) = await _authService.LoginAsync(request.Email, request.Password);
-        var accountDto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
-        return Ok(ApiResponse<AuthResponse>.Success(new AuthResponse(accessToken, refreshToken, accountDto)));
+        try
+        {
+            var (account, accessToken, refreshToken) = await _authService.LoginAsync(request.Email, request.Password);
+            var accountDto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
+            return Ok(ApiResponse<AuthResponse>.Success(new AuthResponse(accessToken, refreshToken, accountDto)));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return BadRequest(ApiResponse<object>.Fail("Email hoặc mật khẩu không đúng"));
+        }
     }
 
     [HttpPost("register")]
@@ -38,31 +42,6 @@ public class AuthController : ControllerBase
             return BadRequest(ApiResponse<object>.Fail("Passwords do not match"));
 
         var (account, accessToken, refreshToken) = await _authService.RegisterAsync(request.Name, request.Email, request.Password);
-        var accountDto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
-        return Ok(ApiResponse<AuthResponse>.Success(new AuthResponse(accessToken, refreshToken, accountDto)));
-    }
-
-    [HttpPost("google")]
-    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
-    {
-        var settings = new GoogleJsonWebSignature.ValidationSettings
-        {
-            Audience = new[] { _config["Google:ClientId"] }
-        };
-
-        GoogleJsonWebSignature.Payload payload;
-        try
-        {
-            payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
-        }
-        catch (InvalidJwtException)
-        {
-            return Unauthorized(ApiResponse<object>.Fail("Google token không hợp lệ"));
-        }
-
-        var (account, accessToken, refreshToken) = await _authService.GoogleLoginAsync(
-            payload.Email, payload.Name, payload.Picture);
-
         var accountDto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
         return Ok(ApiResponse<AuthResponse>.Success(new AuthResponse(accessToken, refreshToken, accountDto)));
     }
@@ -92,6 +71,25 @@ public class AuthController : ControllerBase
         if (account == null) return NotFound();
         var dto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
         return Ok(ApiResponse<AccountDto>.Success(dto));
+    }
+
+    [Authorize]
+    [HttpPut("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (request.NewPassword != request.ConfirmNewPassword)
+            return BadRequest(ApiResponse<object>.Fail("Passwords do not match"));
+
+        try
+        {
+            var userId = int.Parse(User.FindFirst("userId")!.Value);
+            await _authService.ChangePasswordAsync(userId, request.OldPassword, request.NewPassword);
+            return Ok(ApiResponse<object>.Success(null!, "Password changed"));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return BadRequest(ApiResponse<object>.Fail("Mật khẩu cũ không đúng"));
+        }
     }
 
     [Authorize]

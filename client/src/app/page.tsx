@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema, registerSchema, type LoginFormValues, type RegisterFormValues } from '@/schemas/auth.schema'
 import { useLogin, useRegister } from '@/hooks/use-auth'
-import { GoogleLoginButton } from '@/components/auth/google-login-button'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { UtensilsCrossed, Phone } from 'lucide-react'
@@ -51,13 +50,6 @@ function LoginForm({ onSwitch, t }: { onSwitch: () => void; t: (key: string) => 
           {loginMutation.isPending ? t('auth.loggingIn') : t('auth.login')}
         </button>
       </form>
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">{t('common.or')}</span>
-        </div>
-      </div>
-      <GoogleLoginButton />
       <p className="text-center text-sm text-muted-foreground">
         {t('auth.noAccount')}{' '}
         <button onClick={onSwitch} className="text-primary underline">{t('auth.register')}</button>
@@ -124,13 +116,6 @@ function RegisterForm({ onSwitch, t }: { onSwitch: () => void; t: (key: string) 
           {registerMutation.isPending ? t('auth.registering') : t('auth.register')}
         </button>
       </form>
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">{t('common.or')}</span>
-        </div>
-      </div>
-      <GoogleLoginButton />
       <p className="text-center text-sm text-muted-foreground">
         {t('auth.hasAccount')}{' '}
         <button onClick={onSwitch} className="text-primary underline">{t('auth.login')}</button>
@@ -149,7 +134,7 @@ export default function WelcomePage() {
         <div className="container flex h-14 items-center justify-between">
           <span className="flex items-center gap-2 font-bold text-xl">
             <UtensilsCrossed className="h-6 w-6 text-primary" />
-             Menu
+            Online Menu
           </span>
           <div className="flex items-center gap-2">
             <LocaleSwitcher />

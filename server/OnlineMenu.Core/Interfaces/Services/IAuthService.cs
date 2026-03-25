@@ -8,7 +8,7 @@ public interface IAuthService
     Task<(Account Account, string AccessToken, string RefreshToken)> RegisterAsync(string name, string email, string password);
     Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken);
     Task LogoutAsync(int accountId);
-    Task<(Account Account, string AccessToken, string RefreshToken)> GoogleLoginAsync(string email, string name, string? avatar);
+    Task ChangePasswordAsync(int accountId, string oldPassword, string newPassword);
     string GenerateAccessToken(Account account);
     string GenerateRefreshToken();
 }

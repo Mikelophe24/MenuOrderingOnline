@@ -2,17 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import http from '@/lib/http'
-import type { ApiResponse } from '@/types'
-
-export interface Ingredient {
-  id: number
-  name: string
-  unit: string
-  currentStock: number
-  minStock: number
-  isLow: boolean
-  dishes: { id: number; name: string; quantityNeeded: number }[]
-}
+import type { ApiResponse, Ingredient } from '@/types'
 
 export function useIngredients() {
   return useQuery({

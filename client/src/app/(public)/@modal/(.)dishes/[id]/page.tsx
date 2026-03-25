@@ -28,8 +28,14 @@ export default function DishModalPage() {
           </div>
         ) : dish ? (
           <div className="space-y-4">
-            <div className="aspect-video rounded-md bg-muted flex items-center justify-center">
-              Dish Image
+            <div className="aspect-video overflow-hidden rounded-md bg-muted">
+              {dish.image ? (
+                <img src={dish.image} alt={dish.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-5xl text-muted-foreground/50">
+                  🍽
+                </div>
+              )}
             </div>
             <h2 className="text-2xl font-bold">{dish.name}</h2>
             <p className="text-xl font-semibold text-primary">
@@ -43,9 +49,6 @@ export default function DishModalPage() {
                 className="flex-1 rounded-lg border px-4 py-2"
               >
                 Đóng
-              </button>
-              <button className="flex-1 rounded-lg bg-primary px-4 py-2 text-primary-foreground">
-                Thêm vào giỏ
               </button>
             </div>
           </div>

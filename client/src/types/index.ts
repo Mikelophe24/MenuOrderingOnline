@@ -43,10 +43,6 @@ export interface RegisterRequest {
   confirmPassword: string
 }
 
-export interface GoogleLoginRequest {
-  idToken: string
-}
-
 export interface TokenPayload {
   userId: number
   role: Role
@@ -134,6 +130,34 @@ export interface DashboardData {
   activeTables: number
   topDishes: { dishId: number; dishName: string; orderCount: number }[]
   revenueByDate: { date: string; revenue: number }[]
+}
+
+// ====== INGREDIENTS ======
+export interface Ingredient {
+  id: number
+  name: string
+  unit: string
+  currentStock: number
+  minStock: number
+  isLow: boolean
+  dishes: { id: number; name: string; quantityNeeded: number }[]
+}
+
+// ====== REVIEWS ======
+export interface Review {
+  id: number
+  dishId: number
+  guestName: string
+  tableNumber: number
+  rating: number
+  comment?: string
+  createdAt: string
+}
+
+export interface DishReviewData {
+  reviews: Review[]
+  averageRating: number
+  totalReviews: number
 }
 
 // ====== API RESPONSE ======

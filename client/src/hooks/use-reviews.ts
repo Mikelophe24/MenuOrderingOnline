@@ -2,23 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import http from '@/lib/http'
-import type { ApiResponse } from '@/types'
-
-interface Review {
-  id: number
-  dishId: number
-  guestName: string
-  tableNumber: number
-  rating: number
-  comment?: string
-  createdAt: string
-}
-
-interface DishReviewData {
-  reviews: Review[]
-  averageRating: number
-  totalReviews: number
-}
+import type { ApiResponse, DishReviewData, Review } from '@/types'
 
 export function useDishReviews(dishId: number) {
   return useQuery({

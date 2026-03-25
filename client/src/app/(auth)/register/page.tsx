@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema, type RegisterFormValues } from '@/schemas/auth.schema'
 import { useRegister } from '@/hooks/use-auth'
-import { GoogleLoginButton } from '@/components/auth/google-login-button'
 import Link from 'next/link'
 
 export default function RegisterPage() {
@@ -94,17 +93,6 @@ export default function RegisterPage() {
             {registerMutation.isPending ? 'Đang đăng ký...' : 'Đăng ký'}
           </button>
         </form>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Hoặc</span>
-          </div>
-        </div>
-
-        <GoogleLoginButton />
 
         <p className="text-center text-sm text-muted-foreground">
           Đã có tài khoản?{' '}

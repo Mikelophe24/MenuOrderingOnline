@@ -13,12 +13,21 @@ async function revalidateDishes() {
   })
 }
 
+function toStringParams(params?: Record<string, unknown>): Record<string, string> | undefined {
+  if (!params) return undefined
+  const result: Record<string, string> = {}
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null) result[key] = String(value)
+  }
+  return result
+}
+
 export function useDishes(params?: { page?: number; limit?: number; status?: string }) {
   return useQuery({
     queryKey: ['dishes', params],
     queryFn: () =>
       http.get<ApiResponse<PaginatedResponse<Dish>>>('/dishes', {
-        params: params as Record<string, string>,
+        params: toStringParams(params),
       }),
   })
 }

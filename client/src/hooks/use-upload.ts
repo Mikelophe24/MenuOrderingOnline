@@ -2,6 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { getAccessToken } from '@/lib/tokens'
 
 export function useUploadImage() {
   return useMutation({
@@ -9,15 +10,12 @@ export function useUploadImage() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const accessToken = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('accessToken='))
-        ?.split('=')[1]
+      const accessToken = getAccessToken()
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/api/upload/image`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken ? decodeURIComponent(accessToken) : ''}`,
+          Authorization: `Bearer ${accessToken ?? ''}`,
         },
         body: formData,
       })

@@ -73,7 +73,10 @@ const request = async <T>(method: HttpMethod, url: string, options?: RequestOpti
   const payload = text ? JSON.parse(text) : null
 
   if (!response.ok) {
-    if (response.status === AUTHENTICATION_ERROR_STATUS) {
+    // Only auto-logout on 401 for authenticated API calls.
+    // Skip for auth endpoints (login, register, refresh) where 401 means wrong credentials.
+    const isAuthEndpoint = url.startsWith('/auth/login') || url.startsWith('/auth/register') || url.startsWith('/auth/refresh')
+    if (response.status === AUTHENTICATION_ERROR_STATUS && !isAuthEndpoint) {
       if (isClient) {
         if (!clientLogoutRequest) {
           clientLogoutRequest = fetch('/api/auth', { method: 'DELETE' })
@@ -85,7 +88,6 @@ const request = async <T>(method: HttpMethod, url: string, options?: RequestOpti
           }
         }
       } else {
-        // Server-side: redirect to login
         const accessToken = (baseHeaders['Authorization'] as string)?.split(' ')[1]
         redirect(`/logout?accessToken=${accessToken}`)
       }

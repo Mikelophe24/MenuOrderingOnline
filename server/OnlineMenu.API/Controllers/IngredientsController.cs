@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using OnlineMenu.API.Extensions;
 using OnlineMenu.API.Hubs;
 using OnlineMenu.Application.DTOs;
 using OnlineMenu.Core.Entities;
@@ -163,48 +164,8 @@ public class IngredientsController : ControllerBase
         return Ok(ApiResponse<object>.Success(null!, "Stock deducted"));
     }
 
-    // Check all dishes and auto-hide if ingredients are insufficient
-    private async Task CheckAndUpdateDishAvailability()
-    {
-        var dishes = await _context.Dishes
-            .Include(d => d.DishIngredients)
-            .ThenInclude(di => di.Ingredient)
-            .Where(d => d.DishIngredients.Any())
-            .ToListAsync();
-
-        var changedDishes = new List<object>();
-
-        foreach (var dish in dishes)
-        {
-            var hasEnoughStock = dish.DishIngredients.All(di =>
-                di.Ingredient.CurrentStock >= di.QuantityNeeded);
-
-            var oldStatus = dish.Status;
-
-            if (!hasEnoughStock && dish.Status == DishStatus.Available)
-            {
-                dish.Status = DishStatus.Unavailable;
-            }
-            else if (hasEnoughStock && dish.Status == DishStatus.Unavailable)
-            {
-                dish.Status = DishStatus.Available;
-            }
-
-            if (oldStatus != dish.Status)
-            {
-                changedDishes.Add(new { dish.Id, dish.Name, Status = dish.Status.ToString() });
-            }
-        }
-
-        await _context.SaveChangesAsync();
-
-        // Notify via SignalR
-        foreach (var changed in changedDishes)
-        {
-            await _hubContext.Clients.Group("management").SendAsync("DishStatusChanged", changed);
-            await _hubContext.Clients.All.SendAsync("DishStatusChanged", changed);
-        }
-    }
+    private Task CheckAndUpdateDishAvailability()
+        => OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
 }
 
 public record CreateIngredientRequest(string Name, string Unit, decimal CurrentStock, decimal MinStock);

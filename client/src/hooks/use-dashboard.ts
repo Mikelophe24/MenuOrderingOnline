@@ -9,7 +9,7 @@ export function useDashboard(params?: { fromDate?: string; toDate?: string }) {
     queryKey: ['dashboard', params],
     queryFn: () =>
       http.get<ApiResponse<DashboardData>>('/dashboard', {
-        params: params as Record<string, string>,
+        params: params as Record<string, string> | undefined,
       }),
   })
 }

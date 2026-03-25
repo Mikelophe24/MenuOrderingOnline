@@ -2,13 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import http from '@/lib/http'
-import type { ApiResponse } from '@/types'
-
-interface Category {
-  id: number
-  name: string
-  description?: string
-}
+import type { ApiResponse, Category } from '@/types'
 
 export function useCategories() {
   return useQuery({

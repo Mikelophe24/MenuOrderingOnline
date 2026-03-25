@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useIngredients, useCreateIngredient, useUpdateIngredient, useDeleteIngredient, useUpdateStock, useLinkDishIngredient, useUnlinkDishIngredient, type Ingredient } from '@/hooks/use-ingredients'
+import { useIngredients, useCreateIngredient, useUpdateIngredient, useDeleteIngredient, useUpdateStock, useLinkDishIngredient, useUnlinkDishIngredient } from '@/hooks/use-ingredients'
+import type { Ingredient } from '@/types'
 import { useDishes } from '@/hooks/use-dishes'
 import { toast } from 'sonner'
 import { Plus, Trash2, AlertTriangle, Package, Link2, Unlink } from 'lucide-react'

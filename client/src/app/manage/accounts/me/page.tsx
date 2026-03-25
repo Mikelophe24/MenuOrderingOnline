@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import Link from 'next/link'
 import { useAuthStore } from '@/stores/auth.store'
 import { useMutation } from '@tanstack/react-query'
 import http from '@/lib/http'
@@ -114,13 +115,21 @@ export default function AccountPage() {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={updateProfile.isPending}
-          className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
-        >
-          Cập nhật
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={updateProfile.isPending}
+            className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+          >
+            Cập nhật
+          </button>
+          <Link
+            href="/manage/accounts/change-password"
+            className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
+          >
+            Đổi mật khẩu
+          </Link>
+        </div>
       </form>
     </div>
   )

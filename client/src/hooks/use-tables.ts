@@ -5,12 +5,21 @@ import http from '@/lib/http'
 import type { ApiResponse, PaginatedResponse, Table } from '@/types'
 import type { TableFormValues } from '@/schemas/table.schema'
 
+function toStringParams(params?: Record<string, unknown>): Record<string, string> | undefined {
+  if (!params) return undefined
+  const result: Record<string, string> = {}
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null) result[key] = String(value)
+  }
+  return result
+}
+
 export function useTables(params?: { page?: number; limit?: number }) {
   return useQuery({
     queryKey: ['tables', params],
     queryFn: () =>
       http.get<ApiResponse<PaginatedResponse<Table>>>('/tables', {
-        params: params as Record<string, string>,
+        params: toStringParams(params),
       }),
   })
 }

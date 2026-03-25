@@ -93,32 +93,16 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<(Account Account, string AccessToken, string RefreshToken)> GoogleLoginAsync(string email, string name, string? avatar)
+    public async Task ChangePasswordAsync(int accountId, string oldPassword, string newPassword)
     {
-        var account = await _accountRepo.GetByEmailAsync(email);
+        var account = await _accountRepo.GetByIdAsync(accountId)
+            ?? throw new InvalidOperationException("Account not found");
 
-        if (account == null)
-        {
-            // Create new account for Google user
-            account = new Account
-            {
-                Name = name,
-                Email = email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-                Avatar = avatar,
-                Role = Core.Enums.Role.Employee,
-            };
-            await _accountRepo.AddAsync(account);
-        }
+        if (!BCrypt.Net.BCrypt.Verify(oldPassword, account.PasswordHash))
+            throw new UnauthorizedAccessException("Old password is incorrect");
 
-        var accessToken = GenerateAccessToken(account);
-        var refreshToken = GenerateRefreshToken();
-
-        account.RefreshToken = refreshToken;
-        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
+        account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await _accountRepo.UpdateAsync(account);
-
-        return (account, accessToken, refreshToken);
     }
 
     public string GenerateAccessToken(Account account)

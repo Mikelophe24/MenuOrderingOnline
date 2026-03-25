@@ -16,8 +16,7 @@ import { Bell, CreditCard } from 'lucide-react'
 import { playAmountVoice } from '@/lib/voice-amount'
 import http from '@/lib/http'
 import type { ReactNode } from 'react'
-import type { Order, ApiResponse, PaginatedResponse, Dish, Table, DashboardData } from '@/types'
-import type { Ingredient } from '@/hooks/use-ingredients'
+import type { Order, ApiResponse, PaginatedResponse, Dish, Table, DashboardData, Ingredient } from '@/types'
 
 export default function ManageLayout({ children }: { children: ReactNode }) {
   const router = useRouter()

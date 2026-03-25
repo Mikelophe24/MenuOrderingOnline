@@ -9,7 +9,7 @@ import { useOrderStore } from '@/stores/order.store'
 
 export function Header() {
   const t = useTranslations('common')
-  const totalItems = useOrderStore((s) => s.getTotalItems())
+  const totalItems = useOrderStore((s) => s.cart.reduce((total, item) => total + item.quantity, 0))
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

@@ -2,9 +2,9 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using OnlineMenu.API.Extensions;
 using OnlineMenu.API.Hubs;
 using OnlineMenu.Application.DTOs;
-using OnlineMenu.Application.DTOs.Orders;
 using OnlineMenu.Core.Enums;
 using OnlineMenu.Core.Interfaces.Repositories;
 
@@ -103,39 +103,10 @@ public class PaymentController : ControllerBase
             order.Status = OrderStatus.Paid;
             await _orderRepo.UpdateAsync(order);
 
-            // Free table if no more active orders
-            if (order.TableId.HasValue)
-            {
-                var tableId = order.TableId.Value;
-                var hasActiveOrders = await _orderRepo.ExistsAsync(o =>
-                    o.TableId == tableId
-                    && o.Id != order.Id
-                    && o.Status != OrderStatus.Paid
-                    && o.Status != OrderStatus.Cancelled);
-
-                if (!hasActiveOrders)
-                {
-                    var table = await _tableRepo.GetByIdAsync(tableId);
-                    if (table != null && table.Status == TableStatus.Occupied)
-                    {
-                        table.Status = TableStatus.Available;
-                        await _tableRepo.UpdateAsync(table);
-                        await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
-                            new { table.Id, table.Number, Status = table.Status.ToString() });
-                    }
-                }
-            }
+            await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
 
             // Notify via SignalR
-            var orderDto = new OrderDto(
-                order.Id, order.TableNumber, order.GuestName, order.Status.ToString(),
-                order.TotalPrice, order.ProcessedBy?.Name,
-                order.OrderItems.Select(oi => new OrderItemDto(
-                    oi.Id, oi.DishId, oi.Dish?.Name ?? "", oi.Dish?.Price ?? 0,
-                    oi.Dish?.Image, oi.Quantity, oi.Note
-                )).ToList(),
-                order.CreatedAt, order.UpdatedAt
-            );
+            var orderDto = OrderHelper.MapToDto(order);
 
             await _hubContext.Clients.Group("management").SendAsync("PaymentReceived", orderDto);
             await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
