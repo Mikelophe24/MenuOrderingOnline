@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useOrderStore } from '@/stores/order.store'
 import { useDishes } from '@/hooks/use-dishes'
+import { useQueryClient } from '@tanstack/react-query'
+import { getConnection, startConnection } from '@/lib/signalr'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Search, X, Star } from 'lucide-react'
@@ -65,6 +67,8 @@ export default function TableMenuPage() {
   const { setTable, setGuestName, guestName, addToCart, getTotalItems, tableNumber } = useOrderStore()
   const { data, isLoading } = useDishes({ status: 'Available', limit: 100 })
 
+  const queryClient = useQueryClient()
+
   useEffect(() => {
     const num = Number(params.number)
     const token = searchParams.get('token')
@@ -72,6 +76,20 @@ export default function TableMenuPage() {
       setTable(num, token)
     }
   }, [params.number, searchParams, setTable])
+
+  // Real-time: refresh menu when dishes become available/unavailable
+  useEffect(() => {
+    const conn = getConnection()
+    const onDishChanged = () => {
+      queryClient.invalidateQueries({ queryKey: ['dishes'] })
+    }
+    conn.on('DishStatusChanged', onDishChanged)
+    void startConnection()
+
+    return () => {
+      conn.off('DishStatusChanged', onDishChanged)
+    }
+  }, [queryClient])
 
   const allDishes: Dish[] = data?.data?.data?.data ?? data?.data?.data ?? []
   const [search, setSearch] = useState('')

@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
-import { useQueryClient } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/utils'
-import { getConnection, startConnection } from '@/lib/signalr'
+import { getConnection } from '@/lib/signalr'
 import { OrderStatus, type Order } from '@/types'
 import { toast } from 'sonner'
 import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X } from 'lucide-react'
@@ -26,17 +25,11 @@ export default function ManageOrdersPage() {
   const [tableFilter, setTableFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  // Listen for realtime order updates via SignalR
-  const queryClient = useQueryClient()
+  // Listen for PaymentReceived to auto-close QR dialog (cache invalidation handled by layout)
   useEffect(() => {
     const conn = getConnection()
-    const onUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
-    }
 
     const onPaymentReceived = (order: Order) => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
-      // Auto-close QR dialog if this is the order being paid
       if (qrOrderIdRef.current === order.id) {
         toast.success(t('order.payment.paymentSuccess'))
         setQrData(null)
@@ -44,16 +37,12 @@ export default function ManageOrdersPage() {
       }
     }
 
-    conn.on('NewOrder', onUpdate)
-    conn.on('OrderStatusChanged', onUpdate)
     conn.on('PaymentReceived', onPaymentReceived)
 
     return () => {
-      conn.off('NewOrder', onUpdate)
-      conn.off('OrderStatusChanged', onUpdate)
       conn.off('PaymentReceived', onPaymentReceived)
     }
-  }, [queryClient, t])
+  }, [t])
 
   const allOrders: Order[] = data?.data?.data ?? []
 

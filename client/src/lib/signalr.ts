@@ -2,6 +2,7 @@ import * as signalR from '@microsoft/signalr'
 import { getAccessToken } from '@/lib/tokens'
 
 let connection: signalR.HubConnection | null = null
+let startPromise: Promise<signalR.HubConnection | null> | null = null
 
 function createConnection(): signalR.HubConnection {
   return new signalR.HubConnectionBuilder()
@@ -27,18 +28,29 @@ export async function startConnection(): Promise<signalR.HubConnection | null> {
     return conn
   }
 
+  // If already connecting, wait for the existing attempt
+  if (startPromise) {
+    return startPromise
+  }
+
   if (conn.state !== signalR.HubConnectionState.Disconnected) {
     return null
   }
 
-  try {
-    await conn.start()
-    console.log('SignalR Connected')
-    return conn
-  } catch (err) {
-    console.warn('SignalR connection failed:', err)
-    return null
-  }
+  startPromise = conn.start()
+    .then(() => {
+      console.log('SignalR Connected')
+      return conn
+    })
+    .catch((err) => {
+      console.warn('SignalR connection failed:', err)
+      return null
+    })
+    .finally(() => {
+      startPromise = null
+    })
+
+  return startPromise
 }
 
 export async function stopConnection() {

@@ -9,13 +9,15 @@ import { useProfile, useLogout } from '@/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/stores/auth.store'
 import { getAccessToken } from '@/lib/tokens'
-import { startConnection, stopConnection, getConnection } from '@/lib/signalr'
+import { startConnection, getConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { Bell, CreditCard } from 'lucide-react'
 import { playAmountVoice } from '@/lib/voice-amount'
+import http from '@/lib/http'
 import type { ReactNode } from 'react'
-import type { Order } from '@/types'
+import type { Order, ApiResponse, PaginatedResponse, Dish, Table, DashboardData } from '@/types'
+import type { Ingredient } from '@/hooks/use-ingredients'
 
 export default function ManageLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -71,6 +73,10 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     }
   }, [t, router, playNotificationSound])
 
+  // Use ref so SignalR effect doesn't re-run when callback changes
+  const showNewOrderRef = useRef(showNewOrderNotification)
+  useEffect(() => { showNewOrderRef.current = showNewOrderNotification }, [showNewOrderNotification])
+
   // SignalR: connect once for all manage pages
   useEffect(() => {
     let cancelled = false
@@ -84,9 +90,19 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         // ignore
       }
 
-      // Listen for new orders globally
+      // ===== Centralized cache invalidation for ALL manage pages =====
+
       conn.on('NewOrder', (order: Order) => {
-        showNewOrderNotification(order)
+        showNewOrderRef.current(order)
+        queryClient.invalidateQueries({ queryKey: ['orders'] })
+        queryClient.invalidateQueries({ queryKey: ['tables'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      })
+
+      conn.on('OrderStatusChanged', () => {
+        queryClient.invalidateQueries({ queryKey: ['orders'] })
+        queryClient.invalidateQueries({ queryKey: ['tables'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       })
 
       conn.on('PaymentReceived', (order: Order) => {
@@ -98,7 +114,6 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
           },
         })
 
-        // Play voice: "Đã nhận [amount] đồng"
         playAmountVoice(order.totalPrice)
 
         queryClient.invalidateQueries({ queryKey: ['orders'] })
@@ -113,8 +128,14 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         }
       })
 
+      conn.on('TableStatusChanged', () => {
+        queryClient.invalidateQueries({ queryKey: ['tables'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      })
+
       conn.on('StockChanged', () => {
         queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+        queryClient.invalidateQueries({ queryKey: ['dishes'] })
       })
 
       conn.on('DishStatusChanged', (dish: { id: number; name: string; status: string }) => {
@@ -143,12 +164,54 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       cancelled = true
       const conn = getConnection()
       conn.off('NewOrder')
+      conn.off('OrderStatusChanged')
       conn.off('PaymentReceived')
+      conn.off('TableStatusChanged')
       conn.off('StockChanged')
       conn.off('DishStatusChanged')
-      stopConnection()
     }
-  }, [showNewOrderNotification])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Prefetch data + route bundles for all manage pages on mount
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
+    const dashboardParams = { fromDate: thirtyDaysAgo, toDate: today }
+
+    queryClient.prefetchQuery({
+      queryKey: ['orders', { page: 1, limit: 50 }],
+      queryFn: () => http.get<ApiResponse<PaginatedResponse<Order>>>('/orders', { params: { page: '1', limit: '50' } }),
+    })
+    queryClient.prefetchQuery({
+      queryKey: ['tables', undefined],
+      queryFn: () => http.get<ApiResponse<PaginatedResponse<Table>>>('/tables'),
+    })
+    queryClient.prefetchQuery({
+      queryKey: ['dishes', { limit: 100 }],
+      queryFn: () => http.get<ApiResponse<PaginatedResponse<Dish>>>('/dishes', { params: { limit: '100' } }),
+    })
+    queryClient.prefetchQuery({
+      queryKey: ['dashboard', dashboardParams],
+      queryFn: () => http.get<ApiResponse<DashboardData>>('/dashboard', { params: dashboardParams }),
+    })
+    queryClient.prefetchQuery({
+      queryKey: ['ingredients'],
+      queryFn: () => http.get<ApiResponse<Ingredient[]>>('/ingredients'),
+    })
+    queryClient.prefetchQuery({
+      queryKey: ['categories'],
+      queryFn: () => http.get<ApiResponse<unknown[]>>('/categories'),
+    })
+
+    const routes = [
+      '/manage/dashboard', '/manage/orders', '/manage/tables',
+      '/manage/dishes', '/manage/categories', '/manage/ingredients',
+      '/manage/recipes', '/manage/home',
+    ]
+    routes.forEach((route) => router.prefetch(route))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (isLoading) {
     return (

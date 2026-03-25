@@ -1,34 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useTables, useCreateTable, useDeleteTable, useChangeToken, useUpdateTable } from '@/hooks/use-tables'
-import { getConnection } from '@/lib/signalr'
 import { QRCodeSVG } from 'qrcode.react'
 import { TableStatus, type Table } from '@/types'
 import { toast } from 'sonner'
 
 export default function ManageTablesPage() {
   const t = useTranslations()
-  const { data, isLoading, refetch } = useTables()
+  const { data, isLoading } = useTables()
   const createTable = useCreateTable()
   const deleteTable = useDeleteTable()
   const changeToken = useChangeToken()
   const updateTable = useUpdateTable()
-  // Listen for realtime table status updates via SignalR
-  useEffect(() => {
-    const conn = getConnection()
-    const onTableChanged = () => { void refetch() }
-    const onNewOrder = () => { void refetch() }
-
-    conn.on('TableStatusChanged', onTableChanged)
-    conn.on('NewOrder', onNewOrder)
-
-    return () => {
-      conn.off('TableStatusChanged', onTableChanged)
-      conn.off('NewOrder', onNewOrder)
-    }
-  }, [refetch])
 
   const handleDelete = (id: number, number: number) => {
     if (!confirm(t('manage.deleteTableConfirm', { number }))) return
