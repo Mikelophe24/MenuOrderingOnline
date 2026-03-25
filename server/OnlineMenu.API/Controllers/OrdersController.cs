@@ -100,10 +100,36 @@ public class OrdersController : ControllerBase
         var dishes = await _dishRepo.FindAsync(d => dishIds.Contains(d.Id));
         var dishMap = dishes.ToDictionary(d => d.Id);
 
+        // Load ingredients for stock validation
+        var dishIngredients = await _context.DishIngredients
+            .Where(di => dishIds.Contains(di.DishId))
+            .Include(di => di.Ingredient)
+            .ToListAsync();
+
         foreach (var item in request.Items)
         {
             if (!dishMap.TryGetValue(item.DishId, out var dish) || dish.Status != DishStatus.Available)
                 return BadRequest(ApiResponse<object>.Fail($"Dish {item.DishId} not available"));
+
+            // Check stock: if dish has ingredients, validate quantity against stock
+            var ingredients = dishIngredients.Where(di => di.DishId == item.DishId).ToList();
+            if (ingredients.Count > 0)
+            {
+                foreach (var di in ingredients)
+                {
+                    var maxServings = di.QuantityNeeded > 0
+                        ? (int)Math.Floor(di.Ingredient.CurrentStock / di.QuantityNeeded)
+                        : int.MaxValue;
+
+                    if (item.Quantity > maxServings)
+                        return BadRequest(ApiResponse<object>.Fail(
+                            $"{dish.Name} chỉ còn đủ nguyên liệu cho {maxServings} phần"));
+                }
+            }
+            else if (item.Quantity > 50)
+            {
+                return BadRequest(ApiResponse<object>.Fail($"Số lượng tối đa là 50"));
+            }
         }
 
         var order = new Order
@@ -199,8 +225,25 @@ public class OrdersController : ControllerBase
         var order = await _orderRepo.GetWithItemsAsync(id);
         if (order == null) return NotFound(ApiResponse<object>.Fail("Order not found", 404));
 
+        if (!Enum.TryParse<OrderStatus>(request.Status, out var newStatus))
+            return BadRequest(ApiResponse<object>.Fail("Invalid status"));
+
         var previousStatus = order.Status;
-        order.Status = Enum.Parse<OrderStatus>(request.Status);
+
+        // Validate status transition
+        var allowedTransitions = new Dictionary<OrderStatus, OrderStatus[]>
+        {
+            { OrderStatus.Pending, [OrderStatus.Processing, OrderStatus.Cancelled] },
+            { OrderStatus.Processing, [OrderStatus.Delivered, OrderStatus.Cancelled] },
+            { OrderStatus.Delivered, [OrderStatus.Paid, OrderStatus.Cancelled] },
+            { OrderStatus.Paid, [] },
+            { OrderStatus.Cancelled, [] },
+        };
+
+        if (!allowedTransitions.TryGetValue(previousStatus, out var allowed) || !allowed.Contains(newStatus))
+            return BadRequest(ApiResponse<object>.Fail($"Không thể chuyển từ {previousStatus} sang {newStatus}"));
+
+        order.Status = newStatus;
         var userIdClaim = User.FindFirst("userId")?.Value;
         if (int.TryParse(userIdClaim, out var userId))
         {

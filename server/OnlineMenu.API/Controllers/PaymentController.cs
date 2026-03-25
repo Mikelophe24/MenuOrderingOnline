@@ -48,23 +48,24 @@ public class PaymentController : ControllerBase
     [HttpPost("/")]
     public async Task<IActionResult> CassoWebhook([FromBody] JsonElement body)
     {
-        // Verify webhook key - Casso sends it in "Secure-Token" or "Authorization" header
+        // Verify webhook key - reject if not configured or not matching
         var expectedKey = _configuration["Casso:WebhookKey"];
-        if (!string.IsNullOrEmpty(expectedKey))
+        if (string.IsNullOrEmpty(expectedKey))
         {
-            var secureToken = Request.Headers["Secure-Token"].FirstOrDefault();
-            var authHeader = Request.Headers["Authorization"].FirstOrDefault();
-            var providedKey = secureToken
-                ?? authHeader?.Replace("Apikey ", "", StringComparison.OrdinalIgnoreCase).Trim()
-                ?? authHeader?.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim();
+            _logger.LogError("Payment webhook: Casso:WebhookKey is not configured. Rejecting request.");
+            return StatusCode(503, new { message = "Webhook not configured" });
+        }
 
-            _logger.LogInformation("Webhook headers - Secure-Token: {SecureToken}, Authorization: {Auth}", secureToken, authHeader);
+        var secureToken = Request.Headers["Secure-Token"].FirstOrDefault();
+        var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+        var providedKey = secureToken
+            ?? authHeader?.Replace("Apikey ", "", StringComparison.OrdinalIgnoreCase).Trim()
+            ?? authHeader?.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim();
 
-            if (providedKey != expectedKey)
-            {
-                _logger.LogWarning("Payment webhook: invalid key. Expected: {Expected}, Got: {Got}", expectedKey, providedKey);
-                return Unauthorized();
-            }
+        if (providedKey != expectedKey)
+        {
+            _logger.LogWarning("Payment webhook: invalid key");
+            return Unauthorized();
         }
 
         if (!body.TryGetProperty("data", out var dataArray))
