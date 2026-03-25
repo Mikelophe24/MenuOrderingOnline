@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
 import { getConnection } from '@/lib/signalr'
 import { OrderStatus, type Order } from '@/types'
 import { toast } from 'sonner'
@@ -85,7 +85,7 @@ export default function ManageOrdersPage() {
     const today = new Date().toISOString().split('T')[0]
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
     for (const [dateKey, orders] of map) {
-      let label = new Date(dateKey).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+      let label = formatDayLabel(dateKey)
       if (dateKey === today) label = `Hôm nay — ${label}`
       else if (dateKey === yesterday) label = `Hôm qua — ${label}`
       groups.push({ date: dateKey, label, orders })
@@ -373,7 +373,7 @@ export default function ManageOrdersPage() {
                                 {order.processedByName ?? '—'}
                               </td>
                               <td className="px-4 py-3 text-sm align-top" rowSpan={rowSpan}>
-                                {new Date(order.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                                {formatDateTime(order.createdAt)}
                               </td>
                               <td className="px-4 py-3 align-top" rowSpan={rowSpan}>
                                 <div className="flex gap-1">
@@ -428,7 +428,7 @@ export default function ManageOrdersPage() {
                           {order.processedByName ?? '—'}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {new Date(order.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                          {formatDateTime(order.createdAt)}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">

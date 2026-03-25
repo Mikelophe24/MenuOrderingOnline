@@ -80,7 +80,12 @@ builder.Services.AddSignalR();
 builder.Services.AddHttpClient();
 
 // ===== Controllers =====
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Serialize DateTime as UTC with "Z" suffix so frontend knows it's UTC
+        options.JsonSerializerOptions.Converters.Add(new OnlineMenu.API.Extensions.UtcDateTimeConverter());
+    });
 
 // ===== Swagger =====
 builder.Services.AddEndpointsApiExplorer();

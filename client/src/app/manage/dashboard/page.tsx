@@ -139,7 +139,7 @@ export default function DashboardPage() {
               'Tổng tiền': o.totalPrice,
               'Người xử lý': o.processedByName ?? '',
               'Trạng thái': o.status,
-              'Thời gian': new Date(o.createdAt).toLocaleString('vi-VN', { hour12: false }),
+              'Thời gian': new Date(o.createdAt).toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }),
             }]
           }
           return items.map((item: any, idx: number) => ({
@@ -152,7 +152,7 @@ export default function DashboardPage() {
             'Tổng tiền': idx === 0 ? o.totalPrice : '',
             'Người xử lý': idx === 0 ? (o.processedByName ?? '') : '',
             'Trạng thái': idx === 0 ? o.status : '',
-            'Thời gian': idx === 0 ? new Date(o.createdAt).toLocaleString('vi-VN', { hour12: false }) : '',
+            'Thời gian': idx === 0 ? new Date(o.createdAt).toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }) : '',
           }))
         })
         const orderSheet = XLSX.utils.json_to_sheet(orderRows)

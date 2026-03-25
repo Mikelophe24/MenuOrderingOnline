@@ -184,9 +184,9 @@ export function DishGrid({ dishes, categories }: { dishes: DishGridDish[]; categ
               <X className="h-5 w-5" />
             </button>
 
-            <div className="grid gap-0 md:grid-cols-2">
+            <div className="grid gap-0 md:grid-cols-[1fr_1fr]">
               {/* Image */}
-              <div className="aspect-square overflow-hidden bg-muted md:rounded-l-2xl">
+              <div className="aspect-[4/3] md:aspect-auto overflow-hidden bg-muted md:rounded-l-2xl">
                 {selectedDish.image ? (
                   <img
                     src={selectedDish.image}

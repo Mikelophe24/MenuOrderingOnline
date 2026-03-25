@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { Bell, CreditCard } from 'lucide-react'
 import { playAmountVoice } from '@/lib/voice-amount'
+import { formatTime } from '@/lib/utils'
 import http from '@/lib/http'
 import type { ReactNode } from 'react'
 import type { Order, ApiResponse, PaginatedResponse, Dish, Table, DashboardData, Ingredient } from '@/types'
@@ -276,7 +277,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                                 {order.guestName ?? '—'} • {order.totalPrice?.toLocaleString('vi-VN')}đ
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(order.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                                {formatTime(order.createdAt)}
                               </p>
                             </div>
                           </button>

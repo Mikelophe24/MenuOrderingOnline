@@ -276,7 +276,7 @@ export default function OrderPage() {
 
                   <div className="flex items-center justify-between border-t pt-2 text-sm">
                     <span className="text-muted-foreground">
-                      {new Date(order.createdAt).toLocaleString('vi-VN')}
+                      {new Date(order.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                     </span>
                     <div className="flex items-center gap-3">
                       <span className="font-semibold">{formatCurrency(order.totalPrice)}</span>

@@ -346,7 +346,7 @@ function DishDetailModal({
                     </div>
                     {r.comment && <p className="text-sm text-muted-foreground">{r.comment}</p>}
                     <p className="text-xs text-muted-foreground">
-                      {new Date(r.createdAt).toLocaleString('vi-VN', { hour12: false })}
+                      {new Date(r.createdAt).toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' })}
                     </p>
                   </div>
                 ))}
