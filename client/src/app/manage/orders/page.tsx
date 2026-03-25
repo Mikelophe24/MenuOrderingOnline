@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
+import { useQueryClient } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/utils'
 import { getConnection, startConnection } from '@/lib/signalr'
 import { OrderStatus, type Order } from '@/types'
@@ -12,7 +13,7 @@ import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X } from 
 export default function ManageOrdersPage() {
   const t = useTranslations()
   const [page, setPage] = useState(1)
-  const { data, isLoading, refetch } = useOrders({ page, limit: 50 })
+  const { data, isLoading } = useOrders({ page, limit: 50 })
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
   const paymentQR = usePaymentQR()
@@ -25,20 +26,23 @@ export default function ManageOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('')
 
   // Listen for realtime order updates via SignalR
-  // Listen for realtime updates (NewOrder handled by layout globally)
+  const queryClient = useQueryClient()
   useEffect(() => {
     const conn = getConnection()
-    const onNewOrder = () => { void refetch() }
-    const onStatusChanged = () => { void refetch() }
+    const onUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    }
 
-    conn.on('NewOrder', onNewOrder)
-    conn.on('OrderStatusChanged', onStatusChanged)
+    conn.on('NewOrder', onUpdate)
+    conn.on('OrderStatusChanged', onUpdate)
+    conn.on('PaymentReceived', onUpdate)
 
     return () => {
-      conn.off('NewOrder', onNewOrder)
-      conn.off('OrderStatusChanged', onStatusChanged)
+      conn.off('NewOrder', onUpdate)
+      conn.off('OrderStatusChanged', onUpdate)
+      conn.off('PaymentReceived', onUpdate)
     }
-  }, [refetch])
+  }, [queryClient])
 
   const allOrders: Order[] = data?.data?.data ?? []
 
@@ -95,14 +99,14 @@ export default function ManageOrdersPage() {
   const handleStatusChange = (orderId: number, status: OrderStatus) => {
     updateStatus.mutate(
       { id: orderId, status },
-      { onSuccess: () => { toast.success(t('order.toast.statusUpdated')); void refetch() } }
+      { onSuccess: () => { toast.success(t('order.toast.statusUpdated')) } }
     )
   }
 
   const handleDelete = (orderId: number) => {
     if (!confirm(t('order.toast.confirmDelete'))) return
     deleteOrder.mutate(orderId, {
-      onSuccess: () => { toast.success(t('order.toast.deleted')); void refetch() },
+      onSuccess: () => { toast.success(t('order.toast.deleted')) },
       onError: () => { toast.error(t('order.toast.cannotDeletePaid')) },
     })
   }

@@ -38,7 +38,8 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
 
   const playNotificationSound = useCallback(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgkKusn2ZMQF6JpKackVxKSXGMnJaJcF1OWX2Ni4d9b2RcZXV+goKBfXh1dHd6fH5/fn18e3p6ent8fX5/f39+fn19fX1+fn5/f39/f39/f39+fn5+fn5+f39/f39/f39/f39/f39/f39/f39/f39/fw==')
+      audioRef.current = new Audio('/soundPayment.mp3')
+      audioRef.current.volume = 1.0
     }
     audioRef.current.currentTime = 0
     audioRef.current.play().catch(() => {})
@@ -222,7 +223,16 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
             </div>
             <LocaleSwitcher />
             <ThemeToggle />
-            <span className="text-sm text-muted-foreground">{account?.name}</span>
+            <div className="flex items-center gap-2">
+              {account?.avatar ? (
+                <img src={account.avatar} alt={account.name} className="h-8 w-8 rounded-full object-cover" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {account?.name?.slice(0, 2).toUpperCase() ?? '??'}
+                </div>
+              )}
+              <span className="text-sm text-muted-foreground">{account?.name}</span>
+            </div>
             <button
               onClick={() => logoutMutation.mutate()}
               className="rounded-md px-3 py-1 text-sm hover:bg-accent"

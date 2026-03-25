@@ -13,3 +13,5 @@ public record ChangePasswordRequest(string OldPassword, string NewPassword, stri
 public record GoogleLoginRequest(string IdToken);
 
 public record AccountDto(int Id, string Name, string Email, string? Avatar, string Role);
+
+public record UpdateProfileRequest(string? Name, string? Avatar);

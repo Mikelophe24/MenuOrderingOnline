@@ -8,7 +8,7 @@ function createConnection(): signalR.HubConnection {
     .withUrl(`${process.env.NEXT_PUBLIC_SIGNALR_URL}/hubs/order`, {
       accessTokenFactory: () => getAccessToken() ?? '',
     })
-    .withAutomaticReconnect()
+    .withAutomaticReconnect([1000, 3000, 10000, 30000])
     .configureLogging(signalR.LogLevel.Warning)
     .build()
 }

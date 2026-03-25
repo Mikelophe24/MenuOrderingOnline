@@ -93,4 +93,20 @@ public class AuthController : ControllerBase
         var dto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
         return Ok(ApiResponse<AccountDto>.Success(dto));
     }
+
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("userId")!.Value);
+        var account = await _accountRepo.GetByIdAsync(userId);
+        if (account == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(request.Name)) account.Name = request.Name;
+        if (request.Avatar != null) account.Avatar = request.Avatar;
+
+        await _accountRepo.UpdateAsync(account);
+        var dto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
+        return Ok(ApiResponse<AccountDto>.Success(dto));
+    }
 }
