@@ -21,27 +21,18 @@ const statusStyles: Record<string, { active: string; inactive: string }> = {
   },
 }
 
-const allowedTransitions: Record<string, string[]> = {
-  Available: ['Occupied', 'Reserved'],
-  Reserved: ['Available', 'Occupied'],
-  Occupied: ['Available'],
-}
-
 function StatusToggle({ table, onUpdate, t }: { table: Table; onUpdate: (status: string) => void; t: (key: string) => string }) {
-  const allowed = allowedTransitions[table.status] ?? []
   return (
     <div className="flex rounded-lg border bg-muted/30 p-0.5 gap-0.5">
       {Object.values(TableStatus).map((s) => {
         const isActive = table.status === s
-        const isDisabled = !isActive && !allowed.includes(s)
         const style = statusStyles[s] ?? statusStyles.Available
         return (
           <button
             key={s}
-            onClick={() => { if (!isActive && !isDisabled) onUpdate(s) }}
-            disabled={isDisabled}
+            onClick={() => { if (!isActive) onUpdate(s) }}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-              isActive ? style.active : isDisabled ? 'text-muted-foreground/30 cursor-not-allowed' : style.inactive
+              isActive ? style.active : style.inactive
             }`}
           >
             {t(`table.status.${s.toLowerCase()}`)}

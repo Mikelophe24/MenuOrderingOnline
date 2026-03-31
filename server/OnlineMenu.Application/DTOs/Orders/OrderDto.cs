@@ -31,6 +31,12 @@ public record CreateGuestOrderRequest(
 
 public record GuestOrderItem(int DishId, int Quantity, string? Note);
 
+public record CreateStaffOrderRequest(
+    int TableNumber,
+    string? GuestName,
+    List<GuestOrderItem> Items
+);
+
 public record UpdateOrderStatusRequest(string Status);
 
 public record GuestCancelRequest(int TableNumber, string TableToken);

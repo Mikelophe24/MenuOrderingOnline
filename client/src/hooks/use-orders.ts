@@ -73,6 +73,19 @@ export function useCancelGuestOrder() {
   })
 }
 
+export function useCreateStaffOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { tableNumber: number; guestName?: string; items: GuestOrder[] }) =>
+      http.post<ApiResponse<Order>>('/orders', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
+      queryClient.invalidateQueries({ queryKey: ['tables'] })
+    },
+  })
+}
+
 export function useCreateGuestOrder() {
   const queryClient = useQueryClient()
   return useMutation({

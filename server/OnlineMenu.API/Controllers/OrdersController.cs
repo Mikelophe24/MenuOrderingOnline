@@ -92,6 +92,95 @@ public class OrdersController : ControllerBase
         return Ok(ApiResponse<object>.Success(new { table.Number, Status = table.Status.ToString() }));
     }
 
+    // Staff creates an order (no token needed)
+    [Authorize(Roles = "Owner,Employee")]
+    [HttpPost("orders")]
+    public async Task<IActionResult> CreateStaffOrder([FromBody] CreateStaffOrderRequest request)
+    {
+        if (request.Items == null || request.Items.Count == 0)
+            return BadRequest(ApiResponse<object>.Fail("Order must have at least one item"));
+
+        if (request.Items.Any(i => i.Quantity <= 0))
+            return BadRequest(ApiResponse<object>.Fail("Quantity must be greater than 0"));
+
+        var table = await _tableRepo.GetByNumberAsync(request.TableNumber);
+        if (table == null)
+            return BadRequest(ApiResponse<object>.Fail("Bàn không tồn tại"));
+
+        var dishIds = request.Items.Select(i => i.DishId).Distinct().ToList();
+        var dishes = await _dishRepo.FindAsync(d => dishIds.Contains(d.Id));
+        var dishMap = dishes.ToDictionary(d => d.Id);
+
+        var dishIngredients = await _context.DishIngredients
+            .Where(di => dishIds.Contains(di.DishId))
+            .Include(di => di.Ingredient)
+            .ToListAsync();
+
+        foreach (var item in request.Items)
+        {
+            if (!dishMap.TryGetValue(item.DishId, out var dish) || dish.Status != DishStatus.Available)
+                return BadRequest(ApiResponse<object>.Fail($"Món {item.DishId} không khả dụng"));
+
+            var ingredients = dishIngredients.Where(di => di.DishId == item.DishId).ToList();
+            if (ingredients.Count > 0)
+            {
+                foreach (var di in ingredients)
+                {
+                    var maxServings = di.QuantityNeeded > 0
+                        ? (int)Math.Floor(di.Ingredient.CurrentStock / di.QuantityNeeded)
+                        : int.MaxValue;
+                    if (item.Quantity > maxServings)
+                        return BadRequest(ApiResponse<object>.Fail(
+                            $"{dish.Name} chỉ còn đủ nguyên liệu cho {maxServings} phần"));
+                }
+            }
+        }
+
+        decimal totalPrice = 0;
+        var order = new Order
+        {
+            TableNumber = request.TableNumber,
+            TableId = table.Id,
+            GuestName = request.GuestName,
+            Status = OrderStatus.Pending,
+        };
+
+        foreach (var item in request.Items)
+        {
+            var dish = dishMap[item.DishId];
+            order.OrderItems.Add(new OrderItem
+            {
+                DishId = item.DishId,
+                DishName = dish.Name,
+                DishPrice = dish.Price,
+                DishImage = dish.Image,
+                Quantity = item.Quantity,
+                Note = item.Note,
+            });
+            totalPrice += dish.Price * item.Quantity;
+        }
+        order.TotalPrice = totalPrice;
+
+        var userIdClaim = User.FindFirst("userId")?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+            order.ProcessedById = userId;
+
+        await _orderRepo.AddAsync(order);
+
+        if (table.Status != TableStatus.Occupied)
+        {
+            table.Status = TableStatus.Occupied;
+            await _tableRepo.UpdateAsync(table);
+            await _hubContext.Clients.Group("management").SendAsync("TableStatusChanged",
+                new { table.Id, table.Number, Status = table.Status.ToString() });
+        }
+
+        var orderDto = OrderHelper.MapToDto(order);
+        await _hubContext.Clients.Group("management").SendAsync("NewOrder", orderDto);
+
+        return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponse<OrderDto>.Success(orderDto, "Order created", 201));
+    }
+
     // Guest creates an order
     [HttpPost("guest/orders")]
     public async Task<IActionResult> CreateGuestOrder([FromBody] CreateGuestOrderRequest request)

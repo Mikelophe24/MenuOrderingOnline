@@ -2,12 +2,192 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useInfiniteOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR } from '@/hooks/use-orders'
+import { useInfiniteOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR, useCreateStaffOrder } from '@/hooks/use-orders'
+import { useTables } from '@/hooks/use-tables'
+import { useDishes } from '@/hooks/use-dishes'
 import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
 import { getConnection } from '@/lib/signalr'
-import { OrderStatus, type Order } from '@/types'
+import { OrderStatus, type Order, type Dish, type Table } from '@/types'
 import { toast } from 'sonner'
-import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2 } from 'lucide-react'
+import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart } from 'lucide-react'
+
+function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string) => string }) {
+  const { data: tablesData } = useTables()
+  const { data: dishesData } = useDishes({ status: 'Available', limit: 100 })
+  const createOrder = useCreateStaffOrder()
+
+  const tables: Table[] = tablesData?.data?.data ?? []
+  const allDishes: Dish[] = dishesData?.data?.data ?? []
+
+  const [tableNumber, setTableNumber] = useState<number>(0)
+  const [guestName, setGuestName] = useState('')
+  const [search, setSearch] = useState('')
+  const [cart, setCart] = useState<{ dishId: number; dish: Dish; quantity: number; note: string }[]>([])
+
+  const filteredDishes = useMemo(() => {
+    if (!search.trim()) return allDishes
+    const q = search.toLowerCase()
+    return allDishes.filter((d) => d.name.toLowerCase().includes(q))
+  }, [allDishes, search])
+
+  const addToCart = (dish: Dish) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.dishId === dish.id)
+      if (existing) {
+        return prev.map((item) => item.dishId === dish.id ? { ...item, quantity: item.quantity + 1 } : item)
+      }
+      return [...prev, { dishId: dish.id, dish, quantity: 1, note: '' }]
+    })
+  }
+
+  const updateQty = (dishId: number, qty: number) => {
+    if (qty <= 0) {
+      setCart((prev) => prev.filter((item) => item.dishId !== dishId))
+    } else {
+      setCart((prev) => prev.map((item) => item.dishId === dishId ? { ...item, quantity: qty } : item))
+    }
+  }
+
+  const updateNote = (dishId: number, note: string) => {
+    setCart((prev) => prev.map((item) => item.dishId === dishId ? { ...item, note } : item))
+  }
+
+  const totalPrice = cart.reduce((sum, item) => sum + item.dish.price * item.quantity, 0)
+
+  const handleSubmit = () => {
+    if (!tableNumber) { toast.error('Vui lòng chọn bàn'); return }
+    if (cart.length === 0) { toast.error('Vui lòng chọn ít nhất 1 món'); return }
+    createOrder.mutate(
+      {
+        tableNumber,
+        guestName: guestName.trim() || undefined,
+        items: cart.map((item) => ({ dishId: item.dishId, quantity: item.quantity, note: item.note || undefined })),
+      },
+      {
+        onSuccess: () => {
+          toast.success('Tạo đơn hàng thành công')
+          onClose()
+        },
+        onError: (error: Error) => toast.error(error.message || 'Tạo đơn thất bại'),
+      }
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="relative mx-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute right-3 top-3 rounded-md p-1 hover:bg-accent">
+          <X className="h-5 w-5" />
+        </button>
+        <h3 className="text-lg font-bold mb-4">Tạo đơn hàng</h3>
+
+        {/* Table + Guest */}
+        <div className="grid gap-3 sm:grid-cols-2 mb-4">
+          <div>
+            <label className="text-sm font-medium">Bàn</label>
+            <select
+              value={tableNumber}
+              onChange={(e) => setTableNumber(Number(e.target.value))}
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            >
+              <option value={0}>-- Chọn bàn --</option>
+              {tables.map((table) => (
+                <option key={table.id} value={table.number}>Bàn {table.number} ({table.capacity} chỗ)</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Tên khách (tùy chọn)</label>
+            <input
+              type="text"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              placeholder="Tên khách hàng"
+            />
+          </div>
+        </div>
+
+        {/* Search dishes */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm món..."
+            className="w-full rounded-md border bg-background pl-10 pr-3 py-2 text-sm"
+          />
+        </div>
+
+        {/* Dishes grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto mb-4">
+          {filteredDishes.map((dish) => {
+            const inCart = cart.find((item) => item.dishId === dish.id)
+            return (
+              <button
+                key={dish.id}
+                onClick={() => addToCart(dish)}
+                className={`rounded-lg border p-2 text-left text-sm transition-colors hover:border-primary ${inCart ? 'border-primary bg-primary/5' : ''}`}
+              >
+                <div className="font-medium truncate">{dish.name}</div>
+                <div className="text-primary text-xs">{formatCurrency(dish.price)}</div>
+                {inCart && <div className="text-xs text-muted-foreground mt-0.5">× {inCart.quantity}</div>}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Cart */}
+        {cart.length > 0 && (
+          <div className="border rounded-lg p-3 mb-4 space-y-2">
+            <h4 className="font-medium text-sm flex items-center gap-1">
+              <ShoppingCart className="h-4 w-4" /> Đơn hàng ({cart.length} món)
+            </h4>
+            {cart.map((item) => (
+              <div key={item.dishId} className="flex items-center gap-2 text-sm">
+                <div className="flex-1">
+                  <div className="font-medium">{item.dish.name}</div>
+                  <div className="text-muted-foreground">{formatCurrency(item.dish.price)}</div>
+                </div>
+                <input
+                  type="text"
+                  value={item.note}
+                  onChange={(e) => updateNote(item.dishId, e.target.value)}
+                  placeholder="Ghi chú"
+                  className="w-24 rounded border bg-background px-2 py-1 text-xs"
+                />
+                <div className="flex items-center gap-1">
+                  <button onClick={() => updateQty(item.dishId, item.quantity - 1)} className="rounded border p-0.5 hover:bg-accent">
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <span className="w-6 text-center">{item.quantity}</span>
+                  <button onClick={() => updateQty(item.dishId, item.quantity + 1)} className="rounded border p-0.5 hover:bg-accent">
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+                <div className="w-20 text-right font-medium">{formatCurrency(item.dish.price * item.quantity)}</div>
+              </div>
+            ))}
+            <div className="border-t pt-2 flex justify-between font-bold text-sm">
+              <span>Tổng cộng</span>
+              <span className="text-primary">{formatCurrency(totalPrice)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={handleSubmit}
+          disabled={createOrder.isPending || cart.length === 0}
+          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {createOrder.isPending ? 'Đang tạo...' : 'Tạo đơn hàng'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function ManageOrdersPage() {
   const t = useTranslations()
@@ -17,6 +197,7 @@ export default function ManageOrdersPage() {
   const paymentQR = usePaymentQR()
   const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string; orderId?: number } | null>(null)
   const qrOrderIdRef = useRef<number | null>(null)
+  const [showCreateForm, setShowCreateForm] = useState(false)
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -136,10 +317,13 @@ export default function ManageOrdersPage() {
     setStatusFilter('')
   }
 
-  const handleStatusChange = (orderId: number, status: OrderStatus) => {
+  const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
     updateStatus.mutate(
-      { id: orderId, status },
-      { onSuccess: () => { toast.success(t('order.toast.statusUpdated')) } }
+      { id: order.id, status: newStatus },
+      {
+        onSuccess: () => { toast.success(t('order.toast.statusUpdated')) },
+        onError: (error: Error) => { toast.error(error.message || 'Cập nhật thất bại') },
+      }
     )
   }
 
@@ -174,10 +358,21 @@ export default function ManageOrdersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">{t('order.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('manage.orders')}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{t('order.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('manage.orders')}</p>
+        </div>
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+        >
+          <Plus className="h-4 w-4" />
+          Tạo đơn
+        </button>
       </div>
+
+      {showCreateForm && <CreateOrderForm onClose={() => setShowCreateForm(false)} t={t} />}
 
       {/* Date range filter */}
       <div className="flex flex-wrap items-center gap-3">
@@ -378,7 +573,7 @@ export default function ManageOrdersPage() {
                                 <select
                                   value={order.status}
                                   onChange={(e) =>
-                                    handleStatusChange(order.id, e.target.value as OrderStatus)
+                                    handleStatusChange(order, e.target.value as OrderStatus)
                                   }
                                   className="rounded-md border bg-background px-2 py-1 text-sm"
                                 >
@@ -433,7 +628,7 @@ export default function ManageOrdersPage() {
                           <select
                             value={order.status}
                             onChange={(e) =>
-                              handleStatusChange(order.id, e.target.value as OrderStatus)
+                              handleStatusChange(order, e.target.value as OrderStatus)
                             }
                             className="rounded-md border bg-background px-2 py-1 text-sm"
                           >
