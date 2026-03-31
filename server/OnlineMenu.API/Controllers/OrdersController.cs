@@ -267,9 +267,15 @@ public class OrdersController : ControllerBase
                 item.OrderId = existingOrder.Id;
                 existingOrder.OrderItems.Add(item);
             }
-            existingOrder.TotalPrice += addedPrice;
-            await _orderRepo.UpdateAsync(existingOrder);
             await _context.SaveChangesAsync();
+
+            // FIX #2: Atomic price update — prevents lost updates from concurrent requests
+            await _context.Orders
+                .Where(o => o.Id == existingOrder.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(o => o.TotalPrice, o => o.TotalPrice + addedPrice)
+                    .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
+            existingOrder.TotalPrice += addedPrice;
             order = existingOrder;
         }
         else
@@ -370,55 +376,85 @@ public class OrdersController : ControllerBase
         if (!allowedTransitions.TryGetValue(previousStatus, out var allowed) || !allowed.Contains(newStatus))
             return BadRequest(ApiResponse<object>.Fail($"Không thể chuyển từ {previousStatus} sang {newStatus}"));
 
-        order.Status = newStatus;
         var userIdClaim = User.FindFirst("userId")?.Value;
-        if (int.TryParse(userIdClaim, out var userId))
-        {
-            order.ProcessedById = userId;
-        }
-        await _orderRepo.UpdateAsync(order);
+        int.TryParse(userIdClaim, out var userId);
 
-        // Deduct stock only when transitioning INTO Processing (not if already Processing)
-        if (order.Status == OrderStatus.Processing && previousStatus != OrderStatus.Processing)
+        // FIX #1: Transaction + atomic conditional update to prevent race condition
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            foreach (var item in order.OrderItems)
+            // Atomic: only succeeds if status hasn't changed since we read it
+            var updated = await _context.Orders
+                .Where(o => o.Id == id && o.Status == previousStatus)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(o => o.Status, newStatus)
+                    .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
+
+            if (updated == 0)
+                return Conflict(ApiResponse<object>.Fail("Đơn hàng đã được cập nhật bởi người khác, vui lòng tải lại"));
+
+            if (userId > 0)
             {
-                var dishIngredients = await _context.DishIngredients
-                    .Where(di => di.DishId == item.DishId)
-                    .Include(di => di.Ingredient)
-                    .ToListAsync();
-
-                foreach (var di in dishIngredients)
-                {
-                    di.Ingredient.CurrentStock -= di.QuantityNeeded * item.Quantity;
-                    if (di.Ingredient.CurrentStock < 0) di.Ingredient.CurrentStock = 0;
-                }
+                await _context.Orders.Where(o => o.Id == id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(o => o.ProcessedById, userId));
             }
-            await _context.SaveChangesAsync();
 
-            await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
+            // Deduct stock when transitioning INTO Processing
+            if (newStatus == OrderStatus.Processing && previousStatus != OrderStatus.Processing)
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    var dishIngredients = await _context.DishIngredients
+                        .Where(di => di.DishId == item.DishId)
+                        .Include(di => di.Ingredient)
+                        .ToListAsync();
 
-            // Notify stock changed
-            await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
+                    foreach (var di in dishIngredients)
+                    {
+                        di.Ingredient.CurrentStock -= di.QuantityNeeded * item.Quantity;
+                        if (di.Ingredient.CurrentStock < 0) di.Ingredient.CurrentStock = 0;
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            // FIX #5: Restore stock when cancelling from Processing OR Delivered
+            if (newStatus == OrderStatus.Cancelled
+                && (previousStatus == OrderStatus.Processing || previousStatus == OrderStatus.Delivered))
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    var dishIngredients = await _context.DishIngredients
+                        .Where(di => di.DishId == item.DishId)
+                        .Include(di => di.Ingredient)
+                        .ToListAsync();
+
+                    foreach (var di in dishIngredients)
+                    {
+                        di.Ingredient.CurrentStock += di.QuantityNeeded * item.Quantity;
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
         }
 
-        // Restore stock when cancelling an order that was already Processing
-        if (order.Status == OrderStatus.Cancelled && previousStatus == OrderStatus.Processing)
+        // Update in-memory object for SignalR broadcast (after transaction committed)
+        order.Status = newStatus;
+        order.UpdatedAt = DateTime.UtcNow;
+        if (userId > 0) order.ProcessedById = userId;
+
+        // Notify stock changes outside transaction
+        if (newStatus == OrderStatus.Processing
+            || (newStatus == OrderStatus.Cancelled
+                && (previousStatus == OrderStatus.Processing || previousStatus == OrderStatus.Delivered)))
         {
-            foreach (var item in order.OrderItems)
-            {
-                var dishIngredients = await _context.DishIngredients
-                    .Where(di => di.DishId == item.DishId)
-                    .Include(di => di.Ingredient)
-                    .ToListAsync();
-
-                foreach (var di in dishIngredients)
-                {
-                    di.Ingredient.CurrentStock += di.QuantityNeeded * item.Quantity;
-                }
-            }
-            await _context.SaveChangesAsync();
-
             await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
             await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
         }
@@ -497,9 +533,34 @@ public class OrdersController : ControllerBase
         if (order.Status == OrderStatus.Paid)
             return BadRequest(ApiResponse<object>.Fail("Không thể xóa đơn hàng đã thanh toán"));
 
+        // FIX #3: Restore stock if order was Processing or Delivered (stock already deducted)
+        if (order.Status == OrderStatus.Processing || order.Status == OrderStatus.Delivered)
+        {
+            foreach (var item in order.OrderItems)
+            {
+                var dishIngredients = await _context.DishIngredients
+                    .Where(di => di.DishId == item.DishId)
+                    .Include(di => di.Ingredient)
+                    .ToListAsync();
+
+                foreach (var di in dishIngredients)
+                {
+                    di.Ingredient.CurrentStock += di.QuantityNeeded * item.Quantity;
+                }
+            }
+            await _context.SaveChangesAsync();
+        }
+
         await _orderRepo.DeleteAsync(order);
 
         await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
+
+        // Update dish availability after stock restoration
+        if (order.Status == OrderStatus.Processing || order.Status == OrderStatus.Delivered)
+        {
+            await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
+            await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
+        }
 
         return Ok(ApiResponse<object>.Success(null!, "Order deleted"));
     }

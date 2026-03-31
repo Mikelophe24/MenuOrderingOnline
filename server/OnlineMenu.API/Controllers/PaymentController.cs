@@ -119,6 +119,10 @@ public class PaymentController : ControllerBase
                 continue;
             }
 
+            // Update in-memory object to match DB state before broadcasting
+            order.Status = OrderStatus.Paid;
+            order.UpdatedAt = DateTime.UtcNow;
+
             await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
 
             // Notify via SignalR
