@@ -9,7 +9,146 @@ import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
 import { getConnection } from '@/lib/signalr'
 import { OrderStatus, type Order, type Dish, type Table } from '@/types'
 import { toast } from 'sonner'
-import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart } from 'lucide-react'
+import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart, Receipt, Printer } from 'lucide-react'
+
+function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }) {
+  const items = order.orderItems ?? []
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank', 'width=400,height=600')
+    if (!printWindow) return
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Hóa đơn #${order.id}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; max-width: 380px; margin: 0 auto; color: #111; }
+          .header { text-align: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px dashed #ccc; }
+          .header h1 { font-size: 20px; font-weight: 700; }
+          .header p { font-size: 12px; color: #666; margin-top: 4px; }
+          .info { font-size: 13px; margin-bottom: 12px; }
+          .info div { display: flex; justify-content: space-between; padding: 2px 0; }
+          .info span:last-child { font-weight: 600; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+          th { text-align: left; padding: 6px 4px; border-bottom: 1px solid #333; font-weight: 600; }
+          td { padding: 5px 4px; border-bottom: 1px solid #eee; }
+          td:last-child, th:last-child { text-align: right; }
+          .total { border-top: 2px dashed #ccc; padding-top: 12px; margin-top: 12px; text-align: right; }
+          .total .amount { font-size: 20px; font-weight: 700; }
+          .footer { text-align: center; margin-top: 16px; padding-top: 12px; border-top: 2px dashed #ccc; font-size: 12px; color: #666; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Online Menu</h1>
+          <p>Hóa đơn thanh toán</p>
+        </div>
+        <div class="info">
+          <div><span>Mã đơn:</span><span>#${order.id}</span></div>
+          <div><span>Bàn:</span><span>${order.tableNumber}</span></div>
+          ${order.guestName ? `<div><span>Khách:</span><span>${order.guestName}</span></div>` : ''}
+          <div><span>Thời gian:</span><span>${new Date(order.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</span></div>
+          <div><span>Trạng thái:</span><span>${order.status}</span></div>
+          ${order.processedByName ? `<div><span>Nhân viên:</span><span>${order.processedByName}</span></div>` : ''}
+        </div>
+        <table>
+          <thead><tr><th>Món</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead>
+          <tbody>
+            ${items.map((item: any) => `
+              <tr>
+                <td>${item.dishName ?? item.dish?.name ?? ''}</td>
+                <td>${item.quantity}</td>
+                <td>${(item.dishPrice ?? item.dish?.price ?? 0).toLocaleString('vi-VN')}đ</td>
+                <td>${((item.dishPrice ?? item.dish?.price ?? 0) * item.quantity).toLocaleString('vi-VN')}đ</td>
+              </tr>
+              ${item.note ? `<tr><td colspan="4" style="font-size:11px;color:#888;padding:0 4px 5px;">📝 ${item.note}</td></tr>` : ''}
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="total">
+          <div>Tổng cộng</div>
+          <div class="amount">${order.totalPrice?.toLocaleString('vi-VN')}đ</div>
+        </div>
+        <div class="footer">
+          <p>Cảm ơn quý khách!</p>
+          <p>Hẹn gặp lại</p>
+        </div>
+        <script>window.onload=function(){window.print();}</script>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="relative mx-4 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute right-3 top-3 rounded-md p-1 hover:bg-accent">
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Invoice content */}
+        <div className="space-y-4">
+          <div className="text-center border-b border-dashed pb-4">
+            <h3 className="text-xl font-bold">Online Menu</h3>
+            <p className="text-sm text-muted-foreground">Hóa đơn thanh toán</p>
+          </div>
+
+          <div className="text-sm space-y-1">
+            <div className="flex justify-between"><span className="text-muted-foreground">Mã đơn:</span><span className="font-semibold">#{order.id}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Bàn:</span><span className="font-semibold">{order.tableNumber}</span></div>
+            {order.guestName && <div className="flex justify-between"><span className="text-muted-foreground">Khách:</span><span className="font-semibold">{order.guestName}</span></div>}
+            <div className="flex justify-between"><span className="text-muted-foreground">Thời gian:</span><span className="font-semibold">{formatDateTime(order.createdAt)}</span></div>
+            {order.processedByName && <div className="flex justify-between"><span className="text-muted-foreground">Nhân viên:</span><span className="font-semibold">{order.processedByName}</span></div>}
+          </div>
+
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="py-2 text-left font-semibold">Món</th>
+                <th className="py-2 text-center font-semibold">SL</th>
+                <th className="py-2 text-right font-semibold">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item: any) => (
+                <tr key={item.id} className="border-b border-dashed">
+                  <td className="py-2">
+                    <div>{item.dishName ?? item.dish?.name}</div>
+                    <div className="text-xs text-muted-foreground">{(item.dishPrice ?? item.dish?.price ?? 0).toLocaleString('vi-VN')}đ</div>
+                    {item.note && <div className="text-xs text-orange-500">📝 {item.note}</div>}
+                  </td>
+                  <td className="py-2 text-center">{item.quantity}</td>
+                  <td className="py-2 text-right font-medium">{((item.dishPrice ?? item.dish?.price ?? 0) * item.quantity).toLocaleString('vi-VN')}đ</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="border-t border-dashed pt-3 flex justify-between items-center">
+            <span className="font-semibold">Tổng cộng</span>
+            <span className="text-xl font-bold text-primary">{formatCurrency(order.totalPrice)}</span>
+          </div>
+
+          <div className="text-center text-sm text-muted-foreground border-t border-dashed pt-3">
+            <p>Cảm ơn quý khách!</p>
+          </div>
+
+          <button
+            onClick={handlePrint}
+            className="w-full flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Printer className="h-4 w-4" />
+            In hóa đơn
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string) => string }) {
   const { data: tablesData } = useTables()
@@ -198,6 +337,7 @@ export default function ManageOrdersPage() {
   const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string; orderId?: number } | null>(null)
   const qrOrderIdRef = useRef<number | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null)
 
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
@@ -592,6 +732,13 @@ export default function ManageOrdersPage() {
                               </td>
                               <td className="px-4 py-3 align-top" rowSpan={rowSpan}>
                                 <div className="flex gap-1">
+                                  <button
+                                    onClick={() => setInvoiceOrder(order)}
+                                    className="rounded-md bg-blue-600 px-2 py-1 text-sm text-white hover:bg-blue-700"
+                                    title="Hóa đơn"
+                                  >
+                                    <Receipt className="h-4 w-4" />
+                                  </button>
                                   {order.status !== 'Paid' && order.status !== 'Cancelled' && (
                                     <button
                                       onClick={() => handlePaymentQR(order.id)}
@@ -647,6 +794,13 @@ export default function ManageOrdersPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
+                            <button
+                              onClick={() => setInvoiceOrder(order)}
+                              className="rounded-md bg-blue-600 px-2 py-1 text-sm text-white hover:bg-blue-700"
+                              title="Hóa đơn"
+                            >
+                              <Receipt className="h-4 w-4" />
+                            </button>
                             {order.status !== 'Paid' && order.status !== 'Cancelled' && (
                               <button
                                 onClick={() => handlePaymentQR(order.id)}
@@ -675,6 +829,9 @@ export default function ManageOrdersPage() {
           </table>
         </div>
       )}
+
+      {/* Invoice Dialog */}
+      {invoiceOrder && <InvoiceDialog order={invoiceOrder} onClose={() => setInvoiceOrder(null)} />}
 
       {/* Payment QR Dialog */}
       {qrData && (
