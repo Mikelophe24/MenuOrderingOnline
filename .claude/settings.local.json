@@ -54,7 +54,11 @@
       "Bash(dotnet --list-sdks)",
       "Bash(dotnet package:*)",
       "Bash(grep -r \"process.env\\\\|NEXT_PUBLIC\" /d/OnlineMenuApp/client/src --include=*.ts --include=*.tsx)",
-      "Bash(dotnet list:*)"
+      "Bash(dotnet list:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(ls \"D:/OnlineMenuApp/client/src/app/\\(public\\)/\\(home\\)/\")",
+      "Bash(ls \"D:/OnlineMenuApp/client/src/app/\\(public\\)/home/\")"
     ]
   }
 }
