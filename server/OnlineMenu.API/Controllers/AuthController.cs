@@ -35,17 +35,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-    {
-        if (request.Password != request.ConfirmPassword)
-            return BadRequest(ApiResponse<object>.Fail("Passwords do not match"));
-
-        var (account, accessToken, refreshToken) = await _authService.RegisterAsync(request.Name, request.Email, request.Password);
-        var accountDto = new AccountDto(account.Id, account.Name, account.Email, account.Avatar, account.Role.ToString());
-        return Ok(ApiResponse<AuthResponse>.Success(new AuthResponse(accessToken, refreshToken, accountDto)));
-    }
-
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {

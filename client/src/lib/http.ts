@@ -114,7 +114,7 @@ const request = async <T>(method: HttpMethod, url: string, options?: RequestOpti
   let response = await fetch(fullUrl.toString(), config)
 
   // On 401: try refresh token before giving up
-  const isAuthEndpoint = url.startsWith('/auth/login') || url.startsWith('/auth/register') || url.startsWith('/auth/refresh')
+  const isAuthEndpoint = url.startsWith('/auth/login') || url.startsWith('/auth/refresh')
   if (response.status === AUTHENTICATION_ERROR_STATUS && !isAuthEndpoint && isClient) {
     const refreshed = await tryRefreshToken()
 

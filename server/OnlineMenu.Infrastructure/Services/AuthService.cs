@@ -39,31 +39,6 @@ public class AuthService : IAuthService
         return (account, accessToken, refreshToken);
     }
 
-    public async Task<(Account Account, string AccessToken, string RefreshToken)> RegisterAsync(string name, string email, string password)
-    {
-        if (await _accountRepo.ExistsAsync(a => a.Email == email))
-            throw new InvalidOperationException("Email already exists");
-
-        var account = new Account
-        {
-            Name = name,
-            Email = email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            Role = Core.Enums.Role.Employee,
-        };
-
-        await _accountRepo.AddAsync(account);
-
-        var accessToken = GenerateAccessToken(account);
-        var refreshToken = GenerateRefreshToken();
-
-        account.RefreshToken = refreshToken;
-        account.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
-        await _accountRepo.UpdateAsync(account);
-
-        return (account, accessToken, refreshToken);
-    }
-
     public async Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken)
     {
         var account = await _accountRepo.GetByRefreshTokenAsync(refreshToken)

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const managePaths = ['/manage']
-const authPaths = ['/login', '/register']
+const authPaths = ['/login']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -27,5 +27,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/manage/:path*', '/login', '/register'],
+  matcher: ['/', '/manage/:path*', '/login'],
 }

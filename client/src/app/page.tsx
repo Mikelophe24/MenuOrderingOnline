@@ -1,132 +1,22 @@
 'use client'
 
-import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { loginSchema, registerSchema, type LoginFormValues, type RegisterFormValues } from '@/schemas/auth.schema'
-import { useLogin, useRegister } from '@/hooks/use-auth'
+import { loginSchema, type LoginFormValues } from '@/schemas/auth.schema'
+import { useLogin } from '@/hooks/use-auth'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { UtensilsCrossed, Phone } from 'lucide-react'
 
-function LoginForm({ onSwitch, t }: { onSwitch: () => void; t: (key: string) => string }) {
+export default function WelcomePage() {
+  const t = useTranslations()
   const loginMutation = useLogin()
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   })
 
-  return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <h2 className="text-xl font-bold">{t('auth.login')}</h2>
-        <p className="text-sm text-muted-foreground">{t('auth.loginSubtitle')}</p>
-      </div>
-      <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-3">
-        <div>
-          <input
-            type="email"
-            {...register('email')}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={t('auth.email')}
-          />
-          {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
-        </div>
-        <div>
-          <input
-            type="password"
-            {...register('password')}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={t('auth.password')}
-          />
-          {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
-        </div>
-        <button
-          type="submit"
-          disabled={loginMutation.isPending}
-          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {loginMutation.isPending ? t('auth.loggingIn') : t('auth.login')}
-        </button>
-      </form>
-      <p className="text-center text-sm text-muted-foreground">
-        {t('auth.noAccount')}{' '}
-        <button onClick={onSwitch} className="text-primary underline">{t('auth.register')}</button>
-      </p>
-    </div>
-  )
-}
-
-function RegisterForm({ onSwitch, t }: { onSwitch: () => void; t: (key: string) => string }) {
-  const registerMutation = useRegister()
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
-  })
-
-  return (
-    <div className="space-y-4">
-      <div className="text-center">
-        <h2 className="text-xl font-bold">{t('auth.register')}</h2>
-        <p className="text-sm text-muted-foreground">{t('auth.registerSubtitle')}</p>
-      </div>
-      <form onSubmit={handleSubmit((data) => registerMutation.mutate(data))} className="space-y-3">
-        <div>
-          <input
-            type="text"
-            {...register('name')}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={t('auth.fullName')}
-          />
-          {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
-        </div>
-        <div>
-          <input
-            type="email"
-            {...register('email')}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={t('auth.email')}
-          />
-          {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
-        </div>
-        <div>
-          <input
-            type="password"
-            {...register('password')}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={t('auth.password')}
-          />
-          {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
-        </div>
-        <div>
-          <input
-            type="password"
-            {...register('confirmPassword')}
-            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={t('auth.confirmPassword')}
-          />
-          {errors.confirmPassword && <p className="mt-1 text-xs text-destructive">{errors.confirmPassword.message}</p>}
-        </div>
-        <button
-          type="submit"
-          disabled={registerMutation.isPending}
-          className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
-          {registerMutation.isPending ? t('auth.registering') : t('auth.register')}
-        </button>
-      </form>
-      <p className="text-center text-sm text-muted-foreground">
-        {t('auth.hasAccount')}{' '}
-        <button onClick={onSwitch} className="text-primary underline">{t('auth.login')}</button>
-      </p>
-    </div>
-  )
-}
-
-export default function WelcomePage() {
-  const t = useTranslations()
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -171,13 +61,41 @@ export default function WelcomePage() {
             </div>
           </div>
 
-          {/* Right: Auth form */}
+          {/* Right: Login form */}
           <div className="mx-auto w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
-            {authMode === 'login' ? (
-              <LoginForm onSwitch={() => setAuthMode('register')} t={t} />
-            ) : (
-              <RegisterForm onSwitch={() => setAuthMode('login')} t={t} />
-            )}
+            <div className="space-y-4">
+              <div className="text-center">
+                <h2 className="text-xl font-bold">{t('auth.login')}</h2>
+                <p className="text-sm text-muted-foreground">{t('auth.loginSubtitle')}</p>
+              </div>
+              <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-3">
+                <div>
+                  <input
+                    type="email"
+                    {...register('email')}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    placeholder={t('auth.email')}
+                  />
+                  {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
+                </div>
+                <div>
+                  <input
+                    type="password"
+                    {...register('password')}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    placeholder={t('auth.password')}
+                  />
+                  {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
+                </div>
+                <button
+                  type="submit"
+                  disabled={loginMutation.isPending}
+                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {loginMutation.isPending ? t('auth.loggingIn') : t('auth.login')}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </section>

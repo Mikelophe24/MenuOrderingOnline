@@ -125,6 +125,25 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// ===== Seed Owner Account =====
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    context.Database.Migrate();
+
+    if (!context.Accounts.Any(a => a.Role == OnlineMenu.Core.Enums.Role.Owner))
+    {
+        context.Accounts.Add(new OnlineMenu.Core.Entities.Account
+        {
+            Name = "Owner",
+            Email = "owner@gmail.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
+            Role = OnlineMenu.Core.Enums.Role.Owner,
+        });
+        context.SaveChanges();
+    }
+}
+
 // ===== Middleware Pipeline =====
 if (app.Environment.IsDevelopment())
 {

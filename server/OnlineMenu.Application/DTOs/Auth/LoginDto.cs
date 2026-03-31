@@ -2,8 +2,6 @@ namespace OnlineMenu.Application.DTOs.Auth;
 
 public record LoginRequest(string Email, string Password);
 
-public record RegisterRequest(string Name, string Email, string Password, string ConfirmPassword);
-
 public record AuthResponse(string AccessToken, string RefreshToken, AccountDto Account);
 
 public record RefreshTokenRequest(string RefreshToken);

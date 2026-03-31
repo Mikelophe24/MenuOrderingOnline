@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import http from '@/lib/http'
 import { setTokens, removeTokens } from '@/lib/tokens'
 import { useAuthStore } from '@/stores/auth.store'
-import type { Account, ApiResponse, LoginRequest, LoginResponse, RegisterRequest } from '@/types'
+import type { Account, ApiResponse, LoginRequest, LoginResponse } from '@/types'
 
 export function useLogin() {
   const router = useRouter()
@@ -27,26 +27,6 @@ export function useLogin() {
         ? String((error as { payload: unknown }).payload)
         : 'Email hoặc mật khẩu không đúng'
       toast.error(message)
-    },
-  })
-}
-
-export function useRegister() {
-  const router = useRouter()
-  const setAccount = useAuthStore((s) => s.setAccount)
-
-  return useMutation({
-    mutationFn: (data: RegisterRequest) =>
-      http.post<ApiResponse<LoginResponse>>('/auth/register', data),
-    onSuccess: (res) => {
-      const { accessToken, refreshToken, account } = res.data
-      setTokens(accessToken, refreshToken)
-      setAccount(account)
-      toast.success('Đăng ký thành công')
-      router.push('/manage/dashboard')
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Đăng ký thất bại')
     },
   })
 }

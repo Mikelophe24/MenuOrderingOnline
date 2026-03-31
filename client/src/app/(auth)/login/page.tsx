@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema, type LoginFormValues } from '@/schemas/auth.schema'
 import { useLogin } from '@/hooks/use-auth'
-import Link from 'next/link'
 
 export default function LoginPage() {
   const loginMutation = useLogin()
@@ -67,13 +66,6 @@ export default function LoginPage() {
             {loginMutation.isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Chưa có tài khoản?{' '}
-          <Link href="/register" className="text-primary underline">
-            Đăng ký
-          </Link>
-        </p>
       </div>
     </div>
   )
