@@ -98,7 +98,7 @@ public class PaymentController : ControllerBase
             }
 
             // Verify amount matches
-            if (amount < (int)order.TotalPrice)
+            if (amount < (int)order.TotalPric
             {
                 _logger.LogWarning("Payment webhook: amount mismatch for order {OrderId}. Expected {Expected}, got {Actual}",
                     orderId, (int)order.TotalPrice, amount);

@@ -169,7 +169,9 @@ OnlineMenuApp/
 │   │
 │   └── OnlineMenu.sln
 │
-└── start-restaurant.bat                 # Script khoi dong nhanh (LAN)
+├── docker-compose.yml                   # 4 services: db, backend, frontend, nginx
+├── nginx.conf                           # Reverse proxy, SSL, WebSocket
+└── .env.example                         # Mau file bien moi truong
 ```
 
 ---
@@ -649,7 +651,8 @@ Request → ExceptionMiddleware → WebSockets → CORS → StaticFiles → Auth
 
 ### CORS
 ```csharp
-policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://192.168.100.19:3000")
+// Doc AllowedOrigins tu appsettings.json (hoac bien moi truong khi deploy)
+policy.WithOrigins(allowedOrigins)
       .AllowAnyHeader()
       .AllowAnyMethod()
       .AllowCredentials();  // Bat buoc cho SignalR
@@ -704,70 +707,105 @@ policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://192
 
 ## 11. Cau Hinh Moi Truong
 
-### Client (.env.local)
+Tat ca cau hinh duoc quan ly qua file `.env` (tham khao `.env.example`):
+
 ```env
-NEXT_PUBLIC_API_URL=http://192.168.100.19:5000/api   # URL backend API
-NEXT_PUBLIC_SIGNALR_URL=http://192.168.100.19:5000   # URL SignalR Hub
-NEXT_PUBLIC_DEFAULT_LOCALE=vi                         # Ngon ngu mac dinh
+DOMAIN=nhatnuong.site
+DB_PASSWORD=...
+JWT_SECRET=...
+VIETQR_CLIENT_ID=...
+VIETQR_API_KEY=...
+VIETQR_ACCOUNT_NO=...
+VIETQR_ACCOUNT_NAME=...
+VIETQR_ACQ_ID=970418
+CASSO_WEBHOOK_KEY=...
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
 ```
 
-### Server (appsettings.json)
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=OnlineMenuDB;Trusted_Connection=True;TrustServerCertificate=True;"
-  },
-  "Jwt": {
-    "Secret": "...",
-    "Issuer": "OnlineMenu.API",
-    "Audience": "OnlineMenu.Client",
-    "AccessTokenExpiryMinutes": "60",
-    "RefreshTokenExpiryDays": "30"
-  },
-  "Google": { "ClientId": "..." },
-  "VietQR": {
-    "ClientId": "...",
-    "ApiKey": "...",
-    "AccountNo": "...",
-    "AccountName": "...",
-    "AcqId": "970418"
-  },
-  "Casso": { "WebhookKey": "..." },
-  "Cloudinary": { "CloudName": "...", "ApiKey": "...", "ApiSecret": "..." }
-}
+Frontend nhan cau hinh qua Docker build args:
+```
+NEXT_PUBLIC_API_URL=https://nhatnuong.site/api
+NEXT_PUBLIC_SIGNALR_URL=https://nhatnuong.site
+NEXT_PUBLIC_DEFAULT_LOCALE=vi
 ```
 
 ---
 
-## 12. Cach Khoi Dong
+## 12. Deployment
 
-### Yeu cau
-- .NET SDK 8+
-- Node.js 18+
-- SQL Server (LocalDB hoac full)
-- `npm install` trong thu muc `client/`
+### Kien truc Deployment
 
-### Chay thu cong
-```bash
-# Terminal 1: Backend
-cd server/OnlineMenu.API
-dotnet run --urls http://0.0.0.0:5000
-
-# Terminal 2: Frontend
-cd client
-npm run dev
+```
+Internet
+    │
+    ▼
+┌──────────────────────────────────────────┐
+│  VPS (Ubuntu 22.04, 2 vCPU, 4GB RAM)    │
+│  Domain: nhatnuong.site                  │
+│                                          │
+│  ┌──────────────────────────────────┐    │
+│  │  Nginx (port 80, 443)           │    │
+│  │  - SSL (Let's Encrypt)          │    │
+│  │  - HTTP → HTTPS redirect       │    │
+│  │  - /     → frontend:3000       │    │
+│  │  - /api/ → backend:5000/api/   │    │
+│  │  - /hubs/ → backend:5000/hubs/ │    │
+│  │    (WebSocket upgrade)          │    │
+│  └──────────┬───────────┬──────────┘    │
+│             │           │               │
+│  ┌──────────▼──┐  ┌─────▼───────────┐  │
+│  │  Frontend   │  │   Backend       │  │
+│  │  Next.js    │  │   ASP.NET Core  │  │
+│  │  port 3000  │  │   port 5000     │  │
+│  └─────────────┘  └────────┬────────┘  │
+│                             │           │
+│                    ┌────────▼────────┐  │
+│                    │  SQL Server     │  │
+│                    │  port 1433      │  │
+│                    └─────────────────┘  │
+└──────────────────────────────────────────┘
 ```
 
-### Chay nhanh (LAN)
+### Docker Compose (4 services)
+
+| Service    | Image/Build           | Port | Mo ta                          |
+| ---------- | --------------------- | ---- | ------------------------------ |
+| `db`       | mssql/server:2022     | 1433 | SQL Server, volume `sqldata`   |
+| `backend`  | `./server/Dockerfile` | 5000 | ASP.NET Core API + SignalR     |
+| `frontend` | `./client/Dockerfile` | 3000 | Next.js (standalone mode)      |
+| `nginx`    | nginx:alpine          | 80, 443 | Reverse proxy + SSL         |
+
+### Lenh thuong dung
+
 ```bash
-# Double-click file
-start-restaurant.bat
+# SSH vao VPS
+ssh -p 8686 root@161.248.4.184
+
+# Khoi dong
+cd /root/MenuOrderingOnline
+docker compose up -d
+
+# Cap nhat code moi
+git pull
+docker compose up -d --build
+
+# Xem log
+docker compose logs -f
+
+# Gia han SSL (moi 90 ngay)
+docker compose down
+certbot renew
+cp -rL /etc/letsencrypt/* /root/MenuOrderingOnline/certbot/conf/
+docker compose up -d
 ```
-Tu dong detect LAN IP, khoi dong ca backend + frontend.
 
 ### Truy cap
-| Doi tuong  | URL                                    |
-| ---------- | -------------------------------------- |
-| Khach hang | `http://<IP>:3000/tables/{n}?token=...` (quet QR) |
-| Nhan vien  | `http://<IP>:3000/manage`              |
-| Swagger    | `http://<IP>:5000/swagger`             |
+
+| Doi tuong       | URL                                                |
+| --------------- | -------------------------------------------------- |
+| Khach hang      | `https://nhatnuong.site/tables/{n}?token=...` (quet QR) |
+| Quan ly         | `https://nhatnuong.site/manage`                    |
+| Tai khoan admin | `owner@gmail.com` / `123456`                       |
+| Casso webhook   | `https://nhatnuong.site/api/payment/webhook`       |
