@@ -1,10 +1,11 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { DishGrid } from './dish-grid'
+import { BannerSlider } from './banner-slider'
 
 export const metadata: Metadata = {
-  title: 'Nhat Nuong - Thuc don',
-  description: 'Kham pha thuc don phong phu cua nha hang Nhat Nuong',
+  title: 'Nhất Nướng - Trang chủ',
+  description: 'Nhà hàng Nhất Nướng - Đệ nhất nướng lẩu',
 }
 
 async function getDishes() {
@@ -48,6 +49,8 @@ async function DishListServer() {
 export default function HomePage() {
   return (
     <div className="space-y-8">
+      <BannerSlider />
+
       <section className="text-center">
         <h1 className="text-4xl font-bold tracking-tight">Thực đơn</h1>
         <p className="mt-2 text-lg text-muted-foreground">
