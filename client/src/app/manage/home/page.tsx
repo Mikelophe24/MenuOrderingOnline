@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import { DishGrid } from './dish-grid'
 
 export const metadata: Metadata = {
-  title: 'Online Menu - Thực đơn',
-  description: 'Khám phá thực đơn phong phú của chúng tôi',
+  title: 'Nhat Nuong - Thuc don',
+  description: 'Kham pha thuc don phong phu cua nha hang Nhat Nuong',
 }
 
 async function getDishes() {

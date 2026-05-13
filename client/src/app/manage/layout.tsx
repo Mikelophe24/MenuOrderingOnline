@@ -66,7 +66,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
 
     // Browser notification
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Online Menu', {
+      new Notification('Nhat Nuong', {
         body: `${t('order.toast.newOrder', { table: order.tableNumber })}`,
         icon: '/logo.jpg',
       })
@@ -124,7 +124,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
 
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Online Menu - Thanh toan', {
+          new Notification('Nhat Nuong - Thanh toan', {
             body: `Ban ${order.tableNumber} da thanh toan ${order.totalPrice.toLocaleString('vi-VN')}d`,
             icon: '/logo.jpg',
           })

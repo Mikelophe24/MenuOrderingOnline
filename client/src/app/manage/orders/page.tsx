@@ -43,7 +43,7 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
       </head>
       <body>
         <div class="header">
-          <h1>Online Menu</h1>
+          <h1>Nhat Nuong</h1>
           <p>Hóa đơn thanh toán</p>
         </div>
         <div class="info">
@@ -93,7 +93,7 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
         {/* Invoice content */}
         <div className="space-y-4">
           <div className="text-center border-b border-dashed pb-4">
-            <h3 className="text-xl font-bold">Online Menu</h3>
+            <h3 className="text-xl font-bold">Nhat Nuong</h3>
             <p className="text-sm text-muted-foreground">Hóa đơn thanh toán</p>
           </div>
 

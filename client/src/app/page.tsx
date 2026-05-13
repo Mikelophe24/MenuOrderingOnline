@@ -24,7 +24,7 @@ export default function WelcomePage() {
         <div className="container flex h-14 items-center justify-between">
           <span className="flex items-center gap-2 font-bold text-xl">
             <UtensilsCrossed className="h-6 w-6 text-primary" />
-            Online Menu
+            Nhat Nuong
           </span>
           <div className="flex items-center gap-2">
             <LocaleSwitcher />
@@ -40,7 +40,7 @@ export default function WelcomePage() {
           <div className="space-y-6">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
               {t('landing.welcome')}
-              <span className="text-primary block mt-1">Online Menu</span>
+              <span className="text-primary block mt-1">Nhat Nuong</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-md">
               {t('landing.description')}
@@ -116,7 +116,7 @@ export default function WelcomePage() {
             <Phone className="h-3.5 w-3.5" />
             Hotline: <a href="tel:0372239310" className="font-medium text-foreground">0372 239 310</a>
           </p>
-          <p>&copy; {new Date().getFullYear()} Online Menu. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Nhat Nuong. All rights reserved.</p>
         </div>
       </footer>
     </div>

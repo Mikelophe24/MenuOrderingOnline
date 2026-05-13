@@ -57,9 +57,9 @@ function SidebarContent({ navItems, pathname, t, account, onNavigate }: {
   return (
     <div className="flex h-full flex-col gap-2 p-4">
       <div className="mb-4 flex items-center gap-3 px-2">
-        <img src="/logo.jpg" alt="Online Menu" className="h-10 w-10 rounded-lg" />
+        <img src="/logo.jpg" alt="Nhat Nuong" className="h-10 w-10 rounded-lg" />
         <div>
-          <h2 className="text-lg font-semibold leading-tight">Online Menu</h2>
+          <h2 className="text-lg font-semibold leading-tight">Nhat Nuong</h2>
           <p className="text-sm text-muted-foreground">
             {account?.name} ({account?.role})
           </p>
