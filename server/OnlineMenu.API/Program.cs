@@ -144,6 +144,9 @@ using (var scope = app.Services.CreateScope())
         });
         context.SaveChanges();
     }
+
+    // Seed menu data (categories, dishes, ingredients, recipes)
+    SeedData.Seed(context);
 }
 
 // ===== Middleware Pipeline =====
