@@ -4,6 +4,7 @@ import createNextIntlPlugin from 'next-intl/plugin'
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   allowedDevOrigins: ['192.168.100.19'],
   images: {
     remotePatterns: [
@@ -16,6 +17,10 @@ const nextConfig: NextConfig = {
         protocol: 'http',
         hostname: '192.168.100.19',
         port: '5000',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nhatnuong.site',
       },
     ],
     formats: ['image/avif', 'image/webp'],

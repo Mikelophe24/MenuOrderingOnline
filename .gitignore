@@ -4,6 +4,7 @@ client/.next/
 client/out/
 
 # Environment
+.env
 client/.env.local
 client/.env.*.local
 

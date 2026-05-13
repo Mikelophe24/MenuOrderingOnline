@@ -58,7 +58,8 @@
       "Bash(grep:*)",
       "Bash(wc:*)",
       "Bash(ls \"D:/OnlineMenuApp/client/src/app/\\(public\\)/\\(home\\)/\")",
-      "Bash(ls \"D:/OnlineMenuApp/client/src/app/\\(public\\)/home/\")"
+      "Bash(ls \"D:/OnlineMenuApp/client/src/app/\\(public\\)/home/\")",
+      "Bash(ls -la \"D:\\\\OnlineMenuApp\\\\client\\\\src\\\\app\\\\\\(auth\\)\")"
     ]
   }
 }

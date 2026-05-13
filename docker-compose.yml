@@ -1,0 +1,71 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${DB_PASSWORD}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_URLS: "http://+:5000"
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__DefaultConnection: "Server=db;Database=OnlineMenuDB;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;"
+      Jwt__Secret: "${JWT_SECRET}"
+      Jwt__Issuer: "OnlineMenu.API"
+      Jwt__Audience: "OnlineMenu.Client"
+      Jwt__AccessTokenExpiryMinutes: "60"
+      Jwt__RefreshTokenExpiryDays: "30"
+      VietQR__ClientId: "${VIETQR_CLIENT_ID}"
+      VietQR__ApiKey: "${VIETQR_API_KEY}"
+      VietQR__AccountNo: "${VIETQR_ACCOUNT_NO}"
+      VietQR__AccountName: "${VIETQR_ACCOUNT_NAME}"
+      VietQR__AcqId: "970418"
+      Casso__WebhookKey: "${CASSO_WEBHOOK_KEY}"
+      Cloudinary__CloudName: "${CLOUDINARY_CLOUD_NAME}"
+      Cloudinary__ApiKey: "${CLOUDINARY_API_KEY}"
+      Cloudinary__ApiSecret: "${CLOUDINARY_API_SECRET}"
+      AllowedOrigins__0: "https://${DOMAIN}"
+      AllowedOrigins__1: "http://${DOMAIN}"
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./client
+      args:
+        NEXT_PUBLIC_API_URL: "https://${DOMAIN}/api"
+        NEXT_PUBLIC_SIGNALR_URL: "https://${DOMAIN}"
+        NEXT_PUBLIC_DEFAULT_LOCALE: "vi"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+volumes:
+  sqldata:
