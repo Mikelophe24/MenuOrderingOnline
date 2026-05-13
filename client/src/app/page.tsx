@@ -7,7 +7,7 @@ import { loginSchema, type LoginFormValues } from '@/schemas/auth.schema'
 import { useLogin } from '@/hooks/use-auth'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { LocaleSwitcher } from '@/components/shared/locale-switcher'
-import { UtensilsCrossed, Phone } from 'lucide-react'
+import { Phone } from 'lucide-react'
 
 export default function WelcomePage() {
   const t = useTranslations()
@@ -19,61 +19,32 @@ export default function WelcomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between">
-          <span className="flex items-center gap-2 font-bold text-xl">
-            <UtensilsCrossed className="h-6 w-6 text-primary" />
-            Nhat Nuong
-          </span>
-          <div className="flex items-center gap-2">
-            <LocaleSwitcher />
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+      {/* Full-screen login with logo background */}
+      <section
+        className="flex-1 flex flex-col items-center justify-center relative min-h-screen"
+        style={{
+          backgroundImage: 'url(/logoNhatNuong.jpg)',
+          backgroundSize: '60%',
+          backgroundPosition: 'center 40%',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#8b1a1a',
+        }}
+      >
+        <div className="absolute inset-0 bg-black/40" />
 
-      {/* Hero + Auth */}
-      <section className="container py-12 md:py-20">
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
-          {/* Left: Hero text */}
-          <div className="space-y-6">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-              {t('landing.welcome')}
-              <span className="text-primary block mt-1">Nhat Nuong</span>
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-md">
-              {t('landing.description')}
-            </p>
-            <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                {t('landing.fastOrdering')}
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-blue-500" />
-                {t('landing.realtimeManagement')}
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-purple-500" />
-                {t('landing.revenueStats')}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Login form */}
-          <div className="mx-auto w-full max-w-md rounded-xl border bg-card p-6 shadow-lg">
-            <div className="space-y-4">
+        <div className="relative z-10 w-full max-w-sm mx-4 mt-auto mb-auto">
+          <div className="rounded-2xl bg-card/95 backdrop-blur-sm p-8 shadow-2xl border">
+            <div className="space-y-5">
               <div className="text-center">
-                <h2 className="text-xl font-bold">{t('auth.login')}</h2>
-                <p className="text-sm text-muted-foreground">{t('auth.loginSubtitle')}</p>
+                <h1 className="text-2xl font-bold">Nhất Nướng</h1>
+                <p className="text-sm text-muted-foreground mt-1">{t('auth.loginSubtitle')}</p>
               </div>
-              <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-3">
+              <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
                 <div>
                   <input
                     type="email"
                     {...register('email')}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm"
                     placeholder={t('auth.email')}
                   />
                   {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
@@ -82,7 +53,7 @@ export default function WelcomePage() {
                   <input
                     type="password"
                     {...register('password')}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm"
                     placeholder={t('auth.password')}
                   />
                   {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
@@ -90,13 +61,19 @@ export default function WelcomePage() {
                 <button
                   type="submit"
                   disabled={loginMutation.isPending}
-                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="w-full rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-50 transition-colors"
                 >
                   {loginMutation.isPending ? t('auth.loggingIn') : t('auth.login')}
                 </button>
               </form>
             </div>
           </div>
+        </div>
+
+        {/* Top-right controls */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <LocaleSwitcher />
+          <ThemeToggle />
         </div>
       </section>
 
@@ -116,7 +93,7 @@ export default function WelcomePage() {
             <Phone className="h-3.5 w-3.5" />
             Hotline: <a href="tel:0372239310" className="font-medium text-foreground">0372 239 310</a>
           </p>
-          <p>&copy; {new Date().getFullYear()} Nhat Nuong. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Nhất Nướng. All rights reserved.</p>
         </div>
       </footer>
     </div>

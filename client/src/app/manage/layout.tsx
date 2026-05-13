@@ -68,7 +68,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Nhat Nuong', {
         body: `${t('order.toast.newOrder', { table: order.tableNumber })}`,
-        icon: '/logo.jpg',
+        icon: '/logoNhatNuong.jpg',
       })
     }
   }, [t, router, playNotificationSound])
@@ -126,7 +126,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('Nhat Nuong - Thanh toan', {
             body: `Ban ${order.tableNumber} da thanh toan ${order.totalPrice.toLocaleString('vi-VN')}d`,
-            icon: '/logo.jpg',
+            icon: '/logoNhatNuong.jpg',
           })
         }
       })

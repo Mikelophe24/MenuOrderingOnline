@@ -5,25 +5,36 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useDishes, useDeleteDish } from '@/hooks/use-dishes'
+import { useCategories } from '@/hooks/use-categories'
 import { Search } from 'lucide-react'
-import type { Dish } from '@/types'
+import type { Dish, Category } from '@/types'
 import { toast } from 'sonner'
 
 export default function ManageDishesPage() {
   const t = useTranslations()
   const router = useRouter()
   const { data, isLoading } = useDishes({ limit: 100 })
+  const { data: catData } = useCategories()
   const deleteDish = useDeleteDish()
   const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
 
   const allDishes: Dish[] = data?.data?.data ?? []
+  const categories: Category[] = catData?.data?.data ?? catData?.data ?? []
+
   const filteredDishes = useMemo(() => {
-    if (!search.trim()) return allDishes
-    const q = search.toLowerCase()
-    return allDishes.filter((d) =>
-      d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
-    )
-  }, [allDishes, search])
+    let result = allDishes
+    if (selectedCategory) {
+      result = result.filter((d) => d.categoryId === selectedCategory)
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter((d) =>
+        d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
+      )
+    }
+    return result
+  }, [allDishes, search, selectedCategory])
 
   const handleDelete = (e: React.MouseEvent, id: number, name: string) => {
     e.stopPropagation()
@@ -56,6 +67,32 @@ export default function ManageDishesPage() {
         />
       </div>
 
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            selectedCategory === null
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+          }`}
+        >
+          {t('common.all')}
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.id)}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              selectedCategory === cat.id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            }`}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div className="text-center text-muted-foreground">{t('common.loading')}</div>
       ) : (
@@ -65,7 +102,7 @@ export default function ManageDishesPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left text-sm font-medium">{t('common.image')}</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.description')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Danh m&#7909;c</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">{t('common.price')}</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status')}</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">{t('common.actions')}</th>
@@ -82,8 +119,8 @@ export default function ManageDishesPage() {
                     </div>
                   </td>
                   <td className="px-4 py-4 text-base font-medium">{dish.name}</td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground max-w-[250px] truncate">
-                    {dish.description || '—'}
+                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                    {dish.categoryName || dish.category?.name || '—'}
                   </td>
                   <td className="px-4 py-4 text-base font-semibold">
                     {dish.price?.toLocaleString('vi-VN')}đ

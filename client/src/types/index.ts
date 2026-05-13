@@ -62,6 +62,7 @@ export interface Dish {
   image: string
   status: DishStatus
   categoryId: number
+  categoryName?: string
   category?: Category
   calories?: number
   protein?: number
