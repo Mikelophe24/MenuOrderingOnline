@@ -74,7 +74,7 @@ function SidebarContent({ navItems, pathname, t, account, onNavigate }: {
             className={cn(
               'flex items-center gap-3 rounded-lg px-4 py-3 text-base transition-all hover:bg-accent',
               pathname.startsWith(item.href)
-                ? 'bg-accent text-accent-foreground font-medium'
+                ? 'bg-primary text-primary-foreground font-medium'
                 : 'text-foreground/70 hover:text-foreground'
             )}
           >
