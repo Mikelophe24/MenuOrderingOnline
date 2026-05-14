@@ -7,7 +7,8 @@ import { useTables } from '@/hooks/use-tables'
 import { useDishes } from '@/hooks/use-dishes'
 import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
 import { getConnection } from '@/lib/signalr'
-import { OrderStatus, type Order, type Dish, type Table } from '@/types'
+import { OrderStatus, Role, type Order, type Dish, type Table } from '@/types'
+import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart, Receipt, Printer } from 'lucide-react'
 
@@ -334,6 +335,8 @@ export default function ManageOrdersPage() {
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
   const paymentQR = usePaymentQR()
+  const account = useAuthStore((s) => s.account)
+  const isOwner = account?.role === Role.Owner
   const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string; orderId?: number } | null>(null)
   const qrOrderIdRef = useRef<number | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -488,11 +491,11 @@ export default function ManageOrdersPage() {
   const statuses = Object.values(OrderStatus)
 
   const statusBadgeColors: Record<string, string> = {
-    Pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
-    Processing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    Delivered: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-    Paid: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-    Cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    Pending: 'bg-yellow-100 text-yellow-800 border border-yellow-300 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-700',
+    Processing: 'bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700',
+    Delivered: 'bg-green-100 text-green-800 border border-green-300 dark:bg-green-900/40 dark:text-green-300 dark:border-green-700',
+    Paid: 'bg-gray-100 text-gray-800 border border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600',
+    Cancelled: 'bg-red-100 text-red-800 border border-red-300 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700',
   }
 
   return (
@@ -577,26 +580,26 @@ export default function ManageOrdersPage() {
             <button
               key={tableNum}
               onClick={() => setTableFilter(tableFilter === String(tableNum) ? '' : String(tableNum))}
-              className={`rounded-xl border p-5 text-left transition-colors hover:brightness-110 ${tableFilter === String(tableNum) ? 'border-primary ring-2 ring-primary' : ''} bg-slate-100 dark:bg-slate-800`}
+              className={`rounded-xl border p-5 text-left transition-colors hover:bg-slate-200 dark:hover:bg-slate-700 ${tableFilter === String(tableNum) ? 'border-primary ring-2 ring-primary' : 'border-slate-300 dark:border-slate-600'} bg-slate-50 dark:bg-slate-800`}
             >
               <div className="flex gap-5">
                 <div className="text-center">
-                  <div className="text-3xl font-bold">{tableNum}</div>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
+                  <div className="text-3xl font-bold text-foreground">{tableNum}</div>
+                  <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 mt-1">
                     <Users className="h-4 w-4" /> {stats.guests}
                   </div>
                 </div>
                 <div className="space-y-1 text-sm">
-                  <div className="flex items-center gap-1.5 text-blue-400">
+                  <div className="flex items-center gap-1.5 text-yellow-700 dark:text-yellow-400">
                     <Snowflake className="h-4 w-4" /> {stats.pending}
                   </div>
-                  <div className="flex items-center gap-1.5 text-yellow-600 dark:text-yellow-400">
+                  <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
                     <UtensilsCrossed className="h-4 w-4" /> {stats.processing}
                   </div>
-                  <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                  <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400">
                     <Truck className="h-4 w-4" /> {stats.delivered}
                   </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
                     <CreditCard className="h-4 w-4" /> {stats.paid}
                   </div>
                 </div>
@@ -749,13 +752,15 @@ export default function ManageOrdersPage() {
                                       <QrCode className="h-4 w-4" />
                                     </button>
                                   )}
-                                  <button
-                                    onClick={() => handleDelete(order.id)}
-                                    disabled={deleteOrder.isPending}
-                                    className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
-                                  >
-                                    {t('common.delete')}
-                                  </button>
+                                  {isOwner && (
+                                    <button
+                                      onClick={() => handleDelete(order.id)}
+                                      disabled={deleteOrder.isPending}
+                                      className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                                    >
+                                      {t('common.delete')}
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </>

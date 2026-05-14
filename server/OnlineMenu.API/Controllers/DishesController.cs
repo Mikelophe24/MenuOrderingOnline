@@ -118,7 +118,7 @@ public class DishesController : ControllerBase
         return Ok(ApiResponse<object>.Success(null!, "Updated"));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Owner")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

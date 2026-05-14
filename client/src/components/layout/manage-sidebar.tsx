@@ -26,7 +26,7 @@ import {
 const getNavItems = (role: Role | undefined) => {
   const items = [
     { href: '/manage/home', icon: Home, labelKey: 'home' },
-    { href: '/manage/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
+    ...(role === Role.Owner ? [{ href: '/manage/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' }] : []),
     { href: '/manage/orders', icon: ClipboardList, labelKey: 'orders' },
     { href: '/manage/categories', icon: FolderOpen, labelKey: 'categories' },
     { href: '/manage/dishes', icon: UtensilsCrossed, labelKey: 'dishes' },
@@ -75,7 +75,7 @@ function SidebarContent({ navItems, pathname, t, account, onNavigate }: {
               'flex items-center gap-3 rounded-lg px-4 py-3 text-base transition-all hover:bg-accent',
               pathname.startsWith(item.href)
                 ? 'bg-accent text-accent-foreground font-medium'
-                : 'text-muted-foreground'
+                : 'text-foreground/70 hover:text-foreground'
             )}
           >
             <item.icon className="h-5 w-5" />

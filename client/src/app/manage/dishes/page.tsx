@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useDishes, useDeleteDish } from '@/hooks/use-dishes'
 import { useCategories } from '@/hooks/use-categories'
+import { useAuthStore } from '@/stores/auth.store'
 import { Search } from 'lucide-react'
 import type { Dish, Category } from '@/types'
+import { Role } from '@/types'
 import { toast } from 'sonner'
 
 export default function ManageDishesPage() {
@@ -16,6 +18,7 @@ export default function ManageDishesPage() {
   const { data, isLoading } = useDishes({ limit: 100 })
   const { data: catData } = useCategories()
   const deleteDish = useDeleteDish()
+  const account = useAuthStore((s) => s.account)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
 
@@ -135,12 +138,14 @@ export default function ManageDishesPage() {
                       >
                         {t('common.edit')}
                       </Link>
-                      <button
-                        onClick={(e) => handleDelete(e, dish.id, dish.name)}
-                        className="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
-                      >
-                        {t('common.delete')}
-                      </button>
+                      {account?.role === Role.Owner && (
+                        <button
+                          onClick={(e) => handleDelete(e, dish.id, dish.name)}
+                          className="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
+                        >
+                          {t('common.delete')}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

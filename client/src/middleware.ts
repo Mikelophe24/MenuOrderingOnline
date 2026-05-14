@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (authPaths.some((path) => pathname.startsWith(path)) && accessToken) {
-    return NextResponse.redirect(new URL('/manage/dashboard', request.url))
+    return NextResponse.redirect(new URL('/manage/home', request.url))
   }
 
   // Redirect unauthenticated users to login

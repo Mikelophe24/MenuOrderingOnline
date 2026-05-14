@@ -7,7 +7,7 @@ namespace OnlineMenu.API.Controllers;
 
 [ApiController]
 [Route("api/dashboard")]
-[Authorize(Roles = "Owner,Employee")]
+[Authorize(Roles = "Owner")]
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardService _dashboardService;

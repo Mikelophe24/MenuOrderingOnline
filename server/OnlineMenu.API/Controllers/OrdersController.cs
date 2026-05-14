@@ -523,7 +523,7 @@ public class OrdersController : ControllerBase
         }));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Owner")]
     [HttpDelete("orders/{id}")]
     public async Task<IActionResult> Delete(int id)
     {
