@@ -3,6 +3,9 @@ client/node_modules/
 client/.next/
 client/out/
 
+# Backups
+backups/
+
 # Environment
 .env
 client/.env.local

@@ -9,7 +9,7 @@ import {
 import { DollarSign, ClipboardList, Users, Armchair, FileSpreadsheet, FileText } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import http from '@/lib/http'
-import type { ApiResponse, PaginatedResponse, Order } from '@/types'
+import type { ApiResponse, PaginatedResponse, Order, OrderItem } from '@/types'
 
 function formatCurrency(value: number) {
   return value.toLocaleString('vi-VN') + 'đ'
@@ -142,7 +142,7 @@ export default function DashboardPage() {
               'Thời gian': new Date(o.createdAt).toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }),
             }]
           }
-          return items.map((item: any, idx: number) => ({
+          return items.map((item: OrderItem, idx: number) => ({
             'Mã đơn': idx === 0 ? o.id : '',
             'Bàn': idx === 0 ? o.tableNumber : '',
             'Khách hàng': idx === 0 ? (o.guestName ?? '') : '',

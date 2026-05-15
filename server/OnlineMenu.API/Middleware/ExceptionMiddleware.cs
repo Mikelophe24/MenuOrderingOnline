@@ -7,11 +7,13 @@ public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
+    private readonly IHostEnvironment _env;
 
-    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IHostEnvironment env)
     {
         _next = next;
         _logger = logger;
+        _env = env;
     }
 
     public async Task InvokeAsync(HttpContext httpContext)
@@ -30,12 +32,14 @@ public class ExceptionMiddleware
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning(ex, "Unauthorized access");
-            await HandleExceptionAsync(httpContext, HttpStatusCode.Unauthorized, ex.Message);
+            await HandleExceptionAsync(httpContext, HttpStatusCode.Unauthorized,
+                _env.IsDevelopment() ? ex.Message : "Unauthorized");
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Bad request");
-            await HandleExceptionAsync(httpContext, HttpStatusCode.BadRequest, ex.Message);
+            await HandleExceptionAsync(httpContext, HttpStatusCode.BadRequest,
+                _env.IsDevelopment() ? ex.Message : "Bad request");
         }
         catch (Exception ex)
         {

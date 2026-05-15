@@ -258,7 +258,7 @@ export default function OrderPage() {
                   </div>
 
                   <div className="space-y-2">
-                    {order.orderItems.map((item: any) => (
+                    {order.orderItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-3 text-sm">
                         <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
                           {(item.dishImage ?? item.dish?.image) ? (
@@ -310,7 +310,7 @@ export default function OrderPage() {
                             { id: order.id, tableNumber: tableNumber!, tableToken: tableToken! },
                             {
                               onSuccess: () => { toast.success(t('order.toast.cancelled')); void refetchOrders() },
-                              onError: (err: any) => toast.error(err?.payload?.message ?? err?.message ?? t('order.toast.cannotCancelError')),
+                              onError: (err: Error) => toast.error((err as Error & { payload?: { message?: string } }).payload?.message ?? err.message ?? t('order.toast.cannotCancelError')),
                             }
                           )
                         }}

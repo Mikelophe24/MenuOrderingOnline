@@ -23,7 +23,7 @@ export default function ManageDishesPage() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
 
   const allDishes: Dish[] = data?.data?.data ?? []
-  const categories: Category[] = (catData?.data as any)?.data ?? catData?.data ?? []
+  const categories: Category[] = catData?.data?.data ?? []
 
   const filteredDishes = useMemo(() => {
     let result = allDishes

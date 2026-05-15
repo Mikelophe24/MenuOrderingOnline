@@ -12,7 +12,7 @@ import http from '@/lib/http'
 import { toast } from 'sonner'
 import { Search, X, Star } from 'lucide-react'
 import { useDishReviews, useCreateReview } from '@/hooks/use-reviews'
-import type { Dish } from '@/types'
+import type { Dish, Review } from '@/types'
 import Link from 'next/link'
 
 function GuestLoginForm({ onSubmit, t }: { onSubmit: (name: string) => void; t: (key: string) => string }) {
@@ -374,7 +374,7 @@ function DishDetailModal({
             <div className="border-t pt-5 space-y-3">
               <h3 className="font-semibold">Đánh giá ({totalReviews})</h3>
               <div className="space-y-3 max-h-60 overflow-y-auto">
-                {reviews.map((r: any) => (
+                {reviews.map((r: Review) => (
                   <div key={r.id} className="rounded-lg border p-3 space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{r.guestName}</span>

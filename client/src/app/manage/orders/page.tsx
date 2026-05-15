@@ -7,7 +7,7 @@ import { useTables } from '@/hooks/use-tables'
 import { useDishes } from '@/hooks/use-dishes'
 import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
 import { getConnection } from '@/lib/signalr'
-import { OrderStatus, Role, type Order, type Dish, type Table } from '@/types'
+import { OrderStatus, Role, type Order, type OrderItem, type Dish, type Table } from '@/types'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart, Receipt, Printer } from 'lucide-react'
@@ -58,7 +58,7 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
         <table>
           <thead><tr><th>Món</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead>
           <tbody>
-            ${items.map((item: any) => `
+            ${items.map((item: OrderItem) => `
               <tr>
                 <td>${item.dishName ?? item.dish?.name ?? ''}</td>
                 <td>${item.quantity}</td>
@@ -115,7 +115,7 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
               </tr>
             </thead>
             <tbody>
-              {items.map((item: any) => (
+              {items.map((item: OrderItem) => (
                 <tr key={item.id} className="border-b border-dashed">
                   <td className="py-2">
                     <div>{item.dishName ?? item.dish?.name}</div>
@@ -664,7 +664,7 @@ export default function ManageOrdersPage() {
                     const items = order.orderItems ?? []
                     const rowSpan = items.length || 1
                     return items.length > 0 ? (
-                      items.map((item: any, idx: number) => (
+                      items.map((item: OrderItem, idx: number) => (
                         <tr key={`${order.id}-${item.id}`} className="border-b">
                           {idx === 0 && (
                             <>

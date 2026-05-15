@@ -9,6 +9,7 @@ services:
       - "1433:1433"
     volumes:
       - sqldata:/var/opt/mssql
+      - sqlbackup:/var/opt/mssql/backup
     deploy:
       resources:
         limits:
@@ -89,3 +90,4 @@ services:
 
 volumes:
   sqldata:
+  sqlbackup:

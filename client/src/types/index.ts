@@ -106,6 +106,9 @@ export interface OrderItem {
   orderId: number
   dishId: number
   dish?: Dish
+  dishName?: string
+  dishPrice?: number
+  dishImage?: string
   quantity: number
   note?: string
 }
