@@ -11,4 +11,5 @@ public class Table : BaseEntity
 
     // Navigation
     public ICollection<Order> Orders { get; set; } = new List<Order>();
+    public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 }

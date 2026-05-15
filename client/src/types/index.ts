@@ -154,6 +154,31 @@ export interface DishReviewData {
   totalReviews: number
 }
 
+// ====== RESERVATIONS ======
+export enum ReservationStatus {
+  Pending = 'Pending',
+  Approved = 'Approved',
+  Rejected = 'Rejected',
+  Completed = 'Completed',
+  NoShow = 'NoShow',
+  Cancelled = 'Cancelled',
+}
+
+export interface Reservation {
+  id: number
+  guestName: string
+  guestPhone: string
+  partySize: number
+  reservationTime: string
+  note?: string
+  status: ReservationStatus
+  tableId?: number
+  tableNumber?: number
+  processedByName?: string
+  createdAt: string
+  updatedAt: string
+}
+
 // ====== API RESPONSE ======
 export interface ApiResponse<T> {
   data: T

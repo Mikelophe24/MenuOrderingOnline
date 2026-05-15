@@ -136,7 +136,7 @@
     "dashboard": "Tổng quan",
     "orders": "Quản lý đơn hàng",
     "tables": "Quản lý bàn ăn",
-    "categories": "Danh mục",
+    "categories": "Quản lý danh mục",
     "dishes": "Quản lý món ăn",
     "ingredients": "Quản lý kho",
     "recipes": "Công thức",
@@ -161,7 +161,8 @@
     "updateRoleSuccess": "Cập nhật role thành công",
     "deleteEmployeeConfirm": "Xóa nhân viên \"{name}\"?",
     "addEmployee": "Thêm nhân viên",
-    "role": "Role"
+    "role": "Role",
+    "reservations": "Quản lý đặt bàn"
   },
   "dashboard": {
     "dashboard": "Tổng quan",

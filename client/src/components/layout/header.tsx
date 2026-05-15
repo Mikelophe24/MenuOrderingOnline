@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { LocaleSwitcher } from '@/components/shared/locale-switcher'
-import { ShoppingCart } from 'lucide-react'
+import { ShoppingCart, CalendarCheck } from 'lucide-react'
 import { useOrderStore } from '@/stores/order.store'
 
 export function Header() {
@@ -19,6 +19,9 @@ export function Header() {
         </span>
 
         <div className="flex items-center gap-2">
+          <Link href="/reservation" className="p-2 hover:text-primary" title="Đặt bàn">
+            <CalendarCheck className="h-5 w-5" />
+          </Link>
           <Link href="/orders" className="relative p-2">
             <ShoppingCart className="h-5 w-5" />
             {totalItems > 0 && (

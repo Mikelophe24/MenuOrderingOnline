@@ -12,12 +12,21 @@ import { getAccessToken } from '@/lib/tokens'
 import { startConnection, getConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Bell, CreditCard } from 'lucide-react'
+import { Bell, CalendarCheck } from 'lucide-react'
 import { playAmountVoice } from '@/lib/voice-amount'
 import { formatTime } from '@/lib/utils'
 import http from '@/lib/http'
 import type { ReactNode } from 'react'
-import type { Order, ApiResponse, PaginatedResponse, Dish, Table, DashboardData, Ingredient } from '@/types'
+import type { Order, Reservation, ApiResponse, PaginatedResponse, Dish, Table, DashboardData, Ingredient } from '@/types'
+
+interface Notification {
+  id: string
+  type: 'order' | 'reservation'
+  title: string
+  subtitle: string
+  time: string
+  link: string
+}
 
 export default function ManageLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -28,7 +37,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
   const account = useAuthStore((s) => s.account)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [notifications, setNotifications] = useState<Order[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [seenCount, setSeenCount] = useState(0)
   const [showNotifPanel, setShowNotifPanel] = useState(false)
 
@@ -48,11 +57,27 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     audioRef.current.play().catch(() => {})
   }, [])
 
-  const showNewOrderNotification = useCallback((order: Order) => {
-    // Save to notifications list
-    setNotifications((prev) => [order, ...prev])
+  const addNotification = useCallback((notif: Notification) => {
+    setNotifications((prev) => [notif, ...prev])
+    playNotificationSound()
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Nhat Nuong', {
+        body: notif.title,
+        icon: '/logoNhatNuong.jpg',
+      })
+    }
+  }, [playNotificationSound])
 
-    // Toast
+  const showNewOrderNotification = useCallback((order: Order) => {
+    addNotification({
+      id: `order-${order.id}-${Date.now()}`,
+      type: 'order',
+      title: t('order.toast.newOrder', { table: order.tableNumber }),
+      subtitle: `${order.guestName ?? '—'} • ${order.totalPrice?.toLocaleString('vi-VN')}đ`,
+      time: order.createdAt,
+      link: '/manage/orders',
+    })
+
     toast.info(t('order.toast.newOrder', { table: order.tableNumber }), {
       duration: 5000,
       action: {
@@ -60,18 +85,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         onClick: () => router.push('/manage/orders'),
       },
     })
-
-    // Sound
-    playNotificationSound()
-
-    // Browser notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Nhat Nuong', {
-        body: `${t('order.toast.newOrder', { table: order.tableNumber })}`,
-        icon: '/logoNhatNuong.jpg',
-      })
-    }
-  }, [t, router, playNotificationSound])
+  }, [t, router, addNotification])
 
   // Use ref so SignalR effect doesn't re-run when callback changes
   const showNewOrderRef = useRef(showNewOrderNotification)
@@ -151,6 +165,32 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         }
       })
 
+      conn.on('NewReservation', (reservation: { id: number; guestName: string; guestPhone: string; partySize: number; reservationTime: string; createdAt: string }) => {
+        const notif: Notification = {
+          id: `reservation-${reservation.id}-${Date.now()}`,
+          type: 'reservation',
+          title: `Đặt bàn mới: ${reservation.guestName}`,
+          subtitle: `${reservation.partySize} khách • ${reservation.guestPhone}`,
+          time: reservation.createdAt,
+          link: '/manage/reservations',
+        }
+        setNotifications((prev) => [notif, ...prev])
+        playNotificationSound()
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Nhat Nuong', { body: notif.title, icon: '/logoNhatNuong.jpg' })
+        }
+        toast.info(`Đặt bàn mới: ${reservation.guestName} - ${reservation.partySize} khách`, {
+          duration: 5000,
+          action: { label: 'Xem', onClick: () => router.push('/manage/reservations') },
+        })
+        queryClient.invalidateQueries({ queryKey: ['reservations'] })
+      })
+
+      conn.on('ReservationStatusChanged', () => {
+        queryClient.invalidateQueries({ queryKey: ['reservations'] })
+        queryClient.invalidateQueries({ queryKey: ['tables'] })
+      })
+
       // Re-join on reconnect
       conn.onreconnected(async () => {
         try {
@@ -172,6 +212,8 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       conn.off('TableStatusChanged')
       conn.off('StockChanged')
       conn.off('DishStatusChanged')
+      conn.off('NewReservation')
+      conn.off('ReservationStatusChanged')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -249,7 +291,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                   <div className="fixed inset-0 z-40" onClick={() => setShowNotifPanel(false)} />
                   <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border bg-card shadow-xl">
                     <div className="flex items-center justify-between border-b px-4 py-3">
-                      <span className="font-semibold text-sm">{t('order.toast.newOrder', { table: '' }).replace(' ', '')}</span>
+                      <span className="font-semibold text-sm">Thông báo</span>
                       {notifications.length > 0 && (
                         <button
                           onClick={() => setNotifications([])}
@@ -263,25 +305,19 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                       {notifications.length === 0 ? (
                         <p className="py-8 text-center text-sm text-muted-foreground">{t('common.noData')}</p>
                       ) : (
-                        notifications.map((order, idx) => (
+                        notifications.map((notif) => (
                           <button
-                            key={`${order.id}-${idx}`}
-                            onClick={() => { setShowNotifPanel(false); router.push('/manage/orders') }}
+                            key={notif.id}
+                            onClick={() => { setShowNotifPanel(false); router.push(notif.link) }}
                             className="flex w-full items-start gap-3 border-b px-4 py-3 text-left hover:bg-accent last:border-0"
                           >
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                              <Bell className="h-4 w-4" />
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${notif.type === 'reservation' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-primary/10 text-primary'}`}>
+                              {notif.type === 'reservation' ? <CalendarCheck className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium">
-                                {t('common.table')} {order.tableNumber}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {order.guestName ?? '—'} • {order.totalPrice?.toLocaleString('vi-VN')}đ
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatTime(order.createdAt)}
-                              </p>
+                              <p className="text-sm font-medium">{notif.title}</p>
+                              <p className="text-xs text-muted-foreground">{notif.subtitle}</p>
+                              <p className="text-xs text-muted-foreground">{formatTime(notif.time)}</p>
                             </div>
                           </button>
                         ))

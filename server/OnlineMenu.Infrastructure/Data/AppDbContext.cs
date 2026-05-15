@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<DishReview> DishReviews => Set<DishReview>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<DishIngredient> DishIngredients => Set<DishIngredient>();
+    public DbSet<Reservation> Reservations => Set<Reservation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -122,6 +123,28 @@ public class AppDbContext : DbContext
                   .WithMany(i => i.DishIngredients)
                   .HasForeignKey(e => e.IngredientId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Reservation
+        modelBuilder.Entity<Reservation>(entity =>
+        {
+            entity.Property(e => e.GuestName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.GuestPhone).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasIndex(e => e.ReservationTime);
+            entity.HasIndex(e => e.Status);
+
+            entity.HasOne(e => e.Table)
+                  .WithMany(t => t.Reservations)
+                  .HasForeignKey(e => e.TableId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ProcessedBy)
+                  .WithMany()
+                  .HasForeignKey(e => e.ProcessedById)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

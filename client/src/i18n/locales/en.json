@@ -136,7 +136,7 @@
     "dashboard": "Dashboard",
     "orders": "Order management",
     "tables": "Table management",
-    "categories": "Categories",
+    "categories": "Category management",
     "dishes": "Dish management",
     "ingredients": "Inventory",
     "recipes": "Recipes",
@@ -161,7 +161,8 @@
     "updateRoleSuccess": "Role updated successfully",
     "deleteEmployeeConfirm": "Delete employee \"{name}\"?",
     "addEmployee": "Add employee",
-    "role": "Role"
+    "role": "Role",
+    "reservations": "Reservation management"
   },
   "dashboard": {
     "dashboard": "Dashboard",

@@ -19,6 +19,7 @@ import {
   FolderOpen,
   Warehouse,
   BookOpen,
+  CalendarCheck,
   Menu,
   X,
 } from 'lucide-react'
@@ -31,6 +32,7 @@ const getNavItems = (role: Role | undefined) => {
     { href: '/manage/categories', icon: FolderOpen, labelKey: 'categories' },
     { href: '/manage/dishes', icon: UtensilsCrossed, labelKey: 'dishes' },
     { href: '/manage/tables', icon: Armchair, labelKey: 'tables' },
+    { href: '/manage/reservations', icon: CalendarCheck, labelKey: 'reservations' },
     { href: '/manage/ingredients', icon: Warehouse, labelKey: 'ingredients' },
     { href: '/manage/recipes', icon: BookOpen, labelKey: 'recipes' },
   ]

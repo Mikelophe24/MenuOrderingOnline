@@ -21,10 +21,12 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IDishRepository, DishRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ITableRepository, TableRepository>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 
 // ===== Services =====
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddHostedService<OnlineMenu.API.Extensions.ReservationBackgroundService>();
 
 // ===== Authentication (JWT) =====
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
