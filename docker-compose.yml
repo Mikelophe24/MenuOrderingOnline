@@ -4,10 +4,15 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "${DB_PASSWORD}"
+      MSSQL_MEMORY_LIMIT_MB: "512"
     ports:
       - "1433:1433"
     volumes:
       - sqldata:/var/opt/mssql
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     restart: unless-stopped
 
   backend:
@@ -17,6 +22,7 @@ services:
     environment:
       ASPNETCORE_URLS: "http://+:5000"
       ASPNETCORE_ENVIRONMENT: "Production"
+      DOTNET_GCHeapHardLimit: "0x10000000"
       ConnectionStrings__DefaultConnection: "Server=db;Database=OnlineMenuDB;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;"
       Jwt__Secret: "${JWT_SECRET}"
       Jwt__Issuer: "OnlineMenu.API"
@@ -36,6 +42,10 @@ services:
       AllowedOrigins__1: "http://${DOMAIN}"
     ports:
       - "5000:5000"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     depends_on:
       - db
     restart: unless-stopped
@@ -49,6 +59,12 @@ services:
         NEXT_PUBLIC_DEFAULT_LOCALE: "vi"
     ports:
       - "3000:3000"
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=256"
+    deploy:
+      resources:
+        limits:
+          memory: 384M
     depends_on:
       - backend
     restart: unless-stopped
@@ -62,6 +78,10 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+    deploy:
+      resources:
+        limits:
+          memory: 64M
     depends_on:
       - frontend
       - backend
