@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { X, Flame, Beef, Wheat } from 'lucide-react'
 import type { Category } from '@/types'
 
-interface PublicDish {
+export interface PublicDish {
   id: number
   name: string
   price: number

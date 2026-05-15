@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { BannerSlider } from './manage/home/banner-slider'
-import { PublicDishGrid } from '@/components/shared/public-dish-grid'
+import { PublicDishGrid, type PublicDish } from '@/components/shared/public-dish-grid'
 import { LandingNav } from '@/components/shared/landing-nav'
 import { Phone, MapPin } from 'lucide-react'
 
@@ -46,7 +46,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 async function DishListServer() {
   const [dishData, catData] = await Promise.all([getDishes(), getCategories()])
-  const dishes: any[] = shuffle(dishData.data?.data ?? dishData.data ?? [])
+  const dishes = shuffle<PublicDish>(dishData.data?.data ?? dishData.data ?? [])
   const categories = catData.data ?? []
   return <PublicDishGrid dishes={dishes} categories={categories} />
 }
