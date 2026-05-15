@@ -59,7 +59,10 @@
       "Bash(wc:*)",
       "Bash(ls \"D:/OnlineMenuApp/client/src/app/\\(public\\)/\\(home\\)/\")",
       "Bash(ls \"D:/OnlineMenuApp/client/src/app/\\(public\\)/home/\")",
-      "Bash(ls -la \"D:\\\\OnlineMenuApp\\\\client\\\\src\\\\app\\\\\\(auth\\)\")"
+      "Bash(ls -la \"D:\\\\OnlineMenuApp\\\\client\\\\src\\\\app\\\\\\(auth\\)\")",
+      "WebFetch(domain:iconsaigon.com)",
+      "WebFetch(domain:www.facebook.com)",
+      "WebFetch(domain:www.nhatnuong.vn)"
     ]
   }
 }
