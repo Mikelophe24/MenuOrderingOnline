@@ -46,7 +46,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 async function DishListServer() {
   const [dishData, catData] = await Promise.all([getDishes(), getCategories()])
-  const dishes = shuffle(dishData.data?.data ?? dishData.data ?? [])
+  const dishes: any[] = shuffle(dishData.data?.data ?? dishData.data ?? [])
   const categories = catData.data ?? []
   return <PublicDishGrid dishes={dishes} categories={categories} />
 }
