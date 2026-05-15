@@ -426,8 +426,11 @@ export default function ManageOrdersPage() {
       if (!map.has(dateKey)) map.set(dateKey, [])
       map.get(dateKey)!.push(order)
     }
-    const today = new Date().toISOString().split('T')[0]
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const todayDate = new Date()
+    const today = todayDate.toISOString().split('T')[0]
+    const yesterdayDate = new Date(todayDate)
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+    const yesterday = yesterdayDate.toISOString().split('T')[0]
     for (const [dateKey, orders] of map) {
       let label = formatDayLabel(dateKey)
       if (dateKey === today) label = `Hôm nay — ${label}`

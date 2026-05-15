@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import Cookies from 'js-cookie'
 import { useRouter } from 'next/navigation'
 import { LOCALES, DEFAULT_LOCALE, type Locale } from '@/config/constants'
@@ -14,11 +14,9 @@ const LOCALE_LABELS: Record<Locale, string> = {
 export function LocaleSwitcher() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [currentLocale, setCurrentLocale] = useState<Locale>(DEFAULT_LOCALE)
-
-  useEffect(() => {
-    setCurrentLocale((Cookies.get('locale') || DEFAULT_LOCALE) as Locale)
-  }, [])
+  const [currentLocale, setCurrentLocale] = useState<Locale>(() =>
+    (typeof document !== 'undefined' ? Cookies.get('locale') as Locale : null) ?? DEFAULT_LOCALE
+  )
 
   const handleChange = (locale: Locale) => {
     Cookies.set('locale', locale, { path: '/' })

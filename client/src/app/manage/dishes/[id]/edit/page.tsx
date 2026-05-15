@@ -43,11 +43,10 @@ export default function EditDishPage() {
         protein: data.data.protein ?? null,
         carbs: data.data.carbs ?? null,
       })
-      if (data.data.image) {
-        setPreview(data.data.image)
-      }
     }
   }, [data, reset])
+
+  const displayPreview = preview ?? data?.data?.image ?? null
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -84,8 +83,8 @@ export default function EditDishPage() {
           <label className="text-sm font-medium">Hình ảnh</label>
           <div className="mt-1">
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 hover:bg-accent/50 transition-colors">
-              {preview ? (
-                <img src={preview} alt="Preview" className="h-40 w-40 rounded-lg object-cover" />
+              {displayPreview ? (
+                <img src={displayPreview} alt="Preview" className="h-40 w-40 rounded-lg object-cover" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <ImagePlus className="h-10 w-10" />

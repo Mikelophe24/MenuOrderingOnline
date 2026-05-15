@@ -41,11 +41,7 @@ export function DishGrid({ dishes, categories }: { dishes: DishGridDish[]; categ
 
   // Fetch ingredients when a dish is selected
   useEffect(() => {
-    if (!selectedDish) {
-      setDishIngredients([])
-      return
-    }
-    setLoadingIngredients(true)
+    if (!selectedDish) return
     http.get<ApiResponse<Ingredient[]>>('/ingredients')
       .then((res) => {
         const ingredients = res.data ?? []
@@ -101,7 +97,7 @@ export function DishGrid({ dishes, categories }: { dishes: DishGridDish[]; categ
           {paginatedDishes.map((dish) => (
             <button
               key={dish.id}
-              onClick={() => setSelectedDish(dish)}
+              onClick={() => { setSelectedDish(dish); setLoadingIngredients(true) }}
               className="group text-left overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:shadow-lg hover:-translate-y-1"
             >
               <div className="aspect-[4/3] w-full overflow-hidden bg-muted">

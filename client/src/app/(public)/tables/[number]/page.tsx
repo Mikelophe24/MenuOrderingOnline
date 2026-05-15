@@ -68,7 +68,8 @@ export default function TableMenuPage() {
   const { setTable, setGuestName, guestName, addToCart, getTotalItems, tableNumber } = useOrderStore()
   const { data, isLoading } = useDishes({ status: 'Available', limit: 100 })
   const [tableStatus, setTableStatus] = useState<string | null>(null)
-  const [checkingTable, setCheckingTable] = useState(true)
+  const hasValidParams = !!(Number(params.number) && searchParams.get('token'))
+  const [checkingTable, setCheckingTable] = useState(hasValidParams)
 
   const queryClient = useQueryClient()
 
@@ -84,8 +85,6 @@ export default function TableMenuPage() {
         .then((res) => setTableStatus(res.data.status))
         .catch(() => setTableStatus('Invalid'))
         .finally(() => setCheckingTable(false))
-    } else {
-      setCheckingTable(false)
     }
   }, [params.number, searchParams, setTable])
 
