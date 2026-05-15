@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const banners = [
@@ -13,7 +13,7 @@ const banners = [
   '/banner-8.jpg',
 ]
 
-export function BannerSlider() {
+export function BannerSlider({ showOverlay = false }: { showOverlay?: boolean }) {
   const [current, setCurrent] = useState(0)
 
   const next = useCallback(() => {
@@ -24,7 +24,6 @@ export function BannerSlider() {
     setCurrent((prev) => (prev - 1 + banners.length) % banners.length)
   }, [])
 
-
   return (
     <div className="relative w-full overflow-hidden rounded-2xl bg-muted">
       {/* Images */}
@@ -33,7 +32,7 @@ export function BannerSlider() {
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
         {banners.map((src, i) => (
-          <div key={i} className="w-full shrink-0">
+          <div key={i} className="w-full shrink-0 relative">
             <img
               src={src}
               alt={`Banner ${i + 1}`}
@@ -42,6 +41,34 @@ export function BannerSlider() {
           </div>
         ))}
       </div>
+
+      {/* Overlay text + CTA (only on landing page) */}
+      {showOverlay && (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end">
+          <div className="p-6 sm:p-10 space-y-3 max-w-xl">
+            <h2 className="text-2xl sm:text-4xl font-bold text-white drop-shadow-lg">
+              Nhất Nướng
+            </h2>
+            <p className="text-sm sm:text-base text-white/90 drop-shadow">
+              Đệ nhất nướng lẩu — Trải nghiệm ẩm thực tuyệt vời cùng gia đình và bạn bè
+            </p>
+            <div className="flex gap-3 pt-1">
+              <a
+                href="#thuc-don"
+                className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-white/90 transition-colors shadow-lg"
+              >
+                Xem thực đơn
+              </a>
+              <a
+                href="/reservation"
+                className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors shadow-lg"
+              >
+                Đặt bàn ngay
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Prev/Next buttons */}
       <button

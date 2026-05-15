@@ -1,160 +1,181 @@
-'use client'
-
+import { Suspense } from 'react'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
-import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { LocaleSwitcher } from '@/components/shared/locale-switcher'
-import { CalendarCheck, QrCode, Clock, Utensils, Phone, MapPin, ChevronRight } from 'lucide-react'
+import { BannerSlider } from './manage/home/banner-slider'
+import { PublicDishGrid } from '@/components/shared/public-dish-grid'
+import { LandingNav } from '@/components/shared/landing-nav'
+import { Phone, MapPin } from 'lucide-react'
+
+async function getDishes() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dishes?status=Available&limit=100`, {
+    next: { tags: ['dishes'] },
+  })
+  if (!res.ok) return { data: { data: [] } }
+  return res.json()
+}
+
+async function getCategories() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+    next: { tags: ['dishes'] },
+  })
+  if (!res.ok) return { data: [] }
+  return res.json()
+}
+
+function DishListSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="animate-pulse rounded-xl border p-4">
+          <div className="aspect-[4/3] w-full rounded-lg bg-muted" />
+          <div className="mt-4 h-4 w-3/4 rounded bg-muted" />
+          <div className="mt-2 h-4 w-1/2 rounded bg-muted" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+async function DishListServer() {
+  const [dishData, catData] = await Promise.all([getDishes(), getCategories()])
+  const dishes = shuffle(dishData.data?.data ?? dishData.data ?? [])
+  const categories = catData.data ?? []
+  return <PublicDishGrid dishes={dishes} categories={categories} />
+}
 
 export default function LandingPage() {
-  const t = useTranslations()
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-14 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logoNhatNuong.jpg" alt="Nhất Nướng" className="h-9 w-9 rounded-lg" />
-            <span className="font-bold text-lg">Nhất Nướng</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/reservation"
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <CalendarCheck className="h-4 w-4" />
-              Đặt bàn
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
-            >
-              {t('auth.login')}
-            </Link>
-            <LocaleSwitcher />
-            <ThemeToggle />
-          </div>
-        </div>
-      </nav>
+      <LandingNav />
 
-      {/* Hero section */}
-      <section
-        className="relative flex items-center justify-center py-32 md:py-44"
-        style={{
-          backgroundImage: 'url(/logoNhatNuong.jpg)',
-          backgroundSize: '50%',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundColor: '#8b1a1a',
-        }}
-      >
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative z-10 text-center text-white space-y-6 px-4 max-w-2xl">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-            {t('landing.welcome')} <span className="text-red-400">Nhất Nướng</span>
-          </h1>
-          <p className="text-lg text-white/80 max-w-lg mx-auto">
-            Nhà hàng nướng & lẩu hàng đầu. Quét QR đặt món tại bàn, theo dõi đơn hàng realtime, thanh toán tiện lợi.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/reservation"
-              className="flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-base font-semibold text-white hover:bg-red-700 transition-colors shadow-lg"
-            >
-              <CalendarCheck className="h-5 w-5" />
-              Đặt bàn ngay
-            </Link>
-            <Link
-              href="/reservation/check"
-              className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3 text-base font-medium text-white hover:bg-white/20 backdrop-blur-sm transition-colors"
-            >
-              Kiểm tra đặt bàn
-              <ChevronRight className="h-4 w-4" />
-            </Link>
+      {/* Banner Slider with overlay */}
+      <section className="container mt-4">
+        <BannerSlider showOverlay />
+      </section>
+
+      {/* Giới thiệu nhà hàng */}
+      <section className="container py-12">
+        <div className="grid gap-8 md:grid-cols-2 items-center">
+          {/* Text */}
+          <div className="space-y-5">
+            <div>
+              <span className="text-sm font-semibold text-red-600 uppercase tracking-wider">Về chúng tôi</span>
+              <h2 className="text-3xl font-bold mt-1">Nhất Nướng — Đệ Nhất Nướng Lẩu</h2>
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              Nhất Nướng là thương hiệu hàng đầu trong chuỗi nhà hàng lẩu nướng than hoa không khói tại Hà Nội.
+              Với triết lý mang đến trải nghiệm ẩm thực Việt Nam đích thực, chúng tôi phục vụ những món nướng và lẩu
+              thơm ngon, đậm đà trên bếp than hồng đặc trưng.
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              Nguyên liệu tươi ngon mỗi ngày — từ bò ta nướng tảng, sườn bò Mỹ, lõi vai bò Mỹ đến các set lẩu thái,
+              lẩu nấm hải sản. Tất cả được phục vụ trong không gian ấm cúng, phù hợp cho gia đình, bạn bè và tiệc liên hoan.
+            </p>
+            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+              <span>Số 25, Lô 2, Ngõ 67 Phùng Khoang, Trung Văn, Nam Từ Liêm, Hà Nội</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Phone className="h-4 w-4 shrink-0 text-red-600" />
+              <span>Hotline đặt bàn: <a href="tel:0927083333" className="font-semibold text-foreground">0927 083 333</a></span>
+            </div>
+          </div>
+
+          {/* Images grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <img
+              src="/411917731_704745155100460_6871844721272488179_n.jpg"
+              alt="Nhất Nướng - Nướng & Lẩu"
+              className="w-full h-48 object-cover rounded-xl col-span-2"
+            />
+            <img
+              src="/604853176_1210753714499599_5927539765238752341_n.jpg"
+              alt="Bò ta nướng tảng"
+              className="w-full h-40 object-cover rounded-xl"
+            />
+            <img
+              src="/652341506_1274918298083140_8537973056590629425_n.jpg"
+              alt="Sườn bò Mỹ"
+              className="w-full h-40 object-cover rounded-xl"
+            />
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 bg-muted/30">
-        <div className="container">
-          <h2 className="text-2xl font-bold text-center mb-10">Tại sao chọn Nhất Nướng?</h2>
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              {
-                icon: QrCode,
-                title: t('landing.fastOrdering'),
-                desc: 'Quét mã QR tại bàn, xem thực đơn và đặt món ngay trên điện thoại. Không cần đợi nhân viên.',
-              },
-              {
-                icon: Clock,
-                title: t('landing.realtimeManagement'),
-                desc: 'Theo dõi trạng thái đơn hàng realtime. Biết ngay khi món được chuẩn bị và phục vụ.',
-              },
-              {
-                icon: Utensils,
-                title: 'Thực đơn phong phú',
-                desc: 'Hơn 60 món nướng, lẩu, hải sản và đồ uống. Nguyên liệu tươi ngon mỗi ngày.',
-              },
-            ].map((feature) => (
-              <div key={feature.title} className="rounded-xl border bg-card p-6 space-y-3 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <feature.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16">
-        <div className="container text-center space-y-6">
-          <h2 className="text-2xl font-bold">Đặt bàn trước - An tâm có chỗ</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Chỉ cần nhập tên, số điện thoại và thời gian bạn muốn đến. Nhà hàng sẽ xác nhận ngay.
+      {/* Menu */}
+      <section id="thuc-don" className="container pb-12 space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight">Thực đơn</h1>
+          <p className="mt-2 text-lg text-muted-foreground">
+            Khám phá các món ăn hấp dẫn của chúng tôi
           </p>
-          <Link
-            href="/reservation"
-            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-8 py-3.5 text-base font-semibold text-white hover:bg-red-700 transition-colors shadow-lg"
-          >
-            <CalendarCheck className="h-5 w-5" />
-            Đặt bàn ngay
-          </Link>
         </div>
+
+        <Suspense fallback={<DishListSkeleton />}>
+          <DishListServer />
+        </Suspense>
       </section>
 
       {/* Hotline floating */}
       <a
-        href="tel:0372239310"
+        href="tel:0927083333"
         className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full bg-green-500 px-5 py-3 font-medium text-white shadow-lg hover:bg-green-600 transition-colors z-50"
       >
         <Phone className="h-5 w-5" />
-        0372 239 310
+        0927 083 333
       </a>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/30 py-8">
+      <footer className="border-t bg-muted/30 py-8 mt-auto">
         <div className="container grid gap-6 md:grid-cols-3 text-sm">
           <div>
-            <h4 className="font-bold text-base mb-2">Nhất Nướng</h4>
+            <div className="flex items-center gap-2 mb-3">
+              <img src="/logoNhatNuong.jpg" alt="Nhất Nướng" className="h-10 w-10 rounded-lg" />
+              <h4 className="font-bold text-base">Nhất Nướng</h4>
+            </div>
             <p className="text-muted-foreground">Nhà hàng nướng & lẩu. Trải nghiệm ẩm thực tuyệt vời cùng gia đình và bạn bè.</p>
           </div>
           <div>
-            <h4 className="font-bold mb-2">Liên hệ</h4>
-            <div className="space-y-1 text-muted-foreground">
-              <p className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> 0372 239 310</p>
-              <p className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> TP. Hồ Chí Minh</p>
+            <h4 className="font-bold mb-3">Liên hệ</h4>
+            <div className="space-y-2 text-muted-foreground">
+              <a href="tel:0927083333" className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                <Phone className="h-3.5 w-3.5 shrink-0" /> 0927 083 333
+              </a>
+              <p className="flex items-start gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" /> Số 25, Lô 2, Ngõ 67 Phùng Khoang, Trung Văn, Nam Từ Liêm, Hà Nội
+              </p>
             </div>
           </div>
           <div>
-            <h4 className="font-bold mb-2">Dành cho nhân viên</h4>
-            <Link href="/login" className="text-primary hover:underline">
-              Đăng nhập quản lý
-            </Link>
+            <h4 className="font-bold mb-3">Theo dõi chúng tôi</h4>
+            <div className="flex gap-3">
+              <a href="https://www.facebook.com/nhatnuongphungkhoangcoso4" target="_blank" rel="noopener noreferrer" className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors" title="Facebook">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              </a>
+              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-600 text-white hover:bg-pink-700 transition-colors" title="Instagram">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" /></svg>
+              </a>
+              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors" title="Zalo">
+                <span className="text-xs font-bold">Zalo</span>
+              </a>
+              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors" title="TikTok">
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.46V13.2a8.16 8.16 0 005.58 2.2V12a4.85 4.85 0 01-3.77-1.54V6.69h3.77z" /></svg>
+              </a>
+            </div>
+            <div className="mt-4">
+              <Link href="/login" className="text-primary hover:underline text-sm">
+                Dành cho nhân viên — Đăng nhập quản lý
+              </Link>
+            </div>
           </div>
         </div>
         <div className="container mt-6 pt-4 border-t text-center text-xs text-muted-foreground">
