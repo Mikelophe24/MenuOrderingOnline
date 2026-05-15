@@ -93,17 +93,17 @@ export default function LandingPage() {
           {/* Images grid */}
           <div className="grid grid-cols-2 gap-3">
             <img
-              src="/about-banner.jpg"
+              src="/images/about/about-banner.jpg"
               alt="Nhất Nướng - Nướng & Lẩu"
               className="w-full h-48 object-cover rounded-xl col-span-2"
             />
             <img
-              src="/about-food-1.jpg"
+              src="/images/about/about-food-1.jpg"
               alt="Bò ta nướng tảng"
               className="w-full h-40 object-cover rounded-xl"
             />
             <img
-              src="/about-food-2.jpg"
+              src="/images/about/about-food-2.jpg"
               alt="Sườn bò Mỹ"
               className="w-full h-40 object-cover rounded-xl"
             />
@@ -139,7 +139,7 @@ export default function LandingPage() {
         <div className="container grid gap-6 md:grid-cols-3 text-sm">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <img src="/logoNhatNuong.jpg" alt="Nhất Nướng" className="h-10 w-10 rounded-lg" />
+              <img src="/images/logo/logo.jpg" alt="Nhất Nướng" className="h-10 w-10 rounded-lg" />
               <h4 className="font-bold text-base">Nhất Nướng</h4>
             </div>
             <p className="text-muted-foreground">Nhà hàng nướng & lẩu. Trải nghiệm ẩm thực tuyệt vời cùng gia đình và bạn bè.</p>

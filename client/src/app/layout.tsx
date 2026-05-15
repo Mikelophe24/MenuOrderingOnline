@@ -34,7 +34,7 @@ export default async function RootLayout({
           >
             <QueryProvider>
               {children}
-              <Toaster richColors position="top-right" duration={2500} />
+              <Toaster richColors position="top-right" duration={2000} />
             </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>

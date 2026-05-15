@@ -13,7 +13,7 @@ export function LandingNav() {
     <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <img src="/logoNhatNuong.jpg" alt="Nhất Nướng" className="h-9 w-9 rounded-lg" />
+          <img src="/images/logo/logo.jpg" alt="Nhất Nướng" className="h-9 w-9 rounded-lg" />
           <span className="font-bold text-lg">Nhất Nướng</span>
         </Link>
         <div className="flex items-center gap-3">

@@ -63,7 +63,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification('Nhat Nuong', {
         body: notif.title,
-        icon: '/logoNhatNuong.jpg',
+        icon: '/images/logo/logo.jpg',
       })
     }
   }, [playNotificationSound])
@@ -140,7 +140,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('Nhat Nuong - Thanh toan', {
             body: `Ban ${order.tableNumber} da thanh toan ${order.totalPrice.toLocaleString('vi-VN')}d`,
-            icon: '/logoNhatNuong.jpg',
+            icon: '/images/logo/logo.jpg',
           })
         }
       })
@@ -177,7 +177,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         setNotifications((prev) => [notif, ...prev])
         playNotificationSound()
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Nhat Nuong', { body: notif.title, icon: '/logoNhatNuong.jpg' })
+          new Notification('Nhat Nuong', { body: notif.title, icon: '/images/logo/logo.jpg' })
         }
         toast.info(`Đặt bàn mới: ${reservation.guestName} - ${reservation.partySize} khách`, {
           duration: 5000,

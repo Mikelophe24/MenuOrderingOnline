@@ -4,13 +4,13 @@ import { useState, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const banners = [
-  '/banner-1.jpg',
-  '/banner-2.jpg',
-  '/banner-3.jpg',
-  '/banner-5.png',
-  '/banner-6.jpg',
-  '/banner-7.jpg',
-  '/banner-8.jpg',
+  '/images/banners/banner-1.jpg',
+  '/images/banners/banner-2.jpg',
+  '/images/banners/banner-3.jpg',
+  '/images/banners/banner-5.png',
+  '/images/banners/banner-6.jpg',
+  '/images/banners/banner-7.jpg',
+  '/images/banners/banner-8.jpg',
 ]
 
 export function BannerSlider({ showOverlay = false }: { showOverlay?: boolean }) {
