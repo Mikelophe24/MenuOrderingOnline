@@ -93,17 +93,17 @@ export default function LandingPage() {
           {/* Images grid */}
           <div className="grid grid-cols-2 gap-3">
             <img
-              src="/411917731_704745155100460_6871844721272488179_n.jpg"
+              src="/about-banner.jpg"
               alt="Nhất Nướng - Nướng & Lẩu"
               className="w-full h-48 object-cover rounded-xl col-span-2"
             />
             <img
-              src="/604853176_1210753714499599_5927539765238752341_n.jpg"
+              src="/about-food-1.jpg"
               alt="Bò ta nướng tảng"
               className="w-full h-40 object-cover rounded-xl"
             />
             <img
-              src="/652341506_1274918298083140_8537973056590629425_n.jpg"
+              src="/about-food-2.jpg"
               alt="Sườn bò Mỹ"
               className="w-full h-40 object-cover rounded-xl"
             />
