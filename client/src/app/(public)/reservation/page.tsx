@@ -1,19 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { reservationSchema, type ReservationFormValues } from '@/schemas/reservation.schema'
 import { useCreateReservation } from '@/hooks/use-reservations'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { CalendarCheck, CheckCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import type { Reservation } from '@/types'
 
 export default function ReservationPage() {
-  const t = useTranslations()
   const createReservation = useCreateReservation()
   const [result, setResult] = useState<Reservation | null>(null)
 
@@ -68,7 +65,6 @@ export default function ReservationPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        <LocaleSwitcher />
         <ThemeToggle />
       </div>
 

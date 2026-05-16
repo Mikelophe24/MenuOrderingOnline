@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+
 import { useIngredients, useCreateIngredient, useUpdateIngredient, useDeleteIngredient, useUpdateStock, useLinkDishIngredient, useUnlinkDishIngredient } from '@/hooks/use-ingredients'
 import type { Ingredient } from '@/types'
 import { useDishes } from '@/hooks/use-dishes'
@@ -10,7 +10,6 @@ import { Plus, Trash2, AlertTriangle, Package, Link2, Unlink } from 'lucide-reac
 import type { Dish } from '@/types'
 
 export default function ManageIngredientsPage() {
-  const t = useTranslations()
   const { data, isLoading } = useIngredients()
   const { data: dishesData } = useDishes({ limit: 100 })
   const createIngredient = useCreateIngredient()
@@ -148,7 +147,7 @@ export default function ManageIngredientsPage() {
 
       {/* Ingredients list */}
       {isLoading ? (
-        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
+        <div className="text-center text-muted-foreground">Đang tải...</div>
       ) : ingredients.length === 0 ? (
         <div className="text-center text-muted-foreground py-12">Chưa có nguyên liệu nào</div>
       ) : (

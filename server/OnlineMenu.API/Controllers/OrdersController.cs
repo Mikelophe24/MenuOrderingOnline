@@ -136,19 +136,12 @@ public class OrdersController : ControllerBase
             }
         }
 
-        decimal totalPrice = 0;
-        var order = new Order
-        {
-            TableNumber = request.TableNumber,
-            TableId = table.Id,
-            GuestName = request.GuestName,
-            Status = OrderStatus.Pending,
-        };
-
+        decimal addedPrice = 0;
+        var newItems = new List<OrderItem>();
         foreach (var item in request.Items)
         {
             var dish = dishMap[item.DishId];
-            order.OrderItems.Add(new OrderItem
+            newItems.Add(new OrderItem
             {
                 DishId = item.DishId,
                 DishName = dish.Name,
@@ -157,15 +150,52 @@ public class OrdersController : ControllerBase
                 Quantity = item.Quantity,
                 Note = item.Note,
             });
-            totalPrice += dish.Price * item.Quantity;
+            addedPrice += dish.Price * item.Quantity;
         }
-        order.TotalPrice = totalPrice;
 
         var userIdClaim = User.FindFirst("userId")?.Value;
-        if (int.TryParse(userIdClaim, out var userId))
-            order.ProcessedById = userId;
+        int.TryParse(userIdClaim, out var userId);
 
-        await _orderRepo.AddAsync(order);
+        // Check for existing active order at the same table → merge items (Pending first, then Processing, then Delivered)
+        var existingOrders = await _orderRepo.GetByTableNumberAsync(request.TableNumber);
+        var existingOrder = existingOrders.FirstOrDefault(o => o.Status == OrderStatus.Pending)
+            ?? existingOrders.FirstOrDefault(o => o.Status == OrderStatus.Processing)
+            ?? existingOrders.FirstOrDefault(o => o.Status == OrderStatus.Delivered);
+
+        Order order;
+        if (existingOrder != null)
+        {
+            foreach (var item in newItems)
+            {
+                item.OrderId = existingOrder.Id;
+                existingOrder.OrderItems.Add(item);
+            }
+            await _context.SaveChangesAsync();
+
+            await _context.Orders
+                .Where(o => o.Id == existingOrder.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(o => o.TotalPrice, o => o.TotalPrice + addedPrice)
+                    .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
+            existingOrder.TotalPrice += addedPrice;
+
+            if (userId > 0) existingOrder.ProcessedById = userId;
+            order = existingOrder;
+        }
+        else
+        {
+            order = new Order
+            {
+                TableNumber = request.TableNumber,
+                TableId = table.Id,
+                GuestName = request.GuestName,
+                Status = OrderStatus.Pending,
+                TotalPrice = addedPrice,
+            };
+            foreach (var item in newItems) order.OrderItems.Add(item);
+            if (userId > 0) order.ProcessedById = userId;
+            await _orderRepo.AddAsync(order);
+        }
 
         if (table.Status != TableStatus.Occupied)
         {
@@ -178,7 +208,12 @@ public class OrdersController : ControllerBase
         var orderDto = OrderHelper.MapToDto(order);
         await _hubContext.Clients.Group("management").SendAsync("NewOrder", orderDto);
 
-        return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponse<OrderDto>.Success(orderDto, "Order created", 201));
+        var itemsSummary = string.Join(", ", newItems.Select(i => $"{i.DishName} × {i.Quantity}"));
+        var message = existingOrder != null
+            ? $"Bàn {request.TableNumber} gọi thêm: {itemsSummary} (gộp vào đơn #{existingOrder.Id})"
+            : $"Tạo đơn mới bàn {request.TableNumber}: {itemsSummary}";
+
+        return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponse<OrderDto>.Success(orderDto, message, 201));
     }
 
     // Guest creates an order
@@ -235,11 +270,14 @@ public class OrdersController : ControllerBase
             }
         }
 
-        // Check if guest already has a Pending order at this table → add items to it
+        // Check if guest already has an active order at this table → add items to it
         var existingOrders = await _orderRepo.GetByTableNumberAsync(request.TableNumber);
         var existingOrder = existingOrders.FirstOrDefault(o =>
-            o.Status == OrderStatus.Pending
-            && o.GuestName == request.GuestName);
+            o.Status == OrderStatus.Pending && o.GuestName == request.GuestName)
+            ?? existingOrders.FirstOrDefault(o =>
+            o.Status == OrderStatus.Processing && o.GuestName == request.GuestName)
+            ?? existingOrders.FirstOrDefault(o =>
+            o.Status == OrderStatus.Delivered && o.GuestName == request.GuestName);
 
         decimal addedPrice = 0;
         var newItems = new List<OrderItem>();
@@ -306,7 +344,13 @@ public class OrdersController : ControllerBase
         var orderDto = OrderHelper.MapToDto(order);
         await _hubContext.Clients.Group("management").SendAsync("NewOrder", orderDto);
 
-        return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponse<OrderDto>.Success(orderDto, "Order created", 201));
+        var guestLabel = !string.IsNullOrEmpty(request.GuestName) ? request.GuestName : "Khách";
+        var itemsSummary = string.Join(", ", newItems.Select(i => $"{i.DishName} × {i.Quantity}"));
+        var message = existingOrder != null
+            ? $"{guestLabel} bàn {request.TableNumber} gọi thêm: {itemsSummary} (gộp vào đơn #{existingOrder.Id})"
+            : $"{guestLabel} bàn {request.TableNumber} đặt: {itemsSummary}";
+
+        return CreatedAtAction(nameof(GetById), new { id = order.Id }, ApiResponse<OrderDto>.Success(orderDto, message, 201));
     }
 
     // Guest views their orders by table number + token
@@ -537,6 +581,146 @@ public class OrdersController : ControllerBase
             amount = (int)order.TotalPrice,
             addInfo = $"DH{order.Id} Ban{order.TableNumber}"
         }));
+    }
+
+    [Authorize(Roles = "Manager,Employee")]
+    [HttpPatch("orders/{id}/items")]
+    public async Task<IActionResult> UpdateOrderItems(int id, [FromBody] UpdateOrderItemsRequest request)
+    {
+        if (request.Items == null || request.Items.Count == 0)
+            return BadRequest(ApiResponse<object>.Fail("Danh sách món không được trống"));
+
+        if (request.Items.Any(i => i.Quantity < 0))
+            return BadRequest(ApiResponse<object>.Fail("Số lượng không được âm"));
+
+        var order = await _orderRepo.GetWithItemsAsync(id);
+        if (order == null) return NotFound(ApiResponse<object>.Fail("Order not found", 404));
+
+        if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Processing)
+            return BadRequest(ApiResponse<object>.Fail("Chỉ có thể sửa đơn hàng đang chờ xử lý hoặc đang xử lý"));
+
+        var previousStatus = order.Status;
+
+        // Build lookup of current items
+        var currentItems = order.OrderItems.ToDictionary(oi => oi.Id);
+
+        var itemsToRemove = new List<OrderItem>();
+        var itemsToUpdate = new List<(OrderItem item, int oldQty, int newQty)>();
+
+        foreach (var entry in request.Items)
+        {
+            if (!currentItems.TryGetValue(entry.OrderItemId, out var item))
+                return BadRequest(ApiResponse<object>.Fail($"Món #{entry.OrderItemId} không tồn tại trong đơn này"));
+
+            if (entry.Quantity == 0)
+                itemsToRemove.Add(item);
+            else if (entry.Quantity != item.Quantity)
+                itemsToUpdate.Add((item, item.Quantity, entry.Quantity));
+        }
+
+        if (itemsToRemove.Count == order.OrderItems.Count && itemsToUpdate.Count == 0)
+            return BadRequest(ApiResponse<object>.Fail("Không thể xóa hết tất cả món. Hãy xóa đơn hàng thay vì xóa từng món"));
+
+        // Check stock for quantity increases (matters if order is Processing or Delivered — stock already deducted)
+        var stockDeducted = previousStatus == OrderStatus.Processing;
+        if (stockDeducted)
+        {
+            foreach (var (item, oldQty, newQty) in itemsToUpdate)
+            {
+                if (newQty > oldQty)
+                {
+                    var extraQty = newQty - oldQty;
+                    var dishIngredients = await _context.DishIngredients
+                        .Where(di => di.DishId == item.DishId)
+                        .Include(di => di.Ingredient)
+                        .ToListAsync();
+
+                    foreach (var di in dishIngredients)
+                    {
+                        var maxExtra = di.QuantityNeeded > 0
+                            ? (int)Math.Floor(di.Ingredient.CurrentStock / di.QuantityNeeded)
+                            : int.MaxValue;
+                        if (extraQty > maxExtra)
+                            return BadRequest(ApiResponse<object>.Fail(
+                                $"{item.DishName} chỉ còn đủ nguyên liệu thêm {maxExtra} phần"));
+                    }
+                }
+            }
+        }
+
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Adjust stock for orders where stock was already deducted (Processing/Delivered)
+            if (stockDeducted)
+            {
+                // Restore stock for removed items
+                foreach (var item in itemsToRemove)
+                {
+                    var dishIngredients = await _context.DishIngredients
+                        .Where(di => di.DishId == item.DishId)
+                        .Include(di => di.Ingredient)
+                        .ToListAsync();
+                    foreach (var di in dishIngredients)
+                        di.Ingredient.CurrentStock += di.QuantityNeeded * item.Quantity;
+                }
+
+                // Adjust stock for quantity changes
+                foreach (var (item, oldQty, newQty) in itemsToUpdate)
+                {
+                    var diff = newQty - oldQty;
+                    var dishIngredients = await _context.DishIngredients
+                        .Where(di => di.DishId == item.DishId)
+                        .Include(di => di.Ingredient)
+                        .ToListAsync();
+                    foreach (var di in dishIngredients)
+                    {
+                        di.Ingredient.CurrentStock -= di.QuantityNeeded * diff;
+                        if (di.Ingredient.CurrentStock < 0) di.Ingredient.CurrentStock = 0;
+                    }
+                }
+            }
+
+            // Remove items
+            foreach (var item in itemsToRemove)
+            {
+                order.OrderItems.Remove(item);
+                _context.Set<OrderItem>().Remove(item);
+            }
+
+            // Update quantities
+            foreach (var (item, _, newQty) in itemsToUpdate)
+                item.Quantity = newQty;
+
+            // Recalculate total price
+            order.TotalPrice = order.OrderItems.Sum(oi => oi.DishPrice * oi.Quantity);
+            order.UpdatedAt = DateTime.UtcNow;
+
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (int.TryParse(userIdClaim, out var userId) && userId > 0)
+                order.ProcessedById = userId;
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+        // Notify stock changes
+        if (stockDeducted && (itemsToRemove.Count > 0 || itemsToUpdate.Count > 0))
+        {
+            await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
+            await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
+        }
+
+        var orderDto = OrderHelper.MapToDto(order);
+        await _hubContext.Clients.Group($"table-{order.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
+        await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
+
+        return Ok(ApiResponse<OrderDto>.Success(orderDto, "Cập nhật đơn hàng thành công"));
     }
 
     [Authorize(Roles = "Manager")]

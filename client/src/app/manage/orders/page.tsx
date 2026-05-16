@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { useInfiniteOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR, useCreateStaffOrder } from '@/hooks/use-orders'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useInfiniteOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR, useCreateStaffOrder, useUpdateOrderItems } from '@/hooks/use-orders'
 import { useTables } from '@/hooks/use-tables'
 import { useDishes } from '@/hooks/use-dishes'
 import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
@@ -10,7 +9,15 @@ import { getConnection } from '@/lib/signalr'
 import { OrderStatus, Role, type Order, type OrderItem, type Dish, type Table } from '@/types'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
-import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart, Receipt, Printer } from 'lucide-react'
+import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart, Receipt, Printer, ChevronDown, Pencil, Trash2 } from 'lucide-react'
+
+const statusLabels: Record<string, string> = {
+  Pending: 'Chờ xử lý',
+  Processing: 'Đang xử lý',
+  Delivered: 'Đã giao',
+  Paid: 'Đã thanh toán',
+  Cancelled: 'Đã hủy',
+}
 
 function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }) {
   const items = order.orderItems ?? []
@@ -50,9 +57,8 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
         <div class="info">
           <div><span>Mã đơn:</span><span>#${order.id}</span></div>
           <div><span>Bàn:</span><span>${order.tableNumber}</span></div>
-          ${order.guestName ? `<div><span>Khách:</span><span>${order.guestName}</span></div>` : ''}
           <div><span>Thời gian:</span><span>${new Date(order.createdAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</span></div>
-          <div><span>Trạng thái:</span><span>${order.status}</span></div>
+          <div><span>Trạng thái:</span><span>${statusLabels[order.status] ?? order.status}</span></div>
           ${order.processedByName ? `<div><span>Nhân viên:</span><span>${order.processedByName}</span></div>` : ''}
         </div>
         <table>
@@ -91,7 +97,6 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
           <X className="h-5 w-5" />
         </button>
 
-        {/* Invoice content */}
         <div className="space-y-4">
           <div className="text-center border-b border-dashed pb-4">
             <h3 className="text-xl font-bold">Nhat Nuong</h3>
@@ -101,7 +106,6 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
           <div className="text-sm space-y-1">
             <div className="flex justify-between"><span className="text-muted-foreground">Mã đơn:</span><span className="font-semibold">#{order.id}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bàn:</span><span className="font-semibold">{order.tableNumber}</span></div>
-            {order.guestName && <div className="flex justify-between"><span className="text-muted-foreground">Khách:</span><span className="font-semibold">{order.guestName}</span></div>}
             <div className="flex justify-between"><span className="text-muted-foreground">Thời gian:</span><span className="font-semibold">{formatDateTime(order.createdAt)}</span></div>
             {order.processedByName && <div className="flex justify-between"><span className="text-muted-foreground">Nhân viên:</span><span className="font-semibold">{order.processedByName}</span></div>}
           </div>
@@ -151,7 +155,7 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
   )
 }
 
-function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string) => string }) {
+function CreateOrderForm({ onClose }: { onClose: () => void }) {
   const { data: tablesData } = useTables()
   const { data: dishesData } = useDishes({ status: 'Available', limit: 100 })
   const createOrder = useCreateStaffOrder()
@@ -160,7 +164,6 @@ function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string)
   const allDishes: Dish[] = dishesData?.data?.data ?? []
 
   const [tableNumber, setTableNumber] = useState<number>(0)
-  const [guestName, setGuestName] = useState('')
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState<{ dishId: number; dish: Dish; quantity: number; note: string }[]>([])
 
@@ -200,12 +203,11 @@ function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string)
     createOrder.mutate(
       {
         tableNumber,
-        guestName: guestName.trim() || undefined,
         items: cart.map((item) => ({ dishId: item.dishId, quantity: item.quantity, note: item.note || undefined })),
       },
       {
-        onSuccess: () => {
-          toast.success('Tạo đơn hàng thành công')
+        onSuccess: (res) => {
+          toast.success(res.message || 'Tạo đơn hàng thành công')
           onClose()
         },
         onError: (error: Error) => toast.error(error.message || 'Tạo đơn thất bại'),
@@ -221,31 +223,18 @@ function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string)
         </button>
         <h3 className="text-lg font-bold mb-4">Tạo đơn hàng</h3>
 
-        {/* Table + Guest */}
-        <div className="grid gap-3 sm:grid-cols-2 mb-4">
-          <div>
-            <label className="text-sm font-medium">Bàn</label>
-            <select
-              value={tableNumber}
-              onChange={(e) => setTableNumber(Number(e.target.value))}
-              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-            >
-              <option value={0}>-- Chọn bàn --</option>
-              {tables.map((table) => (
-                <option key={table.id} value={table.number}>Bàn {table.number} ({table.capacity} chỗ)</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Tên khách (tùy chọn)</label>
-            <input
-              type="text"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-              placeholder="Tên khách hàng"
-            />
-          </div>
+        <div className="mb-4">
+          <label className="text-sm font-medium">Bàn</label>
+          <select
+            value={tableNumber}
+            onChange={(e) => setTableNumber(Number(e.target.value))}
+            className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            <option value={0}>-- Chọn bàn --</option>
+            {tables.map((table) => (
+              <option key={table.id} value={table.number}>Bàn {table.number} ({table.capacity} chỗ)</option>
+            ))}
+          </select>
         </div>
 
         {/* Search dishes */}
@@ -316,7 +305,6 @@ function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string)
           </div>
         )}
 
-        {/* Submit */}
         <button
           onClick={handleSubmit}
           disabled={createOrder.isPending || cart.length === 0}
@@ -329,8 +317,137 @@ function CreateOrderForm({ onClose, t }: { onClose: () => void; t: (key: string)
   )
 }
 
+function EditOrderDialog({ order, onClose }: { order: Order; onClose: () => void }) {
+  const updateItems = useUpdateOrderItems()
+  const [items, setItems] = useState<{ id: number; dishName: string; dishPrice: number; dishImage?: string; quantity: number; note?: string; removed: boolean }[]>(
+    () => (order.orderItems ?? []).map((item) => ({
+      id: item.id,
+      dishName: item.dishName ?? item.dish?.name ?? '',
+      dishPrice: item.dishPrice ?? item.dish?.price ?? 0,
+      dishImage: item.dishImage ?? item.dish?.image,
+      quantity: item.quantity,
+      note: item.note,
+      removed: false,
+    }))
+  )
+
+  const activeItems = items.filter((i) => !i.removed)
+  const totalPrice = activeItems.reduce((sum, i) => sum + i.dishPrice * i.quantity, 0)
+  const hasChanges = items.some((item) => {
+    const original = (order.orderItems ?? []).find((oi) => oi.id === item.id)
+    if (!original) return false
+    return item.removed || item.quantity !== original.quantity
+  })
+
+  const handleSave = () => {
+    if (activeItems.length === 0) {
+      toast.error('Không thể xóa hết tất cả món')
+      return
+    }
+    const changedItems = items
+      .filter((item) => {
+        const original = (order.orderItems ?? []).find((oi) => oi.id === item.id)
+        return item.removed || (original && item.quantity !== original.quantity)
+      })
+      .map((item) => ({ orderItemId: item.id, quantity: item.removed ? 0 : item.quantity }))
+
+    if (changedItems.length === 0) { onClose(); return }
+
+    updateItems.mutate(
+      { id: order.id, items: changedItems },
+      {
+        onSuccess: (res) => {
+          toast.success(res.message || 'Cập nhật đơn hàng thành công')
+          onClose()
+        },
+        onError: (error: Error) => toast.error(error.message || 'Cập nhật thất bại'),
+      }
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="relative mx-4 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-xl bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute right-3 top-3 rounded-md p-1 hover:bg-accent">
+          <X className="h-5 w-5" />
+        </button>
+        <h3 className="text-lg font-bold mb-1">Sửa đơn hàng #{order.id}</h3>
+        <p className="text-sm text-muted-foreground mb-4">Bàn {order.tableNumber}</p>
+
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-center gap-3 rounded-lg border p-3 transition-opacity ${item.removed ? 'opacity-40 line-through' : ''}`}
+            >
+              {item.dishImage && (
+                <img src={item.dishImage} alt={item.dishName} className="h-12 w-12 rounded-md object-cover shrink-0" loading="lazy" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{item.dishName}</div>
+                <div className="text-xs text-muted-foreground">{item.dishPrice.toLocaleString('vi-VN')}đ</div>
+                {item.note && <div className="text-xs text-orange-500 truncate">📝 {item.note}</div>}
+              </div>
+
+              {!item.removed && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i))}
+                    className="rounded border p-1 hover:bg-accent"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                  <button
+                    onClick={() => setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))}
+                    className="rounded border p-1 hover:bg-accent"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+
+              <div className="w-20 text-right text-sm font-medium">
+                {item.removed ? '—' : (item.dishPrice * item.quantity).toLocaleString('vi-VN') + 'đ'}
+              </div>
+
+              <button
+                onClick={() => setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, removed: !i.removed } : i))}
+                className={`rounded p-1.5 transition-colors ${item.removed ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-950' : 'text-destructive hover:bg-destructive/10'}`}
+                title={item.removed ? 'Khôi phục' : 'Xóa món'}
+              >
+                {item.removed ? <Plus className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t mt-4 pt-3 flex justify-between items-center">
+          <span className="font-semibold">Tổng cộng</span>
+          <span className="text-xl font-bold text-primary">{formatCurrency(totalPrice)}</span>
+        </div>
+
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={updateItems.isPending || !hasChanges}
+            className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {updateItems.isPending ? 'Đang lưu...' : 'Lưu thay đổi'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ManageOrdersPage() {
-  const t = useTranslations()
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteOrders({ limit: 20 })
   const updateStatus = useUpdateOrderStatus()
   const deleteOrder = useDeleteOrder()
@@ -341,20 +458,20 @@ export default function ManageOrdersPage() {
   const qrOrderIdRef = useRef<number | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null)
+  const [editOrder, setEditOrder] = useState<Order | null>(null)
 
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set())
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  const [guestFilter, setGuestFilter] = useState('')
   const [tableFilter, setTableFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
-  // Listen for PaymentReceived to auto-close QR dialog (cache invalidation handled by layout)
   useEffect(() => {
     const conn = getConnection()
 
     const onPaymentReceived = (order: Order) => {
       if (qrOrderIdRef.current === order.id) {
-        toast.success(t('order.payment.paymentSuccess'))
+        toast.success('Thanh toán thành công')
         setQrData(null)
         qrOrderIdRef.current = null
       }
@@ -365,15 +482,13 @@ export default function ManageOrdersPage() {
     return () => {
       conn.off('PaymentReceived', onPaymentReceived)
     }
-  }, [t])
+  }, [])
 
-  // Flatten all pages into one list
   const allOrders: Order[] = useMemo(
     () => data?.pages.flatMap((page) => page.data?.data ?? []) ?? [],
     [data]
   )
 
-  // Infinite scroll: observe last row to auto-load next page
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     const el = loadMoreRef.current
@@ -390,7 +505,6 @@ export default function ManageOrdersPage() {
     return () => observer.disconnect()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // Filter orders
   const filteredOrders = useMemo(() => {
     return allOrders.filter((order) => {
       const orderTime = new Date(order.createdAt).getTime()
@@ -402,14 +516,12 @@ export default function ManageOrdersPage() {
         const to = new Date(toDate + 'T23:59:59').getTime()
         if (orderTime > to) return false
       }
-      if (guestFilter && !(order.guestName ?? '').toLowerCase().includes(guestFilter.toLowerCase())) return false
       if (tableFilter && order.tableNumber !== Number(tableFilter)) return false
       if (statusFilter && order.status !== statusFilter) return false
       return true
     })
-  }, [allOrders, fromDate, toDate, guestFilter, tableFilter, statusFilter])
+  }, [allOrders, fromDate, toDate, tableFilter, statusFilter])
 
-  // Status counts
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const s of Object.values(OrderStatus)) counts[s] = 0
@@ -417,7 +529,6 @@ export default function ManageOrdersPage() {
     return counts
   }, [filteredOrders])
 
-  // Group orders by day
   const ordersByDay = useMemo(() => {
     const groups: { date: string; label: string; orders: Order[] }[] = []
     const map = new Map<string, Order[]>()
@@ -440,16 +551,15 @@ export default function ManageOrdersPage() {
     return groups
   }, [filteredOrders])
 
-  // Table summary cards
   const tableSummary = useMemo(() => {
-    const map = new Map<number, { pending: number; processing: number; delivered: number; paid: number; guests: number }>()
+    const map = new Map<number, { pending: number; processing: number; delivered: number; paid: number; total: number }>()
     for (const o of filteredOrders) {
-      const prev = map.get(o.tableNumber) ?? { pending: 0, processing: 0, delivered: 0, paid: 0, guests: 0 }
+      const prev = map.get(o.tableNumber) ?? { pending: 0, processing: 0, delivered: 0, paid: 0, total: 0 }
       if (o.status === OrderStatus.Pending) prev.pending++
       else if (o.status === OrderStatus.Processing) prev.processing++
       else if (o.status === OrderStatus.Delivered) prev.delivered++
       else if (o.status === OrderStatus.Paid) prev.paid++
-      prev.guests++
+      prev.total++
       map.set(o.tableNumber, prev)
     }
     return Array.from(map.entries()).sort((a, b) => a[0] - b[0])
@@ -458,7 +568,6 @@ export default function ManageOrdersPage() {
   const handleReset = () => {
     setFromDate('')
     setToDate('')
-    setGuestFilter('')
     setTableFilter('')
     setStatusFilter('')
   }
@@ -467,7 +576,7 @@ export default function ManageOrdersPage() {
     updateStatus.mutate(
       { id: order.id, status: newStatus },
       {
-        onSuccess: () => { toast.success(t('order.toast.statusUpdated')) },
+        onSuccess: () => { toast.success('Cập nhật trạng thái thành công') },
         onError: (error: unknown) => {
           const msg = error instanceof Error && 'payload' in error
             ? String((error as { payload: unknown }).payload)
@@ -479,10 +588,10 @@ export default function ManageOrdersPage() {
   }
 
   const handleDelete = (orderId: number) => {
-    if (!confirm(t('order.toast.confirmDelete'))) return
+    if (!confirm('Bạn có chắc muốn xóa đơn hàng này?')) return
     deleteOrder.mutate(orderId, {
-      onSuccess: () => { toast.success(t('order.toast.deleted')) },
-      onError: () => { toast.error(t('order.toast.cannotDeletePaid')) },
+      onSuccess: () => { toast.success('Đã xóa đơn hàng') },
+      onError: () => { toast.error('Không thể xóa đơn đã thanh toán') },
     })
   }
 
@@ -492,7 +601,7 @@ export default function ManageOrdersPage() {
         setQrData({ ...res.data, orderId })
         qrOrderIdRef.current = orderId
       },
-      onError: () => toast.error(t('order.payment.failed')),
+      onError: () => toast.error('Tạo mã QR thất bại'),
     })
   }
 
@@ -511,8 +620,8 @@ export default function ManageOrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('order.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('manage.orders')}</p>
+          <h1 className="text-2xl font-bold">Đơn hàng</h1>
+          <p className="text-sm text-muted-foreground">Quản lý đơn hàng</p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
@@ -523,7 +632,7 @@ export default function ManageOrdersPage() {
         </button>
       </div>
 
-      {showCreateForm && <CreateOrderForm onClose={() => setShowCreateForm(false)} t={t} />}
+      {showCreateForm && <CreateOrderForm onClose={() => setShowCreateForm(false)} />}
 
       {/* Date range filter */}
       <div className="flex flex-wrap items-center gap-3">
@@ -556,15 +665,8 @@ export default function ManageOrdersPage() {
       {/* Search filters */}
       <div className="flex flex-wrap items-center gap-3">
         <input
-          type="text"
-          placeholder={t('guest.guest')}
-          value={guestFilter}
-          onChange={(e) => setGuestFilter(e.target.value)}
-          className="rounded-md border bg-background px-3 py-1.5 text-sm w-32"
-        />
-        <input
           type="number"
-          placeholder={t('common.table')}
+          placeholder="Bàn"
           value={tableFilter}
           onChange={(e) => setTableFilter(e.target.value)}
           className="rounded-md border bg-background px-3 py-1.5 text-sm w-24"
@@ -574,9 +676,9 @@ export default function ManageOrdersPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-md border bg-background px-3 py-1.5 text-sm"
         >
-          <option value="">{t('common.status')}</option>
+          <option value="">Trạng thái</option>
           {statuses.map((s) => (
-            <option key={s} value={s}>{t(`order.status.${s.toLowerCase()}`)}</option>
+            <option key={s} value={s}>{statusLabels[s]}</option>
           ))}
         </select>
       </div>
@@ -594,7 +696,7 @@ export default function ManageOrdersPage() {
                 <div className="text-center">
                   <div className="text-3xl font-bold text-foreground">{tableNum}</div>
                   <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    <Users className="h-4 w-4" /> {stats.guests}
+                    <Users className="h-4 w-4" /> {stats.total}
                   </div>
                 </div>
                 <div className="space-y-1 text-sm">
@@ -627,42 +729,40 @@ export default function ManageOrdersPage() {
               statusFilter === s ? 'ring-2 ring-primary' : ''
             } ${statusBadgeColors[s] ?? 'bg-muted'}`}
           >
-            {t(`order.status.${s.toLowerCase()}`)}: {statusCounts[s] ?? 0}
+            {statusLabels[s]}: {statusCounts[s] ?? 0}
           </button>
         ))}
       </div>
 
       {/* Orders table */}
       {isLoading ? (
-        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
+        <div className="text-center text-muted-foreground">Đang tải...</div>
       ) : filteredOrders.length === 0 ? (
-        <div className="text-center text-muted-foreground py-12">{t('order.noOrders')}</div>
+        <div className="text-center text-muted-foreground py-12">Không có đơn hàng</div>
       ) : (
         <div className="rounded-lg border">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('order.id')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.table')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('guest.guest')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('order.dishes')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('order.totalPrice')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.status')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('order.handler')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('order.createdAt')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('order.action')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Mã đơn</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Bàn</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Món ăn</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Tổng tiền</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Trạng thái</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Nhân viên</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Thời gian</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Hành động</th>
               </tr>
             </thead>
             <tbody>
               {ordersByDay.map((group) => (
                 <React.Fragment key={group.date}>
-                  {/* Day separator */}
                   <tr>
-                    <td colSpan={9} className="bg-muted/70 px-4 py-2">
+                    <td colSpan={8} className="bg-muted/70 px-4 py-2">
                       <div className="flex items-center gap-3">
                         <div className="h-px flex-1 bg-border" />
                         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                          {group.label} ({group.orders.length} {t('order.title').toLowerCase()})
+                          {group.label} ({group.orders.length} đơn)
                         </span>
                         <div className="h-px flex-1 bg-border" />
                       </div>
@@ -670,170 +770,128 @@ export default function ManageOrdersPage() {
                   </tr>
                   {group.orders.map((order: Order) => {
                     const items = order.orderItems ?? []
-                    const rowSpan = items.length || 1
-                    return items.length > 0 ? (
-                      items.map((item: OrderItem, idx: number) => (
-                        <tr key={`${order.id}-${item.id}`} className="border-b">
-                          {idx === 0 && (
-                            <>
-                              <td className="px-4 py-3 text-sm align-top" rowSpan={rowSpan}>#{order.id}</td>
-                              <td className="px-4 py-3 text-sm align-top" rowSpan={rowSpan}>{t('common.table')} {order.tableNumber}</td>
-                              <td className="px-4 py-3 text-sm align-top" rowSpan={rowSpan}>{order.guestName ?? '—'}</td>
-                            </>
-                          )}
+                    const isExpanded = expandedOrders.has(order.id)
+                    const toggleExpand = () => {
+                      setExpandedOrders((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(order.id)) next.delete(order.id)
+                        else next.add(order.id)
+                        return next
+                      })
+                    }
+                    return (
+                      <React.Fragment key={order.id}>
+                        <tr className="border-b">
+                          <td className="px-4 py-3 text-sm">#{order.id}</td>
+                          <td className="px-4 py-3 text-sm">Bàn {order.tableNumber}</td>
                           <td className="px-4 py-3 text-sm">
-                            <div className="flex items-center gap-3">
-                              {(item.dishImage ?? item.dish?.image) && (
-                                <div className="group/img relative">
-                                  <img
-                                    src={item.dishImage ?? item.dish?.image}
-                                    alt={item.dishName ?? item.dish?.name ?? ''}
-                                    className="h-10 w-10 rounded object-cover cursor-pointer" loading="lazy"
-                                  />
-                                  <div className="absolute top-full left-0 mt-2 hidden group-hover/img:block z-50">
-                                    <div className="flex gap-3 rounded-lg border bg-card p-3 shadow-xl w-64">
+                            {items.length > 0 ? (
+                              <button
+                                onClick={toggleExpand}
+                                className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-medium hover:bg-accent transition-colors"
+                              >
+                                <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                {items.length} món
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground">Không có món</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {order.totalPrice?.toLocaleString('vi-VN')}đ
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={order.status}
+                              onChange={(e) =>
+                                handleStatusChange(order, e.target.value as OrderStatus)
+                              }
+                              className="rounded-md border bg-background px-2 py-1 text-sm"
+                            >
+                              {statuses.map((s) => (
+                                <option key={s} value={s}>
+                                  {statusLabels[s]}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {order.processedByName ?? '—'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {formatDateTime(order.createdAt)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1">
+                              {(order.status === 'Pending' || order.status === 'Processing') && (
+                                <button
+                                  onClick={() => setEditOrder(order)}
+                                  className="rounded-md bg-orange-500 px-2 py-1 text-sm text-white hover:bg-orange-600"
+                                  title="Sửa đơn"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                              )}
+                              {isManager && (
+                                <button
+                                  onClick={() => handleDelete(order.id)}
+                                  disabled={deleteOrder.isPending}
+                                  className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                                  title="Xóa"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                              {order.status !== 'Paid' && order.status !== 'Cancelled' && (
+                                <button
+                                  onClick={() => handlePaymentQR(order.id)}
+                                  disabled={paymentQR.isPending}
+                                  className="rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                                  title="Thanh toán QR"
+                                >
+                                  <QrCode className="h-4 w-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setInvoiceOrder(order)}
+                                className="rounded-md bg-blue-600 px-2 py-1 text-sm text-white hover:bg-blue-700"
+                                title="Hóa đơn"
+                              >
+                                <Receipt className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && items.length > 0 && (
+                          <tr className="border-b">
+                            <td colSpan={8} className="bg-muted/30 px-4 py-3">
+                              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {items.map((item: OrderItem) => (
+                                  <div key={item.id} className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
+                                    {(item.dishImage ?? item.dish?.image) && (
                                       <img
                                         src={item.dishImage ?? item.dish?.image}
                                         alt={item.dishName ?? item.dish?.name ?? ''}
-                                        className="h-20 w-20 rounded-lg object-cover shrink-0"
+                                        className="h-12 w-12 rounded-md object-cover shrink-0"
+                                        loading="lazy"
                                       />
-                                      <div className="space-y-1">
-                                        <p className="font-semibold text-sm">{item.dishName ?? item.dish?.name}</p>
-                                        <p className="text-sm text-primary">{(item.dishPrice ?? item.dish?.price)?.toLocaleString('vi-VN')}đ</p>
-                                        {item.note && <p className="text-xs text-muted-foreground">{item.note}</p>}
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-medium text-sm truncate">{item.dishName ?? item.dish?.name ?? '—'}</div>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span>{(item.dishPrice ?? item.dish?.price)?.toLocaleString('vi-VN')}đ</span>
+                                        <span>×</span>
+                                        <span className="font-semibold text-foreground">{item.quantity}</span>
                                       </div>
+                                      {item.note && <div className="text-xs text-orange-500 mt-0.5 truncate">📝 {item.note}</div>}
                                     </div>
                                   </div>
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-medium">{item.dishName ?? item.dish?.name ?? '—'} × {item.quantity}</div>
-                                <div className="text-muted-foreground">
-                                  {(item.dishPrice ?? item.dish?.price)?.toLocaleString('vi-VN')}đ
-                                </div>
-                                {item.note && <div className="text-xs text-orange-500 mt-0.5 max-w-[300px] break-words">📝 {item.note}</div>}
+                                ))}
                               </div>
-                            </div>
-                          </td>
-                          {idx === 0 && (
-                            <>
-                              <td className="px-4 py-3 text-sm align-top" rowSpan={rowSpan}>
-                                {order.totalPrice?.toLocaleString('vi-VN')}đ
-                              </td>
-                              <td className="px-4 py-3 align-top" rowSpan={rowSpan}>
-                                <select
-                                  value={order.status}
-                                  onChange={(e) =>
-                                    handleStatusChange(order, e.target.value as OrderStatus)
-                                  }
-                                  className="rounded-md border bg-background px-2 py-1 text-sm"
-                                >
-                                  {statuses.map((s) => (
-                                    <option key={s} value={s}>
-                                      {t(`order.status.${s.toLowerCase()}`)}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
-                              <td className="px-4 py-3 text-sm align-top" rowSpan={rowSpan}>
-                                {order.processedByName ?? '—'}
-                              </td>
-                              <td className="px-4 py-3 text-sm align-top" rowSpan={rowSpan}>
-                                {formatDateTime(order.createdAt)}
-                              </td>
-                              <td className="px-4 py-3 align-top" rowSpan={rowSpan}>
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => setInvoiceOrder(order)}
-                                    className="rounded-md bg-blue-600 px-2 py-1 text-sm text-white hover:bg-blue-700"
-                                    title="Hóa đơn"
-                                  >
-                                    <Receipt className="h-4 w-4" />
-                                  </button>
-                                  {order.status !== 'Paid' && order.status !== 'Cancelled' && (
-                                    <button
-                                      onClick={() => handlePaymentQR(order.id)}
-                                      disabled={paymentQR.isPending}
-                                      className="rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
-                                      title={t('order.payment.payOnline')}
-                                    >
-                                      <QrCode className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                  {isManager && (
-                                    <button
-                                      onClick={() => handleDelete(order.id)}
-                                      disabled={deleteOrder.isPending}
-                                      className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
-                                    >
-                                      {t('common.delete')}
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      ))
-                    ) : (
-                      <tr key={order.id} className="border-b">
-                        <td className="px-4 py-3 text-sm">#{order.id}</td>
-                        <td className="px-4 py-3 text-sm">{t('common.table')} {order.tableNumber}</td>
-                        <td className="px-4 py-3 text-sm">{order.guestName ?? '—'}</td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">{t('common.noItems')}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {order.totalPrice?.toLocaleString('vi-VN')}đ
-                        </td>
-                        <td className="px-4 py-3">
-                          <select
-                            value={order.status}
-                            onChange={(e) =>
-                              handleStatusChange(order, e.target.value as OrderStatus)
-                            }
-                            className="rounded-md border bg-background px-2 py-1 text-sm"
-                          >
-                            {statuses.map((s) => (
-                              <option key={s} value={s}>
-                                {t(`order.status.${s.toLowerCase()}`)}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {order.processedByName ?? '—'}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {formatDateTime(order.createdAt)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => setInvoiceOrder(order)}
-                              className="rounded-md bg-blue-600 px-2 py-1 text-sm text-white hover:bg-blue-700"
-                              title="Hóa đơn"
-                            >
-                              <Receipt className="h-4 w-4" />
-                            </button>
-                            {order.status !== 'Paid' && order.status !== 'Cancelled' && (
-                              <button
-                                onClick={() => handlePaymentQR(order.id)}
-                                disabled={paymentQR.isPending}
-                                className="rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
-                                title={t('order.payment.payOnline')}
-                              >
-                                <QrCode className="h-4 w-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDelete(order.id)}
-                              disabled={deleteOrder.isPending}
-                              className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
-                            >
-                              {t('common.delete')}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     )
                   })}
                 </React.Fragment>
@@ -842,6 +900,9 @@ export default function ManageOrdersPage() {
           </table>
         </div>
       )}
+
+      {/* Edit Order Dialog */}
+      {editOrder && <EditOrderDialog order={editOrder} onClose={() => setEditOrder(null)} />}
 
       {/* Invoice Dialog */}
       {invoiceOrder && <InvoiceDialog order={invoiceOrder} onClose={() => setInvoiceOrder(null)} />}
@@ -854,12 +915,12 @@ export default function ManageOrdersPage() {
               <X className="h-5 w-5" />
             </button>
             <div className="space-y-4 text-center">
-              <h3 className="text-lg font-bold">{t('order.payment.title')}</h3>
-              <p className="text-sm text-muted-foreground">{t('order.payment.scanToPay')}</p>
+              <h3 className="text-lg font-bold">Thanh toán</h3>
+              <p className="text-sm text-muted-foreground">Quét mã để thanh toán</p>
               <img src={qrData.qrDataURL} alt="VietQR" className="mx-auto rounded-lg" />
               <div className="space-y-1 text-sm">
-                <p>{t('order.payment.amount')}: <span className="font-bold text-primary">{formatCurrency(qrData.amount)}</span></p>
-                <p>{t('order.payment.content')}: <span className="font-mono font-medium">{qrData.addInfo}</span></p>
+                <p>Số tiền: <span className="font-bold text-primary">{formatCurrency(qrData.amount)}</span></p>
+                <p>Nội dung: <span className="font-mono font-medium">{qrData.addInfo}</span></p>
               </div>
             </div>
           </div>
@@ -871,12 +932,12 @@ export default function ManageOrdersPage() {
         {isFetchingNextPage && (
           <div className="flex items-center justify-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">{t('common.loading')}</span>
+            <span className="text-sm">Đang tải...</span>
           </div>
         )}
         {!hasNextPage && allOrders.length > 0 && (
           <span className="text-sm text-muted-foreground">
-            {allOrders.length} {t('order.title').toLowerCase()}
+            {allOrders.length} đơn hàng
           </span>
         )}
       </div>

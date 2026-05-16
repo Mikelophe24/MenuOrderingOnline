@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+
 import { useIngredients } from '@/hooks/use-ingredients'
 import { useDishes } from '@/hooks/use-dishes'
 import { Search, AlertTriangle } from 'lucide-react'
@@ -13,7 +13,6 @@ interface DishRecipe {
 }
 
 export default function RecipesPage() {
-  const t = useTranslations()
   const { data: ingredientsData, isLoading: loadingIng } = useIngredients()
   const { data: dishesData, isLoading: loadingDish } = useDishes({ limit: 100 })
   const [search, setSearch] = useState('')
@@ -57,7 +56,7 @@ export default function RecipesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{t('manage.recipes')}</h1>
+        <h1 className="text-2xl font-bold">Công thức</h1>
         <p className="text-sm text-muted-foreground">Công thức nguyên liệu cho từng món ăn</p>
       </div>
 
@@ -67,13 +66,13 @@ export default function RecipesPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('common.search') + '...'}
+          placeholder="Tìm kiếm..."
           className="w-full rounded-md border bg-background pl-10 pr-3 py-2 text-sm"
         />
       </div>
 
       {isLoading ? (
-        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
+        <div className="text-center text-muted-foreground">Đang tải...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center text-muted-foreground py-12">Chưa có công thức nào</div>
       ) : (

@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useOrderStore } from '@/stores/order.store'
 import { useDishes } from '@/hooks/use-dishes'
@@ -17,7 +16,20 @@ import type { Category, Dish, Review } from '@/types'
 import Link from 'next/link'
 
 export default function TableMenuPage() {
-  const t = useTranslations()
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="animate-spin h-8 w-8 rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <TableMenuContent />
+    </Suspense>
+  )
+}
+
+function TableMenuContent() {
   const params = useParams<{ number: string }>()
   const searchParams = useSearchParams()
   const { setTable, setGuestName, guestName, addToCart, getTotalItems, tableNumber } = useOrderStore()
@@ -90,7 +102,7 @@ export default function TableMenuPage() {
 
   const handleAddToCart = (dish: Dish) => {
     addToCart(dish)
-    toast.success(`${dish.name} ${t('guest.addToCart')}`)
+    toast.success(`${dish.name} đã thêm`)
   }
 
   // Step 0: Checking table status
@@ -109,12 +121,12 @@ export default function TableMenuPage() {
         <div className="mx-auto w-full max-w-md space-y-4 rounded-lg border p-8 text-center">
           <div className="text-5xl">🔒</div>
           <h1 className="text-2xl font-bold">
-            {tableStatus === 'Reserved' ? t('table.reserved') : t('table.invalid')}
+            {tableStatus === 'Reserved' ? 'Bàn đã được đặt trước' : 'Bàn không hợp lệ'}
           </h1>
           <p className="text-muted-foreground">
             {tableStatus === 'Reserved'
-              ? t('table.reservedMessage')
-              : t('table.invalidMessage')}
+              ? 'Bàn này đã được đặt trước, vui lòng chọn bàn khác.'
+              : 'Mã QR không hợp lệ hoặc đã hết hạn.'}
           </p>
         </div>
       </div>
@@ -132,8 +144,8 @@ export default function TableMenuPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">{t('common.table')} {params.number}</h1>
-        <p className="text-muted-foreground">{t('guest.selectFavorite')}</p>
+        <h1 className="text-2xl font-bold">Bàn {params.number}</h1>
+        <p className="text-muted-foreground">chọn món ăn yêu thích của bạn</p>
       </div>
 
       <div className="relative mx-auto max-w-md">
@@ -142,7 +154,7 @@ export default function TableMenuPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('common.search') + '...'}
+          placeholder="Tìm kiếm..."
           className="w-full rounded-full border bg-background pl-10 pr-3 py-2 text-sm"
         />
       </div>
@@ -156,7 +168,7 @@ export default function TableMenuPage() {
               : 'bg-muted hover:bg-muted/80 text-muted-foreground'
           }`}
         >
-          {t('common.all')}
+          Tất cả
         </button>
         {categories.map((cat) => (
           <button
@@ -184,7 +196,7 @@ export default function TableMenuPage() {
           ))}
         </div>
       ) : dishes.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">{t('common.noData')}</p>
+        <p className="text-center text-muted-foreground py-12">Không có dữ liệu</p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {dishes.map((dish) => (
@@ -222,7 +234,7 @@ export default function TableMenuPage() {
                     onClick={(e) => { e.stopPropagation(); handleAddToCart(dish) }}
                     className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                   >
-                    {t('guest.addToCart')}
+                    Thêm
                   </button>
                 </div>
               </div>
@@ -237,7 +249,7 @@ export default function TableMenuPage() {
           href="/orders"
           className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground shadow-lg hover:bg-primary/90"
         >
-          {t('guest.cartButton')} ({totalItems})
+          Giỏ hàng ({totalItems})
         </Link>
       )}
 
@@ -249,7 +261,6 @@ export default function TableMenuPage() {
           tableNumber={tableNumber ?? 0}
           onClose={() => setSelectedDish(null)}
           onAddToCart={(dish) => { handleAddToCart(dish); setSelectedDish(null) }}
-          t={t}
         />
       )}
     </div>
@@ -257,10 +268,10 @@ export default function TableMenuPage() {
 }
 
 function DishDetailModal({
-  dish, guestName, tableNumber, onClose, onAddToCart, t,
+  dish, guestName, tableNumber, onClose, onAddToCart,
 }: {
   dish: Dish; guestName: string; tableNumber: number
-  onClose: () => void; onAddToCart: (dish: Dish) => void; t: (key: string) => string
+  onClose: () => void; onAddToCart: (dish: Dish) => void
 }) {
   const { data: reviewData } = useDishReviews(dish.id)
   const createReview = useCreateReview()
@@ -333,7 +344,7 @@ function DishDetailModal({
             onClick={() => onAddToCart(dish)}
             className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-primary-foreground hover:bg-primary/90"
           >
-            {t('guest.addToCart')}
+            Thêm
           </button>
 
           {/* Write review */}

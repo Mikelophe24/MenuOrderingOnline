@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { useDashboard } from '@/hooks/use-dashboard'
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -24,8 +23,6 @@ function formatShortDate(dateStr: string) {
 const PIE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
 
 export default function DashboardPage() {
-  const t = useTranslations('dashboard')
-
   const today = new Date()
   const thirtyDaysAgo = new Date(today)
   thirtyDaysAgo.setDate(today.getDate() - 30)
@@ -38,35 +35,35 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      label: t('totalRevenue'),
+      label: 'Tổng doanh thu',
       value: dashboard ? formatCurrency(dashboard.totalRevenue) : '—',
       icon: DollarSign,
       color: 'text-green-600',
       bg: 'bg-green-100 dark:bg-green-900/30',
     },
     {
-      label: t('totalOrders'),
+      label: 'Tổng đơn hàng',
       value: dashboard?.totalOrders ?? '—',
       icon: ClipboardList,
       color: 'text-blue-600',
       bg: 'bg-blue-100 dark:bg-blue-900/30',
     },
     {
-      label: t('totalGuests'),
+      label: 'Lượng khách',
       value: dashboard?.totalGuests ?? '—',
       icon: Users,
       color: 'text-purple-600',
       bg: 'bg-purple-100 dark:bg-purple-900/30',
     },
     {
-      label: t('activeTables'),
+      label: 'Bàn đang phục vụ',
       value: dashboard?.activeTables ?? '—',
       icon: Armchair,
       color: 'text-orange-600',
       bg: 'bg-orange-100 dark:bg-orange-900/30',
     },
     {
-      label: t('avgOrderValue'),
+      label: 'TB mỗi đơn',
       value: dashboard ? formatCurrency(dashboard.avgOrderValue) : '—',
       icon: TrendingUp,
       color: 'text-cyan-600',
@@ -106,16 +103,16 @@ export default function DashboardPage() {
       const wb = XLSX.utils.book_new()
 
       const summarySheet = XLSX.utils.aoa_to_sheet([
-        [t('dashboard'), '', `${fromDate} — ${toDate}`],
+        ['Thống kê', '', `${fromDate} — ${toDate}`],
         [],
-        [t('totalRevenue'), dashboard.totalRevenue],
-        [t('totalOrders'), dashboard.totalOrders],
-        [t('totalGuests'), dashboard.totalGuests],
-        [t('activeTables'), dashboard.activeTables],
-        [t('avgOrderValue'), Math.round(dashboard.avgOrderValue)],
+        ['Tổng doanh thu', dashboard.totalRevenue],
+        ['Tổng đơn hàng', dashboard.totalOrders],
+        ['Lượng khách', dashboard.totalGuests],
+        ['Bàn đang phục vụ', dashboard.activeTables],
+        ['TB mỗi đơn', Math.round(dashboard.avgOrderValue)],
       ])
       summarySheet['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 25 }]
-      XLSX.utils.book_append_sheet(wb, summarySheet, t('dashboard'))
+      XLSX.utils.book_append_sheet(wb, summarySheet, 'Thống kê')
 
       const revenueRows = chartData.map((d) => ({
         'Ngày': d.date,
@@ -123,7 +120,7 @@ export default function DashboardPage() {
       }))
       const revenueSheet = XLSX.utils.json_to_sheet(revenueRows)
       revenueSheet['!cols'] = [{ wch: 15 }, { wch: 20 }]
-      XLSX.utils.book_append_sheet(wb, revenueSheet, t('revenueChart'))
+      XLSX.utils.book_append_sheet(wb, revenueSheet, 'Biểu đồ doanh thu')
 
       if (dashboard.topDishes?.length) {
         const dishRows = dashboard.topDishes.map((d, i) => ({
@@ -133,7 +130,7 @@ export default function DashboardPage() {
         }))
         const dishSheet = XLSX.utils.json_to_sheet(dishRows)
         dishSheet['!cols'] = [{ wch: 8 }, { wch: 30 }, { wch: 12 }]
-        XLSX.utils.book_append_sheet(wb, dishSheet, t('topDishes'))
+        XLSX.utils.book_append_sheet(wb, dishSheet, 'Xếp hạng món ăn')
       }
 
       if (dashboard.revenueByCategory?.length) {
@@ -143,7 +140,7 @@ export default function DashboardPage() {
         }))
         const catSheet = XLSX.utils.json_to_sheet(catRows)
         catSheet['!cols'] = [{ wch: 25 }, { wch: 20 }]
-        XLSX.utils.book_append_sheet(wb, catSheet, t('revenueByCategory'))
+        XLSX.utils.book_append_sheet(wb, catSheet, 'Doanh thu theo danh mục')
       }
 
       const ordersRes = await http.get<ApiResponse<PaginatedResponse<Order>>>('/orders', {
@@ -198,7 +195,7 @@ export default function DashboardPage() {
   const exportToPDF = () => {
     if (!dashboard) return
     const content = `
-      <html><head><meta charset="utf-8"><title>${t('dashboard')}</title>
+      <html><head><meta charset="utf-8"><title>Thống kê</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
         h1 { font-size: 24px; margin-bottom: 5px; }
@@ -215,27 +212,27 @@ export default function DashboardPage() {
         .medal { display: inline-block; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; color: white; font-size: 11px; font-weight: bold; }
         .gold { background: #eab308; } .silver { background: #9ca3af; } .bronze { background: #b45309; }
       </style></head><body>
-      <h1>${t('dashboard')}</h1>
+      <h1>Thống kê</h1>
       <p class="subtitle">${fromDate} — ${toDate}</p>
       <div class="stats">
-        <div class="stat"><div class="stat-label">${t('totalRevenue')}</div><div class="stat-value">${formatCurrency(dashboard.totalRevenue)}</div></div>
-        <div class="stat"><div class="stat-label">${t('totalOrders')}</div><div class="stat-value">${dashboard.totalOrders}</div></div>
-        <div class="stat"><div class="stat-label">${t('totalGuests')}</div><div class="stat-value">${dashboard.totalGuests}</div></div>
-        <div class="stat"><div class="stat-label">${t('activeTables')}</div><div class="stat-value">${dashboard.activeTables}</div></div>
-        <div class="stat"><div class="stat-label">${t('avgOrderValue')}</div><div class="stat-value">${formatCurrency(dashboard.avgOrderValue)}</div></div>
+        <div class="stat"><div class="stat-label">Tổng doanh thu</div><div class="stat-value">${formatCurrency(dashboard.totalRevenue)}</div></div>
+        <div class="stat"><div class="stat-label">Tổng đơn hàng</div><div class="stat-value">${dashboard.totalOrders}</div></div>
+        <div class="stat"><div class="stat-label">Lượng khách</div><div class="stat-value">${dashboard.totalGuests}</div></div>
+        <div class="stat"><div class="stat-label">Bàn đang phục vụ</div><div class="stat-value">${dashboard.activeTables}</div></div>
+        <div class="stat"><div class="stat-label">TB mỗi đơn</div><div class="stat-value">${formatCurrency(dashboard.avgOrderValue)}</div></div>
       </div>
-      <h2>${t('revenueChart')}</h2>
-      <table><thead><tr><th>Ngày</th><th>${t('revenue')}</th></tr></thead><tbody>
+      <h2>Biểu đồ doanh thu</h2>
+      <table><thead><tr><th>Ngày</th><th>Doanh thu</th></tr></thead><tbody>
         ${chartData.filter(d => d.revenue > 0).map(d => `<tr><td>${d.date}</td><td>${formatCurrency(d.revenue)}</td></tr>`).join('')}
       </tbody></table>
       ${dashboard.revenueByCategory?.length ? `
-        <h2>${t('revenueByCategory')}</h2>
+        <h2>Doanh thu theo danh mục</h2>
         <table><thead><tr><th>Danh mục</th><th>Doanh thu</th></tr></thead><tbody>
           ${dashboard.revenueByCategory.map(c => `<tr><td>${c.categoryName}</td><td>${formatCurrency(c.revenue)}</td></tr>`).join('')}
         </tbody></table>
       ` : ''}
       ${dashboard.topDishes?.length ? `
-        <h2>${t('topDishes')}</h2>
+        <h2>Xếp hạng món ăn</h2>
         <table><thead><tr><th>#</th><th>Món ăn</th><th>Số đơn</th></tr></thead><tbody>
           ${dashboard.topDishes.map((d, i) => `<tr><td>${i < 3 ? `<span class="medal ${['gold','silver','bronze'][i]}">${i+1}</span>` : i+1}</td><td>${d.dishName}</td><td>${d.orderCount}</td></tr>`).join('')}
         </tbody></table>
@@ -254,7 +251,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">{t('dashboard')}</h1>
+        <h1 className="text-2xl font-bold">Thống kê</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={exportToExcel}
@@ -318,7 +315,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             {/* Revenue Line Chart */}
             <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold">{t('revenueChart')}</h2>
+              <h2 className="mb-4 text-lg font-semibold">Biểu đồ doanh thu</h2>
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData}>
@@ -332,7 +329,7 @@ export default function DashboardPage() {
                       tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}tr` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
                     />
                     <Tooltip
-                      formatter={(value: number) => [formatCurrency(value), t('revenue')]}
+                      formatter={(value: number) => [formatCurrency(value), 'Doanh thu']}
                       contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
                         itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
                         labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
@@ -349,14 +346,14 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                  {t('noRevenueData')}
+                  Không có dữ liệu doanh thu trong khoảng thời gian này
                 </div>
               )}
             </div>
 
             {/* Pie Chart - Top Dishes */}
             <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold">{t('topDishes')}</h2>
+              <h2 className="mb-4 text-lg font-semibold">Xếp hạng món ăn</h2>
               {dashboard?.topDishes && dashboard.topDishes.length > 0 ? (
                 <div className="flex flex-col items-center gap-4 sm:flex-row">
                   <ResponsiveContainer width="100%" height={300}>
@@ -377,7 +374,7 @@ export default function DashboardPage() {
                       </Pie>
                       <Tooltip
                         formatter={(value: number, name: string) => [
-                          `${value} ${t('orders')}`,
+                          `${value} đơn`,
                           name,
                         ]}
                         contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
@@ -401,7 +398,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                  {t('noRevenueData')}
+                  Không có dữ liệu doanh thu trong khoảng thời gian này
                 </div>
               )}
             </div>
@@ -409,7 +406,7 @@ export default function DashboardPage() {
 
           {/* Revenue by Category - full width bar chart */}
           <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold">{t('revenueByCategory')}</h2>
+            <h2 className="mb-4 text-lg font-semibold">Doanh thu theo danh mục</h2>
             {categoryPieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart
@@ -433,7 +430,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     cursor={{ fill: 'hsl(var(--accent))' }}
-                    formatter={(value: number) => [formatCurrency(value), t('revenue')]}
+                    formatter={(value: number) => [formatCurrency(value), 'Doanh thu']}
                     contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
                         itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
                         labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
@@ -447,7 +444,7 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-[280px] items-center justify-center text-muted-foreground">
-                {t('noRevenueData')}
+                Không có dữ liệu doanh thu trong khoảng thời gian này
               </div>
             )}
           </div>

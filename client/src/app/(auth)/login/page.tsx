@@ -1,17 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema, type LoginFormValues } from '@/schemas/auth.schema'
 import { useLogin } from '@/hooks/use-auth'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
-  const t = useTranslations()
   const loginMutation = useLogin()
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -32,7 +29,6 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-black/50" />
 
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-        <LocaleSwitcher />
         <ThemeToggle />
       </div>
 
@@ -40,7 +36,7 @@ export default function LoginPage() {
         <div className="rounded-2xl bg-card/95 backdrop-blur-sm p-8 shadow-2xl border space-y-5">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Nhất Nướng</h1>
-            <p className="text-sm text-muted-foreground mt-1">{t('auth.loginSubtitle')}</p>
+            <p className="text-sm text-muted-foreground mt-1">Đăng nhập để quản lý nhà hàng</p>
           </div>
 
           <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
@@ -49,7 +45,7 @@ export default function LoginPage() {
                 type="email"
                 {...register('email')}
                 className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm"
-                placeholder={t('auth.email')}
+                placeholder="Email"
               />
               {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>}
             </div>
@@ -58,7 +54,7 @@ export default function LoginPage() {
                 type="password"
                 {...register('password')}
                 className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm"
-                placeholder={t('auth.password')}
+                placeholder="Mật khẩu"
               />
               {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
             </div>
@@ -67,7 +63,7 @@ export default function LoginPage() {
               disabled={loginMutation.isPending}
               className="w-full rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-50 transition-colors"
             >
-              {loginMutation.isPending ? t('auth.loggingIn') : t('auth.login')}
+              {loginMutation.isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
 

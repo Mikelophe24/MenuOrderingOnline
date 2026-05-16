@@ -1,7 +1,6 @@
 'use client'
 
 import { useTheme } from 'next-themes'
-import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 
 export default function SettingPage() {
   const { theme, setTheme } = useTheme()
@@ -30,12 +29,6 @@ export default function SettingPage() {
           </div>
         </div>
 
-        {/* Language */}
-        <div className="rounded-lg border p-4">
-          <h3 className="font-medium">Ngôn ngữ</h3>
-          <p className="text-sm text-muted-foreground mb-3">Chọn ngôn ngữ hiển thị</p>
-          <LocaleSwitcher />
-        </div>
       </div>
     </div>
   )

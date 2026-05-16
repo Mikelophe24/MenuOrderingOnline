@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { useCategories, useDeleteCategory } from '@/hooks/use-categories'
 import { useDishes } from '@/hooks/use-dishes'
 import { useAuthStore } from '@/stores/auth.store'
@@ -13,7 +12,6 @@ import { Role } from '@/types'
 import { toast } from 'sonner'
 
 export default function ManageCategoriesPage() {
-  const t = useTranslations()
   const router = useRouter()
   const { data, isLoading } = useCategories()
   const { data: dishData } = useDishes({ limit: 100 })
@@ -60,23 +58,23 @@ export default function ManageCategoriesPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('common.search') + '...'}
+          placeholder="Tìm kiếm..."
           className="w-full rounded-md border bg-background pl-10 pr-3 py-2 text-sm"
         />
       </div>
 
       {isLoading ? (
-        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
+        <div className="text-center text-muted-foreground">Đang tải...</div>
       ) : (
         <div className="rounded-lg border">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.image')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.name')}</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.description')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Hình ảnh</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Tên</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Mô tả</th>
                 <th className="px-4 py-3 text-center text-sm font-medium">Số món</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">{t('common.actions')}</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -116,14 +114,14 @@ export default function ManageCategoriesPage() {
                           onClick={(e) => e.stopPropagation()}
                           className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
                         >
-                          {t('common.edit')}
+                          Sửa
                         </Link>
                         {account?.role === Role.Manager && (
                           <button
                             onClick={(e) => handleDelete(e, cat.id, cat.name)}
                             className="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10"
                           >
-                            {t('common.delete')}
+                            Xóa
                           </button>
                         )}
                       </div>

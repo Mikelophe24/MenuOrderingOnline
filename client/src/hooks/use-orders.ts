@@ -119,6 +119,19 @@ export function usePaymentQR() {
   })
 }
 
+export function useUpdateOrderItems() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, items }: { id: number; items: { orderItemId: number; quantity: number }[] }) =>
+      http.patch<ApiResponse<Order>>(`/orders/${id}/items`, { items }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient()
   return useMutation({

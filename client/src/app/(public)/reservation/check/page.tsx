@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useCheckReservation, useCancelGuestReservation } from '@/hooks/use-reservations'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { Search, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ReservationStatus } from '@/types'
@@ -59,7 +58,6 @@ export default function CheckReservationPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="absolute top-4 right-4 flex items-center gap-2">
-        <LocaleSwitcher />
         <ThemeToggle />
       </div>
 

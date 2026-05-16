@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth.store'
 import { Role } from '@/types'
@@ -26,33 +25,32 @@ import {
 
 const getNavItems = (role: Role | undefined) => {
   const items = [
-    { href: '/manage/home', icon: Home, labelKey: 'home' },
-    ...(role === Role.Manager ? [{ href: '/manage/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' }] : []),
-    { href: '/manage/orders', icon: ClipboardList, labelKey: 'orders' },
-    { href: '/manage/categories', icon: FolderOpen, labelKey: 'categories' },
-    { href: '/manage/dishes', icon: UtensilsCrossed, labelKey: 'dishes' },
-    { href: '/manage/tables', icon: Armchair, labelKey: 'tables' },
-    { href: '/manage/reservations', icon: CalendarCheck, labelKey: 'reservations' },
-    { href: '/manage/ingredients', icon: Warehouse, labelKey: 'ingredients' },
-    { href: '/manage/recipes', icon: BookOpen, labelKey: 'recipes' },
+    { href: '/manage/home', icon: Home, label: 'Trang chủ' },
+    ...(role === Role.Manager ? [{ href: '/manage/dashboard', icon: LayoutDashboard, label: 'Thống kê' }] : []),
+    { href: '/manage/orders', icon: ClipboardList, label: 'Quản lý đơn hàng' },
+    { href: '/manage/categories', icon: FolderOpen, label: 'Quản lý danh mục' },
+    { href: '/manage/dishes', icon: UtensilsCrossed, label: 'Quản lý món ăn' },
+    { href: '/manage/tables', icon: Armchair, label: 'Quản lý bàn ăn' },
+    { href: '/manage/reservations', icon: CalendarCheck, label: 'Quản lý đặt bàn' },
+    { href: '/manage/ingredients', icon: Warehouse, label: 'Quản lý kho' },
+    { href: '/manage/recipes', icon: BookOpen, label: 'Công thức' },
   ]
 
   if (role === Role.Manager) {
-    items.push({ href: '/manage/employees', icon: Users, labelKey: 'employees' })
+    items.push({ href: '/manage/employees', icon: Users, label: 'Quản lý nhân viên' })
   }
 
   items.push(
-    { href: '/manage/accounts/me', icon: UserCircle, labelKey: 'account' },
-    { href: '/manage/setting', icon: Settings, labelKey: 'settings' }
+    { href: '/manage/accounts/me', icon: UserCircle, label: 'Tài khoản' },
+    { href: '/manage/setting', icon: Settings, label: 'Cài đặt' }
   )
 
   return items
 }
 
-function SidebarContent({ navItems, pathname, t, account, onNavigate }: {
+function SidebarContent({ navItems, pathname, account, onNavigate }: {
   navItems: ReturnType<typeof getNavItems>
   pathname: string
-  t: (key: string) => string
   account: { name: string; role: string } | null
   onNavigate?: () => void
 }) {
@@ -81,7 +79,7 @@ function SidebarContent({ navItems, pathname, t, account, onNavigate }: {
             )}
           >
             <item.icon className="h-5 w-5" />
-            {t(item.labelKey)}
+            {item.label}
           </Link>
         ))}
       </nav>
@@ -91,7 +89,6 @@ function SidebarContent({ navItems, pathname, t, account, onNavigate }: {
 
 export function ManageSidebar() {
   const pathname = usePathname()
-  const t = useTranslations('manage')
   const account = useAuthStore((s) => s.account)
   const navItems = getNavItems(account?.role)
   const [open, setOpen] = useState(false)
@@ -100,7 +97,7 @@ export function ManageSidebar() {
     <>
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 border-r bg-background md:block">
-        <SidebarContent navItems={navItems} pathname={pathname} t={t} account={account} />
+        <SidebarContent navItems={navItems} pathname={pathname} account={account} />
       </aside>
 
       {/* Mobile hamburger button */}
@@ -127,7 +124,6 @@ export function ManageSidebar() {
             <SidebarContent
               navItems={navItems}
               pathname={pathname}
-              t={t}
               account={account}
               onNavigate={() => setOpen(false)}
             />

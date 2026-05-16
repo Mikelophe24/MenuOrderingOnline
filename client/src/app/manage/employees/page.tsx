@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import http from '@/lib/http'
 import type { Account, ApiResponse, PaginatedResponse } from '@/types'
@@ -9,7 +9,7 @@ import { Role } from '@/types'
 import { toast } from 'sonner'
 import { Plus, X } from 'lucide-react'
 
-function CreateAccountForm({ onClose, onSuccess, t }: { onClose: () => void; onSuccess: () => void; t: (key: string) => string }) {
+function CreateAccountForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -111,7 +111,6 @@ function CreateAccountForm({ onClose, onSuccess, t }: { onClose: () => void; onS
 }
 
 export default function ManageEmployeesPage() {
-  const t = useTranslations()
   const queryClient = useQueryClient()
   const [showCreateForm, setShowCreateForm] = useState(false)
 
@@ -140,7 +139,7 @@ export default function ManageEmployeesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('manage.employees')}</h1>
+        <h1 className="text-2xl font-bold">Quản lý nhân viên</h1>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
           className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
@@ -154,7 +153,6 @@ export default function ManageEmployeesPage() {
         <CreateAccountForm
           onClose={() => setShowCreateForm(false)}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}
-          t={t}
         />
       )}
 
@@ -202,7 +200,7 @@ export default function ManageEmployeesPage() {
                       }}
                       className="rounded-md border border-destructive px-3 py-1 text-sm text-destructive"
                     >
-                      {t('common.delete')}
+                      Xóa
                     </button>
                   </td>
                 </tr>

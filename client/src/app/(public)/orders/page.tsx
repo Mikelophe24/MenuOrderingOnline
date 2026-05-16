@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { useOrderStore } from '@/stores/order.store'
 import { useCreateGuestOrder, useGuestOrders, useCancelGuestOrder, usePaymentQR } from '@/hooks/use-orders'
 import { getConnection, startConnection } from '@/lib/signalr'
@@ -20,7 +19,6 @@ const statusColors: Record<string, string> = {
 }
 
 export default function OrderPage() {
-  const t = useTranslations()
   const { cart, tableNumber, tableToken, guestName, clearCart, getTotalPrice, updateQuantity, updateNote, removeFromCart } =
     useOrderStore()
   const createOrder = useCreateGuestOrder()
@@ -38,11 +36,11 @@ export default function OrderPage() {
   const guestOrders: Order[] = (guestOrdersData?.data ?? []).filter((o: Order) => o.status !== 'Cancelled')
 
   const statusLabels: Record<string, string> = {
-    Pending: t('order.status.pending'),
-    Processing: t('order.status.processing'),
-    Delivered: t('order.status.delivered'),
-    Paid: t('order.status.paid'),
-    Cancelled: t('order.status.cancelled'),
+    Pending: 'Chờ xử lý',
+    Processing: 'Đang xử lý',
+    Delivered: 'Đã giao',
+    Paid: 'Đã thanh toán',
+    Cancelled: 'Đã hủy',
   }
 
   // Listen for realtime order status updates via SignalR
@@ -54,7 +52,7 @@ export default function OrderPage() {
       void refetchOrders()
       // Auto-close QR and show toast when payment succeeds
       if (order.status === 'Paid' && qrOrderIdRef.current === order.id) {
-        toast.success(t('order.payment.paymentSuccess'))
+        toast.success('Thanh toán thành công!')
         setQrData(null)
         qrOrderIdRef.current = null
       }
@@ -70,19 +68,19 @@ export default function OrderPage() {
     return () => {
       conn.off('OrderStatusChanged', onStatusChanged)
     }
-  }, [tableNumber, refetchOrders, t])
+  }, [tableNumber, refetchOrders])
 
   const handlePlaceOrder = async () => {
     if (!tableNumber || !tableToken) {
-      toast.error(t('guest.scanQR'))
+      toast.error('Vui lòng quét mã QR tại bàn để đặt món')
       return
     }
     if (!guestName) {
-      toast.error(t('guest.enterNameError'))
+      toast.error('Vui lòng nhập tên của bạn')
       return
     }
     if (cart.length === 0) {
-      toast.error(t('guest.emptyCartError'))
+      toast.error('Giỏ hàng trống')
       return
     }
 
@@ -95,8 +93,7 @@ export default function OrderPage() {
       },
       {
         onSuccess: (res) => {
-          const isExisting = guestOrders.some((o) => o.id === res.data?.id)
-          toast.success(isExisting ? t('order.toast.itemsAdded') : t('order.toast.placed'))
+          toast.success(res.message || 'Đặt món thành công!')
           clearCart()
           refetchOrders()
           setTab('orders')
@@ -104,7 +101,7 @@ export default function OrderPage() {
         onError: (error: unknown) => {
           const message = error instanceof Error && 'payload' in error
             ? String((error as { payload: unknown }).payload)
-            : t('order.toast.placeFailed')
+            : 'Đặt món thất bại, vui lòng thử lại'
           toast.error(message)
         },
       }
@@ -114,20 +111,20 @@ export default function OrderPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('order.title')}</h1>
+        <h1 className="text-2xl font-bold">Đơn hàng</h1>
         {tableNumber && (
           <Link
             href={`/tables/${tableNumber}?token=${tableToken}`}
             className="text-sm text-primary underline"
           >
-            {t('order.backToMenu')}
+            Quay lại thực đơn
           </Link>
         )}
       </div>
 
       {guestName && (
         <p className="text-sm text-muted-foreground">
-          {t('guest.guest')}: <span className="font-medium">{guestName}</span> — {t('common.table')} {tableNumber}
+          Khách: <span className="font-medium">{guestName}</span> — Bàn {tableNumber}
         </p>
       )}
 
@@ -141,7 +138,7 @@ export default function OrderPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          {t('order.cart')} ({cart.length})
+          Giỏ hàng ({cart.length})
         </button>
         <button
           onClick={() => { setTab('orders'); refetchOrders() }}
@@ -151,7 +148,7 @@ export default function OrderPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          {t('order.ordered')} ({guestOrders.length})
+          Đã đặt ({guestOrders.length})
         </button>
       </div>
 
@@ -160,7 +157,7 @@ export default function OrderPage() {
         <>
           {cart.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">
-              {t('order.emptyCart')}
+              Giỏ hàng trống. Hãy chọn món ăn từ thực đơn.
             </p>
           ) : (
             <>
@@ -205,7 +202,7 @@ export default function OrderPage() {
                         onClick={() => removeFromCart(item.dishId)}
                         className="text-destructive text-sm"
                       >
-                        {t('common.delete')}
+                        Xóa
                       </button>
                     </div>
                     <textarea
@@ -213,7 +210,7 @@ export default function OrderPage() {
                       onChange={(e) => updateNote(item.dishId, e.target.value.slice(0, 200))}
                       maxLength={200}
                       rows={1}
-                      placeholder={t('order.notePlaceholder')}
+                      placeholder="Ghi chú: không hành, không cay, ít đường..."
                       className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground placeholder:text-muted-foreground/50"
                       onInput={(e) => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }}
                     />
@@ -223,7 +220,7 @@ export default function OrderPage() {
 
               <div className="border-t pt-4">
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>{t('order.total')}:</span>
+                  <span>Tổng cộng:</span>
                   <span>{formatCurrency(getTotalPrice())}</span>
                 </div>
                 <button
@@ -231,7 +228,7 @@ export default function OrderPage() {
                   disabled={createOrder.isPending}
                   className="mt-4 w-full rounded-lg bg-primary px-4 py-3 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {createOrder.isPending ? t('order.placingOrder') : t('order.placeOrder')}
+                  {createOrder.isPending ? 'Đang đặt món...' : 'Đặt món'}
                 </button>
               </div>
             </>
@@ -244,14 +241,14 @@ export default function OrderPage() {
         <>
           {guestOrders.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">
-              {t('order.noOrders')}
+              Chưa có đơn hàng nào.
             </p>
           ) : (
             <div className="space-y-4">
               {guestOrders.map((order) => (
                 <div key={order.id} className="rounded-lg border p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">{t('order.orderNumber')} #{order.id}</h3>
+                    <h3 className="font-semibold">Đơn #{order.id}</h3>
                     <span className={`rounded-full px-2 py-1 text-xs ${statusColors[order.status] ?? ''}`}>
                       {statusLabels[order.status] ?? order.status}
                     </span>
@@ -289,36 +286,36 @@ export default function OrderPage() {
                                 setQrData({ ...res.data, orderId: order.id })
                                 qrOrderIdRef.current = order.id
                               },
-                              onError: () => toast.error(t('order.payment.failed')),
+                              onError: () => toast.error('Không thể tạo mã QR thanh toán'),
                             })
                           }}
                           disabled={paymentQR.isPending}
                           className="flex items-center gap-1 rounded-md border border-green-300 px-3 py-1 text-xs text-green-600 hover:bg-green-50 disabled:opacity-40 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950"
                         >
                           <QrCode className="h-3.5 w-3.5" />
-                          {t('order.payment.payOnline')}
+                          Thanh toán QR
                         </button>
                       )}
                       {order.status !== 'Paid' && order.status !== 'Cancelled' && (
                         <button
                           onClick={() => {
                             if (order.status !== 'Pending') {
-                              toast.error(t('order.toast.cannotCancel'))
+                              toast.error('Chỉ có thể hủy đơn hàng đang chờ xác nhận')
                               return
                             }
-                            if (!confirm(t('order.toast.confirmCancel'))) return
+                            if (!confirm('Bạn có chắc muốn hủy đơn hàng này?')) return
                             cancelOrder.mutate(
                               { id: order.id, tableNumber: tableNumber!, tableToken: tableToken! },
                               {
-                                onSuccess: () => { toast.success(t('order.toast.cancelled')); void refetchOrders() },
-                                onError: (err: Error) => toast.error((err as Error & { payload?: { message?: string } }).payload?.message ?? err.message ?? t('order.toast.cannotCancelError')),
+                                onSuccess: () => { toast.success('Đã hủy đơn hàng'); void refetchOrders() },
+                                onError: (err: Error) => toast.error((err as Error & { payload?: { message?: string } }).payload?.message ?? err.message ?? 'Không thể hủy đơn hàng'),
                               }
                             )
                           }}
                           disabled={cancelOrder.isPending}
                           className="rounded-md border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
                         >
-                          {t('order.cancelOrder')}
+                          Hủy đơn
                         </button>
                       )}
                     </div>
@@ -338,14 +335,14 @@ export default function OrderPage() {
               <X className="h-5 w-5" />
             </button>
             <div className="space-y-4 text-center">
-              <h3 className="text-lg font-bold">{t('order.payment.title')}</h3>
-              <p className="text-sm text-muted-foreground">{t('order.payment.scanToPay')}</p>
+              <h3 className="text-lg font-bold">Thanh toán chuyển khoản</h3>
+              <p className="text-sm text-muted-foreground">Quét mã QR để thanh toán</p>
               <img src={qrData.qrDataURL} alt="VietQR" className="mx-auto rounded-lg" />
               <div className="space-y-1 text-sm">
-                <p>{t('order.payment.amount')}: <span className="font-bold text-primary">{formatCurrency(qrData.amount)}</span></p>
-                <p>{t('order.payment.content')}: <span className="font-mono font-medium">{qrData.addInfo}</span></p>
+                <p>Số tiền: <span className="font-bold text-primary">{formatCurrency(qrData.amount)}</span></p>
+                <p>Nội dung CK: <span className="font-mono font-medium">{qrData.addInfo}</span></p>
               </div>
-              <p className="text-xs text-muted-foreground">{t('order.payment.holdToSave')}</p>
+              <p className="text-xs text-muted-foreground">Nhấn giữ ảnh QR để lưu vào Ảnh</p>
             </div>
           </div>
         </div>

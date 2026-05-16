@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+
 import { useReservations, useUpdateReservationStatus, useDeleteReservation } from '@/hooks/use-reservations'
 import { useTables } from '@/hooks/use-tables'
 import { useAuthStore } from '@/stores/auth.store'
@@ -28,7 +28,6 @@ const statusLabels: Record<string, string> = {
 }
 
 export default function ManageReservationsPage() {
-  const t = useTranslations()
   const account = useAuthStore((s) => s.account)
   const isManager = account?.role === Role.Manager
 
@@ -86,7 +85,7 @@ export default function ManageReservationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{t('manage.reservations')}</h1>
+        <h1 className="text-2xl font-bold">Quản lý đặt bàn</h1>
         <p className="text-sm text-muted-foreground">Quản lý đặt bàn trước</p>
       </div>
 

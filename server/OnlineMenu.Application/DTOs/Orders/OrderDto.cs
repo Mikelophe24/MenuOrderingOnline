@@ -40,3 +40,6 @@ public record CreateStaffOrderRequest(
 public record UpdateOrderStatusRequest(string Status);
 
 public record GuestCancelRequest(int TableNumber, string TableToken);
+
+public record UpdateOrderItemsRequest(List<UpdateOrderItemEntry> Items);
+public record UpdateOrderItemEntry(int OrderItemId, int Quantity);

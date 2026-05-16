@@ -4,9 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ManageSidebar } from '@/components/layout/manage-sidebar'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { useProfile, useLogout } from '@/hooks/use-auth'
-import { useTranslations } from 'next-intl'
 import { useAuthStore } from '@/stores/auth.store'
 import { getAccessToken } from '@/lib/tokens'
 import { startConnection, getConnection } from '@/lib/signalr'
@@ -33,7 +31,6 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const { isLoading } = useProfile()
   const logoutMutation = useLogout()
-  const t = useTranslations()
   const account = useAuthStore((s) => s.account)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -72,20 +69,12 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     addNotification({
       id: `order-${order.id}-${Date.now()}`,
       type: 'order',
-      title: t('order.toast.newOrder', { table: order.tableNumber }),
+      title: `Đơn hàng mới từ bàn ${order.tableNumber}`,
       subtitle: `${order.guestName ?? '—'} • ${order.totalPrice?.toLocaleString('vi-VN')}đ`,
       time: order.createdAt,
       link: '/manage/orders',
     })
-
-    toast.info(t('order.toast.newOrder', { table: order.tableNumber }), {
-      duration: 5000,
-      action: {
-        label: t('order.title'),
-        onClick: () => router.push('/manage/orders'),
-      },
-    })
-  }, [t, router, addNotification])
+  }, [addNotification])
 
   // Use ref so SignalR effect doesn't re-run when callback changes
   const showNewOrderRef = useRef(showNewOrderNotification)
@@ -122,10 +111,10 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       })
 
       conn.on('PaymentReceived', (order: Order) => {
-        toast.success(t('order.payment.received', { table: order.tableNumber, amount: order.totalPrice.toLocaleString('vi-VN') }), {
+        toast.success(`Bàn ${order.tableNumber} đã thanh toán ${order.totalPrice.toLocaleString('vi-VN')}đ`, {
           duration: 8000,
           action: {
-            label: t('order.title'),
+            label: 'Đơn hàng',
             onClick: () => router.push('/manage/orders'),
           },
         })
@@ -272,7 +261,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
         <header className="flex h-14 items-center justify-between border-b px-6 pl-14 md:pl-6">
-          <h2 className="font-semibold">{t('manage.restaurant')}</h2>
+          <h2 className="font-semibold">Quản lý nhà hàng Nhất Nướng</h2>
           <div className="flex items-center gap-2">
             <div className="relative">
               <button
@@ -297,13 +286,13 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                           onClick={() => setNotifications([])}
                           className="text-xs text-muted-foreground hover:text-foreground"
                         >
-                          {t('common.delete')}
+                          Xóa
                         </button>
                       )}
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length === 0 ? (
-                        <p className="py-8 text-center text-sm text-muted-foreground">{t('common.noData')}</p>
+                        <p className="py-8 text-center text-sm text-muted-foreground">Không có dữ liệu</p>
                       ) : (
                         notifications.map((notif) => (
                           <button
@@ -327,7 +316,6 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                 </>
               )}
             </div>
-            <LocaleSwitcher />
             <ThemeToggle />
             <div className="flex items-center gap-2">
               {account?.avatar ? (
@@ -343,7 +331,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
               onClick={() => logoutMutation.mutate()}
               className="rounded-md px-3 py-1 text-sm hover:bg-accent"
             >
-              {t('auth.logout')}
+              Đăng xuất
             </button>
           </div>
         </header>

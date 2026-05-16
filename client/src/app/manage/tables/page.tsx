@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
+
 import { useTables, useCreateTable, useDeleteTable, useChangeToken, useUpdateTable } from '@/hooks/use-tables'
 import { QRCodeSVG } from 'qrcode.react'
 import { TableStatus, type Table } from '@/types'
@@ -21,7 +21,13 @@ const statusStyles: Record<string, { active: string; inactive: string }> = {
   },
 }
 
-function StatusToggle({ table, onUpdate, t }: { table: Table; onUpdate: (status: string) => void; t: (key: string) => string }) {
+const tableStatusLabels: Record<string, string> = {
+  Available: 'Trống',
+  Occupied: 'Đang sử dụng',
+  Reserved: 'Đã đặt trước',
+}
+
+function StatusToggle({ table, onUpdate }: { table: Table; onUpdate: (status: string) => void }) {
   return (
     <div className="flex rounded-lg border bg-muted/30 p-0.5 gap-0.5">
       {Object.values(TableStatus).map((s) => {
@@ -35,7 +41,7 @@ function StatusToggle({ table, onUpdate, t }: { table: Table; onUpdate: (status:
               isActive ? style.active : style.inactive
             }`}
           >
-            {t(`table.status.${s.toLowerCase()}`)}
+            {tableStatusLabels[s] ?? s}
           </button>
         )
       })}
@@ -44,7 +50,6 @@ function StatusToggle({ table, onUpdate, t }: { table: Table; onUpdate: (status:
 }
 
 export default function ManageTablesPage() {
-  const t = useTranslations()
   const { data, isLoading } = useTables()
   const createTable = useCreateTable()
   const deleteTable = useDeleteTable()
@@ -52,16 +57,16 @@ export default function ManageTablesPage() {
   const updateTable = useUpdateTable()
 
   const handleDelete = (id: number, number: number) => {
-    if (!confirm(t('manage.deleteTableConfirm', { number }))) return
+    if (!confirm(`Bạn có chắc muốn xóa bàn ${number}?`)) return
     deleteTable.mutate(id, {
-      onSuccess: () => toast.success(t('manage.deleteTableSuccess')),
+      onSuccess: () => toast.success('Xóa bàn thành công'),
     })
   }
 
   const handleChangeToken = (id: number, number: number) => {
-    if (!confirm(t('manage.changeQRConfirm', { number }))) return
+    if (!confirm(`Đổi QR Code bàn ${number}? QR Code cũ sẽ không còn hoạt động.`)) return
     changeToken.mutate(id, {
-      onSuccess: () => toast.success(t('manage.changeQRSuccess', { number })),
+      onSuccess: () => toast.success(`Đã đổi QR Code bàn ${number}`),
     })
   }
 
@@ -71,22 +76,22 @@ export default function ManageTablesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('manage.tables')}</h1>
+        <h1 className="text-2xl font-bold">Quản lý bàn ăn</h1>
         <button
           onClick={() =>
             createTable.mutate(
               { number: (data?.data?.data?.length ?? 0) + 1, capacity: 4, status: 'Available' },
-              { onSuccess: () => toast.success(t('manage.addTableSuccess')) }
+              { onSuccess: () => toast.success('Thêm bàn thành công') }
             )
           }
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
-          {t('manage.addTable')}
+          Thêm bàn
         </button>
       </div>
 
       {isLoading ? (
-        <div className="text-center text-muted-foreground">{t('common.loading')}</div>
+        <div className="text-center text-muted-foreground">Đang tải...</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data?.data?.data?.map((table: Table) => {
@@ -95,22 +100,21 @@ export default function ManageTablesPage() {
               <div key={table.id} className="rounded-lg border p-4 space-y-3">
                 {/* Header: Table number + Status */}
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{t('common.table')} {table.number}</h3>
+                  <h3 className="font-semibold">Bàn {table.number}</h3>
                   <StatusToggle
                     table={table}
                     onUpdate={(status) =>
                       updateTable.mutate(
                         { id: table.id, data: { number: table.number, capacity: table.capacity, status: status as 'Available' | 'Occupied' | 'Reserved' } },
-                        { onSuccess: () => toast.success(t('manage.updateTableStatus', { number: table.number })) }
+                        { onSuccess: () => toast.success(`Cập nhật trạng thái bàn ${table.number}`) }
                       )
                     }
-                    t={t}
                   />
                 </div>
 
                 {/* Capacity */}
                 <p className="text-sm text-muted-foreground">
-                  {t('table.capacity')}: {table.capacity}
+                  Số chỗ ngồi: {table.capacity}
                 </p>
 
                 {/* QR Code + URL */}
@@ -130,13 +134,13 @@ export default function ManageTablesPage() {
                     disabled={changeToken.isPending}
                     className="flex-1 rounded-md border border-orange-300 px-2 py-1 text-sm text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950"
                   >
-                    {t('table.changeQR')}
+                    Đổi QR Code
                   </button>
                   <button
                     onClick={() => handleDelete(table.id, table.number)}
                     className="rounded-md border border-destructive px-2 py-1 text-sm text-destructive"
                   >
-                    {t('common.delete')}
+                    Xóa
                   </button>
                 </div>
               </div>

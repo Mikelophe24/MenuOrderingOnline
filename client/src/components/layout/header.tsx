@@ -1,21 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { ShoppingCart, CalendarCheck } from 'lucide-react'
 import { useOrderStore } from '@/stores/order.store'
 
 export function Header() {
-  const t = useTranslations('common')
   const totalItems = useOrderStore((s) => s.cart.reduce((total, item) => total + item.quantity, 0))
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
         <span className="flex items-center space-x-2 font-bold text-xl">
-          {t('appName')}
+          Nhat Nuong
         </span>
 
         <div className="flex items-center gap-2">
@@ -30,7 +27,6 @@ export function Header() {
               </span>
             )}
           </Link>
-          <LocaleSwitcher />
           <ThemeToggle />
         </div>
       </div>
