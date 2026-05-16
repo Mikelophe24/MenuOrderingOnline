@@ -8,6 +8,7 @@ import { useCategories } from '@/hooks/use-categories'
 import { useQueryClient } from '@tanstack/react-query'
 import { getConnection, startConnection } from '@/lib/signalr'
 import { formatCurrency } from '@/lib/utils'
+import { getTableOwner, setTableOwner } from '@/lib/table-owner'
 import http from '@/lib/http'
 import { toast } from 'sonner'
 import { Search, X, Star } from 'lucide-react'
@@ -47,9 +48,9 @@ function TableMenuContent() {
     const token = searchParams.get('token')
     if (!num || !token) return
 
-    // Snapshot store BEFORE setTable to detect if user is the original scanner
-    const snapshot = useOrderStore.getState()
-    const wasOwner = snapshot.tableNumber === num && snapshot.tableToken === token
+    // Read owner cookie (persists across tab close, expires after 3h)
+    const owner = getTableOwner()
+    const wasOwner = owner?.tableNumber === num && owner?.tableToken === token
 
     http.get<{ data: { status: string } }>('/guest/table-status', {
       params: { tableNumber: String(num), token },
@@ -62,6 +63,7 @@ function TableMenuContent() {
           setAccessDenied(true)
         } else {
           setTable(num, token)
+          setTableOwner(num, token)
         }
       })
       .catch(() => setTableStatus('Invalid'))
