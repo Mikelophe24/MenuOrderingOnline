@@ -131,7 +131,7 @@ export interface DashboardData {
   avgOrderValue: number
   topDishes: { dishId: number; dishName: string; orderCount: number }[]
   revenueByDate: { date: string; revenue: number }[]
-  ordersByStatus: { status: string; count: number }[]
+  revenueByCategory: { categoryId: number; categoryName: string; revenue: number }[]
 }
 
 // ====== INGREDIENTS ======

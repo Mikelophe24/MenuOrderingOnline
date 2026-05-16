@@ -59,13 +59,17 @@ public class DashboardService : IDashboardService
 
         var avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-        var ordersByStatus = await allOrders
-            .GroupBy(o => o.Status)
-            .Select(g => new OrdersByStatus
+        var revenueByCategory = await _context.OrderItems
+            .Include(oi => oi.Dish).ThenInclude(d => d.Category)
+            .Where(oi => oi.Order.CreatedAt >= from && oi.Order.CreatedAt <= to && oi.Order.Status == OrderStatus.Paid)
+            .GroupBy(oi => new { oi.Dish.CategoryId, oi.Dish.Category.Name })
+            .Select(g => new RevenueByCategory
             {
-                Status = g.Key.ToString(),
-                Count = g.Count()
+                CategoryId = g.Key.CategoryId,
+                CategoryName = g.Key.Name,
+                Revenue = g.Sum(x => x.DishPrice * x.Quantity)
             })
+            .OrderByDescending(x => x.Revenue)
             .ToListAsync();
 
         return new DashboardData
@@ -77,7 +81,7 @@ public class DashboardService : IDashboardService
             AvgOrderValue = avgOrderValue,
             TopDishes = topDishes,
             RevenueByDate = revenueByDate,
-            OrdersByStatus = ordersByStatus,
+            RevenueByCategory = revenueByCategory,
         };
     }
 }

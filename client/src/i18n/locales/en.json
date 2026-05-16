@@ -178,7 +178,7 @@
     "orderCount": "Paid orders",
     "orders": "orders",
     "avgOrderValue": "Avg per order",
-    "ordersByStatus": "Orders by status"
+    "revenueByCategory": "Revenue by category"
   },
   "table": {
     "number": "Table Number",

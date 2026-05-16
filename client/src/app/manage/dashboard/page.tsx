@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useDashboard } from '@/hooks/use-dashboard'
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { DollarSign, ClipboardList, Users, Armchair, TrendingUp, FileSpreadsheet, FileText } from 'lucide-react'
 import * as XLSX from 'xlsx'
@@ -21,21 +21,7 @@ function formatShortDate(dateStr: string) {
   return `${d.getDate()}/${d.getMonth() + 1}`
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  Paid: '#22c55e',
-  Cancelled: '#ef4444',
-  Processing: '#3b82f6',
-  Pending: '#f59e0b',
-  Delivered: '#8b5cf6',
-}
-
-const STATUS_LABELS_VI: Record<string, string> = {
-  Paid: 'Đã thanh toán',
-  Cancelled: 'Đã hủy',
-  Processing: 'Đang xử lý',
-  Pending: 'Chờ xử lý',
-  Delivered: 'Đã giao',
-}
+const PIE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard')
@@ -103,13 +89,13 @@ export default function DashboardPage() {
     return days
   })()
 
-  const pieData = (dashboard?.ordersByStatus ?? []).map((item) => ({
-    name: STATUS_LABELS_VI[item.status] || item.status,
-    value: item.count,
-    color: STATUS_COLORS[item.status] || '#94a3b8',
+  const categoryPieData = (dashboard?.revenueByCategory ?? []).map((item, idx) => ({
+    name: item.categoryName,
+    value: item.revenue,
+    color: PIE_COLORS[idx % PIE_COLORS.length],
   }))
 
-  const totalOrdersAll = pieData.reduce((sum, item) => sum + item.value, 0)
+  const totalCategoryRevenue = categoryPieData.reduce((sum, item) => sum + item.value, 0)
 
   const [exporting, setExporting] = useState(false)
 
@@ -150,14 +136,14 @@ export default function DashboardPage() {
         XLSX.utils.book_append_sheet(wb, dishSheet, t('topDishes'))
       }
 
-      if (dashboard.ordersByStatus?.length) {
-        const statusRows = dashboard.ordersByStatus.map((s) => ({
-          'Trạng thái': STATUS_LABELS_VI[s.status] || s.status,
-          'Số đơn': s.count,
+      if (dashboard.revenueByCategory?.length) {
+        const catRows = dashboard.revenueByCategory.map((c) => ({
+          'Danh mục': c.categoryName,
+          'Doanh thu (VND)': c.revenue,
         }))
-        const statusSheet = XLSX.utils.json_to_sheet(statusRows)
-        statusSheet['!cols'] = [{ wch: 20 }, { wch: 12 }]
-        XLSX.utils.book_append_sheet(wb, statusSheet, t('ordersByStatus'))
+        const catSheet = XLSX.utils.json_to_sheet(catRows)
+        catSheet['!cols'] = [{ wch: 25 }, { wch: 20 }]
+        XLSX.utils.book_append_sheet(wb, catSheet, t('revenueByCategory'))
       }
 
       const ordersRes = await http.get<ApiResponse<PaginatedResponse<Order>>>('/orders', {
@@ -242,10 +228,10 @@ export default function DashboardPage() {
       <table><thead><tr><th>Ngày</th><th>${t('revenue')}</th></tr></thead><tbody>
         ${chartData.filter(d => d.revenue > 0).map(d => `<tr><td>${d.date}</td><td>${formatCurrency(d.revenue)}</td></tr>`).join('')}
       </tbody></table>
-      ${dashboard.ordersByStatus?.length ? `
-        <h2>${t('ordersByStatus')}</h2>
-        <table><thead><tr><th>Trạng thái</th><th>Số đơn</th></tr></thead><tbody>
-          ${dashboard.ordersByStatus.map(s => `<tr><td>${STATUS_LABELS_VI[s.status] || s.status}</td><td>${s.count}</td></tr>`).join('')}
+      ${dashboard.revenueByCategory?.length ? `
+        <h2>${t('revenueByCategory')}</h2>
+        <table><thead><tr><th>Danh mục</th><th>Doanh thu</th></tr></thead><tbody>
+          ${dashboard.revenueByCategory.map(c => `<tr><td>${c.categoryName}</td><td>${formatCurrency(c.revenue)}</td></tr>`).join('')}
         </tbody></table>
       ` : ''}
       ${dashboard.topDishes?.length ? `
@@ -328,143 +314,151 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Revenue Chart - full width */}
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold">{t('revenueChart')}</h2>
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={55}
-                    tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}tr` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), t('revenue')]}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
-                    labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2.5}
-                    dot={{ r: 3, fill: 'hsl(var(--primary))' }}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-                {t('noRevenueData')}
-              </div>
-            )}
-          </div>
-
-          {/* Bottom row: Pie Chart + Top Dishes side by side */}
+          {/* Row: Revenue Chart (1/2) + Revenue by Category Pie (1/2) */}
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Pie Chart - Orders by Status */}
+            {/* Revenue Line Chart */}
             <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold">{t('ordersByStatus')}</h2>
-              {pieData.length > 0 ? (
+              <h2 className="mb-4 text-lg font-semibold">{t('revenueChart')}</h2>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={55}
+                      tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}tr` : v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [formatCurrency(value), t('revenue')]}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
+                      labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2.5}
+                      dot={{ r: 3, fill: 'hsl(var(--primary))' }}
+                      activeDot={{ r: 6, strokeWidth: 2, stroke: 'hsl(var(--background))' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+                  {t('noRevenueData')}
+                </div>
+              )}
+            </div>
+
+            {/* Pie Chart - Revenue by Category */}
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
+              <h2 className="mb-4 text-lg font-semibold">{t('revenueByCategory')}</h2>
+              {categoryPieData.length > 0 ? (
                 <div className="flex flex-col items-center gap-4 sm:flex-row">
-                  <ResponsiveContainer width="100%" height={260}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={pieData}
+                        data={categoryPieData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={3}
+                        innerRadius={65}
+                        outerRadius={110}
+                        paddingAngle={2}
                         dataKey="value"
                       >
-                        {pieData.map((entry, idx) => (
+                        {categoryPieData.map((entry, idx) => (
                           <Cell key={idx} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
                         formatter={(value: number, name: string) => [
-                          `${value} đơn (${totalOrdersAll > 0 ? ((value / totalOrdersAll) * 100).toFixed(1) : 0}%)`,
+                          `${formatCurrency(value)} (${totalCategoryRevenue > 0 ? ((value / totalCategoryRevenue) * 100).toFixed(1) : 0}%)`,
                           name,
                         ]}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="flex flex-col gap-2 sm:min-w-[140px]">
-                    {pieData.map((item, idx) => (
+                  <div className="flex flex-col gap-2 sm:min-w-[160px]">
+                    {categoryPieData.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm">
                         <span
                           className="inline-block h-3 w-3 shrink-0 rounded-full"
                           style={{ backgroundColor: item.color }}
                         />
-                        <span className="text-muted-foreground">{item.name}</span>
-                        <span className="ml-auto font-medium">{item.value}</span>
+                        <span className="text-muted-foreground truncate">{item.name}</span>
+                        <span className="ml-auto font-medium shrink-0">
+                          {totalCategoryRevenue > 0 ? ((item.value / totalCategoryRevenue) * 100).toFixed(0) : 0}%
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="flex h-[260px] items-center justify-center text-muted-foreground">
+                <div className="flex h-[300px] items-center justify-center text-muted-foreground">
                   {t('noRevenueData')}
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Top Dishes Bar Chart */}
-            <div className="rounded-xl border bg-card p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold">{t('topDishes')}</h2>
-              {dashboard?.topDishes && dashboard.topDishes.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart
-                    data={dashboard.topDishes.slice(0, 5)}
-                    layout="vertical"
-                    margin={{ left: 10, right: 20 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} vertical={false} />
-                    <XAxis type="number" hide />
-                    <YAxis
-                      type="category"
-                      dataKey="dishName"
-                      tick={{ fontSize: 13 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={120}
-                    />
-                    <Tooltip
-                      cursor={false}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.length) return null
-                        const item = payload[0].payload
-                        return (
-                          <div style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))', padding: '8px 12px' }}>
-                            <p style={{ fontWeight: 600 }}>{item.dishName}</p>
-                            <p style={{ color: 'hsl(var(--muted-foreground))' }}>{t('orderCount')}: {item.orderCount}</p>
-                          </div>
-                        )
-                      }}
-                    />
-                    <Bar dataKey="orderCount" radius={[0, 6, 6, 0]} barSize={36}>
-                      {dashboard.topDishes.slice(0, 5).map((_, idx) => (
-                        <Cell
-                          key={idx}
-                          fill={['#3b82f6', '#34d399', '#f97316', '#8b5cf6', '#ec4899'][idx]}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-[280px] items-center justify-center text-muted-foreground">
-                  {t('noRevenueData')}
-                </div>
-              )}
-            </div>
+          {/* Top Dishes - full width */}
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold">{t('topDishes')}</h2>
+            {dashboard?.topDishes && dashboard.topDishes.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart
+                  data={dashboard.topDishes.slice(0, 10)}
+                  margin={{ left: 10, right: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                  <XAxis
+                    dataKey="dishName"
+                    tick={{ fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={0}
+                    angle={-20}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={40}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'hsl(var(--accent))' }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null
+                      const item = payload[0].payload
+                      return (
+                        <div style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))', padding: '8px 12px' }}>
+                          <p style={{ fontWeight: 600 }}>{item.dishName}</p>
+                          <p style={{ color: 'hsl(var(--muted-foreground))' }}>{t('orderCount')}: {item.orderCount}</p>
+                        </div>
+                      )
+                    }}
+                  />
+                  <Bar dataKey="orderCount" radius={[6, 6, 0, 0]} barSize={32}>
+                    {dashboard.topDishes.slice(0, 10).map((_, idx) => (
+                      <Cell
+                        key={idx}
+                        fill={PIE_COLORS[idx % PIE_COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-[280px] items-center justify-center text-muted-foreground">
+                {t('noRevenueData')}
+              </div>
+            )}
           </div>
         </>
       )}

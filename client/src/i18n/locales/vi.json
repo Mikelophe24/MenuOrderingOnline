@@ -178,7 +178,7 @@
     "orderCount": "Đơn thanh toán",
     "orders": "đơn",
     "avgOrderValue": "TB mỗi đơn",
-    "ordersByStatus": "Đơn hàng theo trạng thái"
+    "revenueByCategory": "Doanh thu theo danh mục"
   },
   "table": {
     "number": "Số bàn",

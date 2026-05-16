@@ -14,13 +14,14 @@ public class DashboardData
     public decimal AvgOrderValue { get; set; }
     public List<TopDishItem> TopDishes { get; set; } = new();
     public List<RevenueByDate> RevenueByDate { get; set; } = new();
-    public List<OrdersByStatus> OrdersByStatus { get; set; } = new();
+    public List<RevenueByCategory> RevenueByCategory { get; set; } = new();
 }
 
-public class OrdersByStatus
+public class RevenueByCategory
 {
-    public string Status { get; set; } = string.Empty;
-    public int Count { get; set; }
+    public int CategoryId { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal Revenue { get; set; }
 }
 
 public class TopDishItem
