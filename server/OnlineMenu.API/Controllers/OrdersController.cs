@@ -233,6 +233,20 @@ public class OrdersController : ControllerBase
         if (table.Status == TableStatus.Reserved)
             return BadRequest(ApiResponse<object>.Fail("Bàn đã được đặt trước, vui lòng chọn bàn khác"));
 
+        // Defensive: if table is Occupied but has no active order, state is inconsistent
+        // (could happen if staff manually set Occupied or leftover state). Block new guest order.
+        if (table.Status == TableStatus.Occupied)
+        {
+            var ordersAtTable = await _orderRepo.GetByTableNumberAsync(request.TableNumber);
+            var hasActiveOrder = ordersAtTable.Any(o =>
+                o.Status == OrderStatus.Pending ||
+                o.Status == OrderStatus.Processing ||
+                o.Status == OrderStatus.Delivered);
+            if (!hasActiveOrder)
+                return BadRequest(ApiResponse<object>.Fail(
+                    "Bàn đang được sử dụng nhưng không có đơn hàng. Vui lòng gọi nhân viên hỗ trợ."));
+        }
+
         // Batch-fetch all requested dishes in one query instead of N+1
         var dishIds = request.Items.Select(i => i.DishId).Distinct().ToList();
         var dishes = await _dishRepo.FindAsync(d => dishIds.Contains(d.Id));

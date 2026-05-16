@@ -36,6 +36,7 @@ function TableMenuContent() {
   const { data, isLoading } = useDishes({ status: 'Available', limit: 100 })
   const { data: catData } = useCategories()
   const [tableStatus, setTableStatus] = useState<string | null>(null)
+  const [accessDenied, setAccessDenied] = useState(false)
   const hasValidParams = !!(Number(params.number) && searchParams.get('token'))
   const [checkingTable, setCheckingTable] = useState(hasValidParams)
 
@@ -44,16 +45,27 @@ function TableMenuContent() {
   useEffect(() => {
     const num = Number(params.number)
     const token = searchParams.get('token')
-    if (num && token) {
-      setTable(num, token)
-      // Check table status
-      http.get<{ data: { status: string } }>('/guest/table-status', {
-        params: { tableNumber: String(num), token },
+    if (!num || !token) return
+
+    // Snapshot store BEFORE setTable to detect if user is the original scanner
+    const snapshot = useOrderStore.getState()
+    const wasOwner = snapshot.tableNumber === num && snapshot.tableToken === token
+
+    http.get<{ data: { status: string } }>('/guest/table-status', {
+      params: { tableNumber: String(num), token },
+    })
+      .then((res) => {
+        const status = res.data.status
+        setTableStatus(status)
+        // Block new guest if table is Occupied by someone else
+        if (status === 'Occupied' && !wasOwner) {
+          setAccessDenied(true)
+        } else {
+          setTable(num, token)
+        }
       })
-        .then((res) => setTableStatus(res.data.status))
-        .catch(() => setTableStatus('Invalid'))
-        .finally(() => setCheckingTable(false))
-    }
+      .catch(() => setTableStatus('Invalid'))
+      .finally(() => setCheckingTable(false))
   }, [params.number, searchParams, setTable])
 
   // Real-time: refresh menu when dishes become available/unavailable
@@ -121,19 +133,27 @@ function TableMenuContent() {
     )
   }
 
-  // Table reserved or invalid
-  if (tableStatus === 'Reserved' || tableStatus === 'Invalid') {
+  // Table reserved / invalid / occupied by another guest
+  if (tableStatus === 'Reserved' || tableStatus === 'Invalid' || accessDenied) {
+    const isOccupied = accessDenied
+    const isReserved = tableStatus === 'Reserved'
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="mx-auto w-full max-w-md space-y-4 rounded-lg border p-8 text-center">
-          <div className="text-5xl">🔒</div>
+          <div className="text-5xl">{isOccupied ? '🍽️' : '🔒'}</div>
           <h1 className="text-2xl font-bold">
-            {tableStatus === 'Reserved' ? 'Bàn đã được đặt trước' : 'Bàn không hợp lệ'}
+            {isOccupied
+              ? 'Bàn đang được sử dụng'
+              : isReserved
+                ? 'Bàn đã được đặt trước'
+                : 'Bàn không hợp lệ'}
           </h1>
           <p className="text-muted-foreground">
-            {tableStatus === 'Reserved'
-              ? 'Bàn này đã được đặt trước, vui lòng chọn bàn khác.'
-              : 'Mã QR không hợp lệ hoặc đã hết hạn.'}
+            {isOccupied
+              ? 'Bàn này đang có khách đặt món. Vui lòng chọn bàn khác hoặc gọi nhân viên hỗ trợ.'
+              : isReserved
+                ? 'Bàn này đã được đặt trước, vui lòng chọn bàn khác.'
+                : 'Mã QR không hợp lệ hoặc đã hết hạn.'}
           </p>
         </div>
       </div>
