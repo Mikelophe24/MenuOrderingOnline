@@ -105,6 +105,13 @@ function TableMenuContent() {
     toast.success(`${dish.name} đã thêm`)
   }
 
+  // Auto set guest name if not set
+  useEffect(() => {
+    if (!guestName) {
+      setGuestName('Khách')
+    }
+  }, [guestName, setGuestName])
+
   // Step 0: Checking table status
   if (checkingTable) {
     return (
@@ -132,13 +139,6 @@ function TableMenuContent() {
       </div>
     )
   }
-
-  // Auto set guest name if not set
-  useEffect(() => {
-    if (!guestName) {
-      setGuestName('Khách')
-    }
-  }, [guestName, setGuestName])
 
   // Show menu
   return (
