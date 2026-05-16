@@ -8,7 +8,7 @@ import { useDishes } from '@/hooks/use-dishes'
 import { useQueryClient } from '@tanstack/react-query'
 import { getConnection, startConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
-import { Plus, Trash2, AlertTriangle, Package, Link2, Unlink } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, Package, Link2, Unlink, Search, X } from 'lucide-react'
 import type { Dish } from '@/types'
 
 export default function ManageIngredientsPage() {
@@ -38,6 +38,7 @@ export default function ManageIngredientsPage() {
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [linkIngredientId, setLinkIngredientId] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
 
   // Add form state
   const [name, setName] = useState('')
@@ -51,6 +52,17 @@ export default function ManageIngredientsPage() {
 
   const ingredients: Ingredient[] = data?.data ?? []
   const dishes: Dish[] = dishesData?.data?.data ?? []
+
+  // Filter theo ten hoac don vi (case-insensitive)
+  const filteredIngredients = search.trim()
+    ? ingredients.filter((ing) => {
+        const q = search.trim().toLowerCase()
+        return (
+          ing.name.toLowerCase().includes(q) ||
+          ing.unit.toLowerCase().includes(q)
+        )
+      })
+    : ingredients
 
   const resetForm = () => {
     setName(''); setUnit(''); setCurrentStock(0); setMinStock(0)
@@ -104,6 +116,27 @@ export default function ManageIngredientsPage() {
         >
           <Plus className="h-4 w-4" /> Thêm nguyên liệu
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Tìm theo tên nguyên liệu hoặc đơn vị..."
+          className="w-full rounded-md border bg-background pl-10 pr-10 py-2 text-sm"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 hover:bg-accent"
+            aria-label="Xóa tìm kiếm"
+          >
+            <X className="h-4 w-4 text-muted-foreground" />
+          </button>
+        )}
       </div>
 
       {/* Add/Edit form */}
@@ -166,9 +199,11 @@ export default function ManageIngredientsPage() {
         <div className="text-center text-muted-foreground">Đang tải...</div>
       ) : ingredients.length === 0 ? (
         <div className="text-center text-muted-foreground py-12">Chưa có nguyên liệu nào</div>
+      ) : filteredIngredients.length === 0 ? (
+        <div className="text-center text-muted-foreground py-12">Không tìm thấy nguyên liệu nào khớp &quot;{search}&quot;</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {ingredients.map((ing) => (
+          {filteredIngredients.map((ing) => (
             <div key={ing.id} className={`rounded-xl border p-5 space-y-3 ${ing.isLow ? 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/30' : 'bg-card'}`}>
               <div className="flex items-start justify-between">
                 <div>
