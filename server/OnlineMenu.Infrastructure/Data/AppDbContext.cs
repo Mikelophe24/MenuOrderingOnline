@@ -37,6 +37,7 @@ public class AppDbContext : DbContext
         {
             entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Image).HasMaxLength(500);
         });
 
         // Dish

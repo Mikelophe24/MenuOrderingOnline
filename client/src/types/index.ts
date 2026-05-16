@@ -75,7 +75,10 @@ export interface Category {
   id: number
   name: string
   description?: string
+  image?: string
   dishes?: Dish[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Table {

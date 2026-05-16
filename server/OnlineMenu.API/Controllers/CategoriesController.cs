@@ -21,8 +21,33 @@ public class CategoriesController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var categories = await _categoryRepo.GetAllAsync();
-        var dtos = categories.Select(c => new { c.Id, c.Name, c.Description }).ToList();
+        var dtos = categories.Select(c => new
+        {
+            c.Id,
+            c.Name,
+            c.Description,
+            c.Image,
+            c.CreatedAt,
+            c.UpdatedAt,
+        }).ToList();
         return Ok(ApiResponse<object>.Success(dtos));
+    }
+
+    [Authorize(Roles = "Owner,Employee")]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var category = await _categoryRepo.GetByIdAsync(id);
+        if (category == null) return NotFound(ApiResponse<object>.Fail("Category not found", 404));
+        return Ok(ApiResponse<object>.Success(new
+        {
+            category.Id,
+            category.Name,
+            category.Description,
+            category.Image,
+            category.CreatedAt,
+            category.UpdatedAt,
+        }));
     }
 
     [Authorize(Roles = "Owner,Employee")]
@@ -33,19 +58,29 @@ public class CategoriesController : ControllerBase
         {
             Name = request.Name,
             Description = request.Description,
+            Image = request.Image,
         };
         await _categoryRepo.AddAsync(category);
-        return CreatedAtAction(nameof(GetAll), ApiResponse<object>.Success(new { category.Id, category.Name, category.Description }, "Created", 201));
+        return CreatedAtAction(nameof(GetById), new { id = category.Id }, ApiResponse<object>.Success(new
+        {
+            category.Id,
+            category.Name,
+            category.Description,
+            category.Image,
+            category.CreatedAt,
+            category.UpdatedAt,
+        }, "Created", 201));
     }
 
     [Authorize(Roles = "Owner,Employee")]
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] CreateCategoryRequest request)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryRequest request)
     {
         var category = await _categoryRepo.GetByIdAsync(id);
         if (category == null) return NotFound();
         category.Name = request.Name;
         category.Description = request.Description;
+        category.Image = request.Image ?? category.Image;
         await _categoryRepo.UpdateAsync(category);
         return Ok(ApiResponse<object>.Success(null!, "Updated"));
     }
@@ -61,4 +96,5 @@ public class CategoriesController : ControllerBase
     }
 }
 
-public record CreateCategoryRequest(string Name, string? Description);
+public record CreateCategoryRequest(string Name, string? Description, string? Image);
+public record UpdateCategoryRequest(string Name, string? Description, string? Image);
