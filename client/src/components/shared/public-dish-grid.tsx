@@ -81,9 +81,11 @@ export function PublicDishGrid({ dishes, categories }: { dishes: PublicDish[]; c
               }`}
             >
               {isOutOfStock && (
-                <span className="absolute right-3 top-3 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-md">
-                  Đã hết
-                </span>
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                  <span className="-rotate-12 rounded-lg bg-red-600 px-6 py-2.5 text-xl font-extrabold uppercase tracking-wider text-white shadow-2xl ring-2 ring-white/70">
+                    Đã hết
+                  </span>
+                </div>
               )}
               <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
                 {dish.image ? (
