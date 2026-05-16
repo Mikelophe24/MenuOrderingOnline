@@ -34,7 +34,7 @@ function TableMenuContent() {
   const params = useParams<{ number: string }>()
   const searchParams = useSearchParams()
   const { setTable, setGuestName, guestName, addToCart, getTotalItems, tableNumber } = useOrderStore()
-  const { data, isLoading } = useDishes({ status: 'Available', limit: 100 })
+  const { data, isLoading } = useDishes({ limit: 100 })
   const { data: catData } = useCategories()
   const [tableStatus, setTableStatus] = useState<string | null>(null)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -84,7 +84,8 @@ function TableMenuContent() {
     }
   }, [queryClient])
 
-  const allDishes: Dish[] = data?.data?.data ?? []
+  // Hide dishes manually hidden by staff, keep Available + Unavailable (out of stock)
+  const allDishes: Dish[] = (data?.data?.data ?? []).filter((d) => d.status !== 'Hidden')
   const categories: Category[] = catData?.data ?? []
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
@@ -221,18 +222,29 @@ function TableMenuContent() {
         <p className="text-center text-muted-foreground py-12">Không có dữ liệu</p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {dishes.map((dish) => (
+          {dishes.map((dish) => {
+            const isOutOfStock = dish.status !== 'Available'
+            return (
             <div
               key={dish.id}
-              onClick={() => setSelectedDish(dish)}
-              className="group overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg cursor-pointer"
+              onClick={() => { if (!isOutOfStock) setSelectedDish(dish) }}
+              className={`group relative overflow-hidden rounded-lg border bg-card transition-shadow ${
+                isOutOfStock
+                  ? 'opacity-60 grayscale cursor-not-allowed'
+                  : 'hover:shadow-lg cursor-pointer'
+              }`}
             >
+              {isOutOfStock && (
+                <span className="absolute right-2 top-2 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                  Đã hết
+                </span>
+              )}
               <div className="aspect-square w-full overflow-hidden bg-muted">
                 {dish.image ? (
                   <img
                     src={dish.image}
                     alt={dish.name}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    className={`h-full w-full object-cover transition-transform ${isOutOfStock ? '' : 'group-hover:scale-105'}`}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-4xl text-muted-foreground">
@@ -253,15 +265,17 @@ function TableMenuContent() {
                     {formatCurrency(dish.price)}
                   </p>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleAddToCart(dish) }}
-                    className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    onClick={(e) => { e.stopPropagation(); if (!isOutOfStock) handleAddToCart(dish) }}
+                    disabled={isOutOfStock}
+                    className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Thêm
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

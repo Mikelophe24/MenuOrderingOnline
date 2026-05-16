@@ -16,6 +16,7 @@ interface DishGridDish {
   calories?: number
   protein?: number
   carbs?: number
+  status?: string
 }
 
 interface DishIngredient {
@@ -94,18 +95,27 @@ export function DishGrid({ dishes, categories }: { dishes: DishGridDish[]; categ
         <p className="py-12 text-center text-muted-foreground">Chưa có món ăn nào.</p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {paginatedDishes.map((dish) => (
+          {paginatedDishes.map((dish) => {
+            const isOutOfStock = dish.status === 'Unavailable'
+            return (
             <button
               key={dish.id}
               onClick={() => { setSelectedDish(dish); setLoadingIngredients(true) }}
-              className="group text-left overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:shadow-lg hover:-translate-y-1"
+              className={`group relative text-left overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 ${
+                isOutOfStock ? 'opacity-60 grayscale' : ''
+              }`}
             >
+              {isOutOfStock && (
+                <span className="absolute right-3 top-3 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow-md">
+                  Đã hết
+                </span>
+              )}
               <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
                 {dish.image ? (
                   <img
                     src={dish.image}
                     alt={dish.name}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    className={`h-full w-full object-cover transition-transform duration-300 ${isOutOfStock ? '' : 'group-hover:scale-110'}`}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-5xl text-muted-foreground/50">
@@ -126,7 +136,8 @@ export function DishGrid({ dishes, categories }: { dishes: DishGridDish[]; categ
                 </p>
               </div>
             </button>
-          ))}
+            )
+          })}
         </div>
       )}
 

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 async function getDishes() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dishes?status=Available&limit=100`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dishes?limit=100`, {
     next: { tags: ['dishes'] },
   })
   if (!res.ok) return { data: { data: [] } }
@@ -40,7 +40,9 @@ function DishListSkeleton() {
 
 async function DishListServer() {
   const [dishData, catData] = await Promise.all([getDishes(), getCategories()])
-  const dishes = dishData.data?.data ?? dishData.data ?? []
+  // Hide dishes manually hidden by staff, keep Available + Unavailable (out of stock)
+  const rawDishes = dishData.data?.data ?? dishData.data ?? []
+  const dishes = rawDishes.filter((d: { status?: string }) => d.status !== 'Hidden')
   const categories = catData.data ?? []
 
   return <DishGrid dishes={dishes} categories={categories} />

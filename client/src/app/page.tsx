@@ -7,7 +7,7 @@ import { Phone, MapPin } from 'lucide-react'
 
 async function getDishes() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dishes?status=Available&limit=100`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dishes?limit=100`, {
       next: { tags: ['dishes'] },
     })
     if (!res.ok) return { data: { data: [] } }
@@ -54,7 +54,9 @@ function shuffle<T>(arr: T[]): T[] {
 
 async function DishListServer() {
   const [dishData, catData] = await Promise.all([getDishes(), getCategories()])
-  const dishes = shuffle<PublicDish>(dishData.data?.data ?? dishData.data ?? [])
+  // Hide dishes manually hidden by staff, keep Available + Unavailable (out of stock)
+  const rawDishes: PublicDish[] = dishData.data?.data ?? dishData.data ?? []
+  const dishes = shuffle<PublicDish>(rawDishes.filter((d) => d.status !== 'Hidden'))
   const categories = catData.data ?? []
   return <PublicDishGrid dishes={dishes} categories={categories} />
 }

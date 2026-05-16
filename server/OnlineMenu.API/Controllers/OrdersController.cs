@@ -119,7 +119,10 @@ public class OrdersController : ControllerBase
         foreach (var item in request.Items)
         {
             if (!dishMap.TryGetValue(item.DishId, out var dish) || dish.Status != DishStatus.Available)
-                return BadRequest(ApiResponse<object>.Fail($"Món {item.DishId} không khả dụng"));
+            {
+                var name = dish?.Name ?? $"Mã {item.DishId}";
+                return BadRequest(ApiResponse<object>.Fail($"{name} hiện đang hết"));
+            }
 
             var ingredients = dishIngredients.Where(di => di.DishId == item.DishId).ToList();
             if (ingredients.Count > 0)
@@ -261,7 +264,10 @@ public class OrdersController : ControllerBase
         foreach (var item in request.Items)
         {
             if (!dishMap.TryGetValue(item.DishId, out var dish) || dish.Status != DishStatus.Available)
-                return BadRequest(ApiResponse<object>.Fail($"Dish {item.DishId} not available"));
+            {
+                var name = dish?.Name ?? $"Mã {item.DishId}";
+                return BadRequest(ApiResponse<object>.Fail($"{name} hiện đang hết"));
+            }
 
             // Check stock: if dish has ingredients, validate quantity against stock
             var ingredients = dishIngredients.Where(di => di.DishId == item.DishId).ToList();
