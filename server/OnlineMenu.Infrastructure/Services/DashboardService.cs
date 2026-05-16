@@ -41,7 +41,7 @@ public class DashboardService : IDashboardService
             {
                 DishId = g.Key.DishId,
                 DishName = g.Key.Name,
-                OrderCount = g.Sum(x => x.Quantity)
+                OrderCount = g.Select(x => x.OrderId).Distinct().Count()
             })
             .OrderByDescending(x => x.OrderCount)
             .Take(10)

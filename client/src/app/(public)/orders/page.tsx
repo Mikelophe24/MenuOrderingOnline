@@ -299,26 +299,28 @@ export default function OrderPage() {
                           {t('order.payment.payOnline')}
                         </button>
                       )}
-                      <button
-                        onClick={() => {
-                          if (order.status !== 'Pending') {
-                            toast.error(t('order.toast.cannotCancel'))
-                            return
-                          }
-                          if (!confirm(t('order.toast.confirmCancel'))) return
-                          cancelOrder.mutate(
-                            { id: order.id, tableNumber: tableNumber!, tableToken: tableToken! },
-                            {
-                              onSuccess: () => { toast.success(t('order.toast.cancelled')); void refetchOrders() },
-                              onError: (err: Error) => toast.error((err as Error & { payload?: { message?: string } }).payload?.message ?? err.message ?? t('order.toast.cannotCancelError')),
+                      {order.status !== 'Paid' && order.status !== 'Cancelled' && (
+                        <button
+                          onClick={() => {
+                            if (order.status !== 'Pending') {
+                              toast.error(t('order.toast.cannotCancel'))
+                              return
                             }
-                          )
-                        }}
-                        disabled={cancelOrder.isPending}
-                        className="rounded-md border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
-                      >
-                        {t('order.cancelOrder')}
-                      </button>
+                            if (!confirm(t('order.toast.confirmCancel'))) return
+                            cancelOrder.mutate(
+                              { id: order.id, tableNumber: tableNumber!, tableToken: tableToken! },
+                              {
+                                onSuccess: () => { toast.success(t('order.toast.cancelled')); void refetchOrders() },
+                                onError: (err: Error) => toast.error((err as Error & { payload?: { message?: string } }).payload?.message ?? err.message ?? t('order.toast.cannotCancelError')),
+                              }
+                            )
+                          }}
+                          disabled={cancelOrder.isPending}
+                          className="rounded-md border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                        >
+                          {t('order.cancelOrder')}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

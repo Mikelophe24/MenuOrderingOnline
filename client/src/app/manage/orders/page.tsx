@@ -468,7 +468,12 @@ export default function ManageOrdersPage() {
       { id: order.id, status: newStatus },
       {
         onSuccess: () => { toast.success(t('order.toast.statusUpdated')) },
-        onError: (error: Error) => { toast.error(error.message || 'Cập nhật thất bại') },
+        onError: (error: unknown) => {
+          const msg = error instanceof Error && 'payload' in error
+            ? String((error as { payload: unknown }).payload)
+            : 'Cập nhật thất bại'
+          toast.error(msg)
+        },
       }
     )
   }

@@ -374,7 +374,23 @@ public class OrdersController : ControllerBase
         };
 
         if (!allowedTransitions.TryGetValue(previousStatus, out var allowed) || !allowed.Contains(newStatus))
-            return BadRequest(ApiResponse<object>.Fail($"Không thể chuyển từ {previousStatus} sang {newStatus}"));
+        {
+            var statusNames = new Dictionary<OrderStatus, string>
+            {
+                { OrderStatus.Pending, "Chờ xử lý" },
+                { OrderStatus.Processing, "Đang xử lý" },
+                { OrderStatus.Delivered, "Đã giao" },
+                { OrderStatus.Paid, "Đã thanh toán" },
+                { OrderStatus.Cancelled, "Đã hủy" },
+            };
+            var fromName = statusNames.GetValueOrDefault(previousStatus, previousStatus.ToString());
+            var toName = statusNames.GetValueOrDefault(newStatus, newStatus.ToString());
+            var allowedNames = allowed.Select(s => statusNames.GetValueOrDefault(s, s.ToString()));
+            var hint = allowed.Length > 0
+                ? $". Chỉ có thể chuyển sang: {string.Join(", ", allowedNames)}"
+                : ". Trạng thái này không thể thay đổi";
+            return BadRequest(ApiResponse<object>.Fail($"Không thể chuyển từ \"{fromName}\" sang \"{toName}\"{hint}"));
+        }
 
         var userIdClaim = User.FindFirst("userId")?.Value;
         int.TryParse(userIdClaim, out var userId);

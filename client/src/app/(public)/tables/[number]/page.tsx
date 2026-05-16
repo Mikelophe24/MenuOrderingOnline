@@ -16,52 +16,6 @@ import { useDishReviews, useCreateReview } from '@/hooks/use-reviews'
 import type { Category, Dish, Review } from '@/types'
 import Link from 'next/link'
 
-function GuestLoginForm({ onSubmit, t }: { onSubmit: (name: string) => void; t: (key: string) => string }) {
-  const [name, setName] = useState('')
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) {
-      toast.error(t('guest.enterNameError'))
-      return
-    }
-    onSubmit(trimmed)
-  }
-
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="mx-auto w-full max-w-md space-y-6 rounded-lg border p-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">{t('guest.welcome')}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t('guest.enterName')}
-          </p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">{t('guest.yourName')}</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-md border bg-background px-3 py-2"
-              placeholder={t('guest.namePlaceholder')}
-              autoFocus
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            {t('guest.continue')}
-          </button>
-        </form>
-      </div>
-    </div>
-  )
-}
-
 export default function TableMenuPage() {
   const t = useTranslations()
   const params = useParams<{ number: string }>()
@@ -167,19 +121,19 @@ export default function TableMenuPage() {
     )
   }
 
-  // Step 1: Guest enters name
-  if (!guestName) {
-    return <GuestLoginForm onSubmit={setGuestName} t={t} />
-  }
+  // Auto set guest name if not set
+  useEffect(() => {
+    if (!guestName) {
+      setGuestName('Khách')
+    }
+  }, [guestName, setGuestName])
 
-  // Step 2: Show menu
+  // Show menu
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold">{t('common.table')} {params.number}</h1>
-        <p className="text-muted-foreground">
-          {t('guest.hello')} <span className="font-medium">{guestName}</span>, {t('guest.selectFavorite')}
-        </p>
+        <p className="text-muted-foreground">{t('guest.selectFavorite')}</p>
       </div>
 
       <div className="relative mx-auto max-w-md">
