@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { QueryProvider } from '@/components/layout/query-provider'
@@ -10,6 +10,16 @@ const inter = Inter({ subsets: ['latin', 'vietnamese'] })
 export const metadata: Metadata = {
   title: 'Nhat Nuong - He thong goi mon truc tuyen',
   description: 'He thong menu dien tu va goi mon tai ban cho nha hang Nhat Nuong',
+}
+
+// Khoa zoom tren mobile - giu kich thuoc UI co dinh
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  minimumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
