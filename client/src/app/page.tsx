@@ -6,19 +6,27 @@ import { LandingNav } from '@/components/shared/landing-nav'
 import { Phone, MapPin } from 'lucide-react'
 
 async function getDishes() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dishes?status=Available&limit=100`, {
-    next: { tags: ['dishes'] },
-  })
-  if (!res.ok) return { data: { data: [] } }
-  return res.json()
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dishes?status=Available&limit=100`, {
+      next: { tags: ['dishes'] },
+    })
+    if (!res.ok) return { data: { data: [] } }
+    return res.json()
+  } catch {
+    return { data: { data: [] } }
+  }
 }
 
 async function getCategories() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
-    next: { tags: ['dishes'] },
-  })
-  if (!res.ok) return { data: [] }
-  return res.json()
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+      next: { tags: ['dishes'] },
+    })
+    if (!res.ok) return { data: [] }
+    return res.json()
+  } catch {
+    return { data: [] }
+  }
 }
 
 function DishListSkeleton() {
