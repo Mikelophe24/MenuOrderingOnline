@@ -140,6 +140,19 @@ public class IngredientsController : ControllerBase
         return Ok(ApiResponse<object>.Success(null!, "Unlinked"));
     }
 
+    // Update QuantityNeeded of an existing dish-ingredient link
+    [HttpPut("dish-link")]
+    public async Task<IActionResult> UpdateDishLink([FromBody] LinkDishIngredientRequest request)
+    {
+        var link = await _context.DishIngredients
+            .FirstOrDefaultAsync(di => di.DishId == request.DishId && di.IngredientId == request.IngredientId);
+        if (link == null) return NotFound(ApiResponse<object>.Fail("Link not found"));
+
+        link.QuantityNeeded = request.QuantityNeeded;
+        await _context.SaveChangesAsync();
+        return Ok(ApiResponse<object>.Success(null!, "Updated"));
+    }
+
     // Deduct stock when order is completed and auto-hide dishes
     [HttpPost("deduct")]
     public async Task<IActionResult> DeductStock([FromBody] DeductStockRequest request)

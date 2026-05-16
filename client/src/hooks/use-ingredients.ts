@@ -63,3 +63,12 @@ export function useUnlinkDishIngredient() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['ingredients'] }) },
   })
 }
+
+export function useUpdateDishIngredient() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { dishId: number; ingredientId: number; quantityNeeded: number }) =>
+      http.put<ApiResponse<null>>('/ingredients/dish-link', data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['ingredients'] }) },
+  })
+}
