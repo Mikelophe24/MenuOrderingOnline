@@ -44,7 +44,7 @@ public class OrdersController : ControllerBase
         _configuration = configuration;
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpGet("orders")]
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
@@ -93,7 +93,7 @@ public class OrdersController : ControllerBase
     }
 
     // Staff creates an order (no token needed)
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpPost("orders")]
     public async Task<IActionResult> CreateStaffOrder([FromBody] CreateStaffOrderRequest request)
     {
@@ -351,7 +351,7 @@ public class OrdersController : ControllerBase
         return Ok(ApiResponse<OrderDto>.Success(orderDto, "Order cancelled"));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpPatch("orders/{id}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusRequest request)
     {
@@ -539,7 +539,7 @@ public class OrdersController : ControllerBase
         }));
     }
 
-    [Authorize(Roles = "Owner")]
+    [Authorize(Roles = "Manager")]
     [HttpDelete("orders/{id}")]
     public async Task<IActionResult> Delete(int id)
     {

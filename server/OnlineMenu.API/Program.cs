@@ -129,20 +129,20 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// ===== Seed Owner Account =====
+// ===== Seed Manager Account =====
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     context.Database.Migrate();
 
-    if (!context.Accounts.Any(a => a.Role == OnlineMenu.Core.Enums.Role.Owner))
+    if (!context.Accounts.Any(a => a.Role == OnlineMenu.Core.Enums.Role.Manager))
     {
         context.Accounts.Add(new OnlineMenu.Core.Entities.Account
         {
-            Name = "Owner",
+            Name = "Manager",
             Email = "owner@gmail.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
-            Role = OnlineMenu.Core.Enums.Role.Owner,
+            Role = OnlineMenu.Core.Enums.Role.Manager,
         });
         context.SaveChanges();
     }

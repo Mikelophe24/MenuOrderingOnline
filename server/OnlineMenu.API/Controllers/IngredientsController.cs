@@ -13,7 +13,7 @@ namespace OnlineMenu.API.Controllers;
 
 [ApiController]
 [Route("api/ingredients")]
-[Authorize(Roles = "Owner,Employee")]
+[Authorize(Roles = "Manager,Employee")]
 public class IngredientsController : ControllerBase
 {
     private readonly AppDbContext _context;

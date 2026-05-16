@@ -138,7 +138,7 @@ export default function ManageDishesPage() {
                       >
                         {t('common.edit')}
                       </Link>
-                      {account?.role === Role.Owner && (
+                      {account?.role === Role.Manager && (
                         <button
                           onClick={(e) => handleDelete(e, dish.id, dish.name)}
                           className="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10"

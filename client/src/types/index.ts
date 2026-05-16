@@ -1,6 +1,6 @@
 // ====== ENUMS ======
 export enum Role {
-  Owner = 'Owner',
+  Manager = 'Manager',
   Employee = 'Employee',
 }
 

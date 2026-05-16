@@ -115,9 +115,9 @@ public class ReservationsController : ControllerBase
         return Ok(ApiResponse<ReservationDto>.Success(dto, "Đã hủy đặt bàn"));
     }
 
-    // ===== Staff/Owner =====
+    // ===== Staff/Manager =====
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpGet("reservations")]
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
@@ -150,7 +150,7 @@ public class ReservationsController : ControllerBase
         ));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpGet("reservations/{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -161,7 +161,7 @@ public class ReservationsController : ControllerBase
         return Ok(ApiResponse<ReservationDto>.Success(MapToDto(reservation)));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpPatch("reservations/{id}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateReservationStatusRequest request)
     {
@@ -238,7 +238,7 @@ public class ReservationsController : ControllerBase
         return Ok(ApiResponse<ReservationDto>.Success(dto, "Cập nhật thành công"));
     }
 
-    [Authorize(Roles = "Owner")]
+    [Authorize(Roles = "Manager")]
     [HttpDelete("reservations/{id}")]
     public async Task<IActionResult> Delete(int id)
     {

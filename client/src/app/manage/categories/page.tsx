@@ -118,7 +118,7 @@ export default function ManageCategoriesPage() {
                         >
                           {t('common.edit')}
                         </Link>
-                        {account?.role === Role.Owner && (
+                        {account?.role === Role.Manager && (
                           <button
                             onClick={(e) => handleDelete(e, cat.id, cat.name)}
                             className="rounded-md border border-destructive px-4 py-2 text-sm text-destructive hover:bg-destructive/10"

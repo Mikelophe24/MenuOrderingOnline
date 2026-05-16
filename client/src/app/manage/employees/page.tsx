@@ -183,7 +183,7 @@ export default function ManageEmployeesPage() {
                         updateRole.mutate({ id: emp.id, name: emp.name, role: e.target.value })
                       }
                       className={`rounded-full px-2 py-1 text-xs border-none cursor-pointer ${
-                        emp.role === 'Owner'
+                        emp.role === 'Manager'
                           ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
                           : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                       }`}

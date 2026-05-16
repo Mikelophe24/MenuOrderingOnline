@@ -8,7 +8,7 @@ namespace OnlineMenu.API.Controllers;
 
 [ApiController]
 [Route("api/upload")]
-[Authorize(Roles = "Owner,Employee")]
+[Authorize(Roles = "Manager,Employee")]
 public class UploadController : ControllerBase
 {
     private readonly Cloudinary _cloudinary;

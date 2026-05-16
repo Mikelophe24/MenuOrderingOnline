@@ -11,7 +11,7 @@ namespace OnlineMenu.API.Controllers;
 
 [ApiController]
 [Route("api/accounts")]
-[Authorize(Roles = "Owner")]
+[Authorize(Roles = "Manager")]
 public class AccountsController : ControllerBase
 {
     private readonly IAccountRepository _accountRepo;

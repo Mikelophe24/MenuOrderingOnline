@@ -33,7 +33,7 @@ public class CategoriesController : ControllerBase
         return Ok(ApiResponse<object>.Success(dtos));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -50,7 +50,7 @@ public class CategoriesController : ControllerBase
         }));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
     {
@@ -72,7 +72,7 @@ public class CategoriesController : ControllerBase
         }, "Created", 201));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateCategoryRequest request)
     {
@@ -85,7 +85,7 @@ public class CategoriesController : ControllerBase
         return Ok(ApiResponse<object>.Success(null!, "Updated"));
     }
 
-    [Authorize(Roles = "Owner")]
+    [Authorize(Roles = "Manager")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

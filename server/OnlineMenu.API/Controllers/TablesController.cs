@@ -10,7 +10,7 @@ namespace OnlineMenu.API.Controllers;
 
 [ApiController]
 [Route("api/tables")]
-[Authorize(Roles = "Owner,Employee")]
+[Authorize(Roles = "Manager,Employee")]
 public class TablesController : ControllerBase
 {
     private readonly ITableRepository _tableRepo;
@@ -83,7 +83,7 @@ public class TablesController : ControllerBase
         return Ok(ApiResponse<object>.Success(null!, "Updated"));
     }
 
-    [Authorize(Roles = "Owner")]
+    [Authorize(Roles = "Manager")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

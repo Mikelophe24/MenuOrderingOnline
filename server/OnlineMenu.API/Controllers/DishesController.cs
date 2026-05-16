@@ -67,7 +67,7 @@ public class DishesController : ControllerBase
         return Ok(ApiResponse<DishDto>.Success(dto));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateDishRequest request)
     {
@@ -95,7 +95,7 @@ public class DishesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = dish.Id }, ApiResponse<DishDto>.Success(dto, "Created", 201));
     }
 
-    [Authorize(Roles = "Owner,Employee")]
+    [Authorize(Roles = "Manager,Employee")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateDishRequest request)
     {
@@ -118,7 +118,7 @@ public class DishesController : ControllerBase
         return Ok(ApiResponse<object>.Success(null!, "Updated"));
     }
 
-    [Authorize(Roles = "Owner")]
+    [Authorize(Roles = "Manager")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

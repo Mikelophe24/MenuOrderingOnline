@@ -336,7 +336,7 @@ export default function ManageOrdersPage() {
   const deleteOrder = useDeleteOrder()
   const paymentQR = usePaymentQR()
   const account = useAuthStore((s) => s.account)
-  const isOwner = account?.role === Role.Owner
+  const isManager = account?.role === Role.Manager
   const [qrData, setQrData] = useState<{ qrDataURL: string; amount: number; addInfo: string; orderId?: number } | null>(null)
   const qrOrderIdRef = useRef<number | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -760,7 +760,7 @@ export default function ManageOrdersPage() {
                                       <QrCode className="h-4 w-4" />
                                     </button>
                                   )}
-                                  {isOwner && (
+                                  {isManager && (
                                     <button
                                       onClick={() => handleDelete(order.id)}
                                       disabled={deleteOrder.isPending}

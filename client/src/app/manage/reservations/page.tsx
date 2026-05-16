@@ -30,7 +30,7 @@ const statusLabels: Record<string, string> = {
 export default function ManageReservationsPage() {
   const t = useTranslations()
   const account = useAuthStore((s) => s.account)
-  const isOwner = account?.role === Role.Owner
+  const isManager = account?.role === Role.Manager
 
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [approveId, setApproveId] = useState<number | null>(null)
@@ -235,7 +235,7 @@ export default function ManageReservationsPage() {
                     </button>
                   </>
                 )}
-                {isOwner && (
+                {isManager && (
                   <button
                     onClick={() => handleDelete(r.id)}
                     className="flex items-center gap-1 rounded-md bg-destructive px-3 py-1.5 text-sm text-destructive-foreground hover:bg-destructive/90"

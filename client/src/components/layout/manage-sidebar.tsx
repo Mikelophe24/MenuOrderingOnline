@@ -27,7 +27,7 @@ import {
 const getNavItems = (role: Role | undefined) => {
   const items = [
     { href: '/manage/home', icon: Home, labelKey: 'home' },
-    ...(role === Role.Owner ? [{ href: '/manage/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' }] : []),
+    ...(role === Role.Manager ? [{ href: '/manage/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' }] : []),
     { href: '/manage/orders', icon: ClipboardList, labelKey: 'orders' },
     { href: '/manage/categories', icon: FolderOpen, labelKey: 'categories' },
     { href: '/manage/dishes', icon: UtensilsCrossed, labelKey: 'dishes' },
@@ -37,7 +37,7 @@ const getNavItems = (role: Role | undefined) => {
     { href: '/manage/recipes', icon: BookOpen, labelKey: 'recipes' },
   ]
 
-  if (role === Role.Owner) {
+  if (role === Role.Manager) {
     items.push({ href: '/manage/employees', icon: Users, labelKey: 'employees' })
   }
 

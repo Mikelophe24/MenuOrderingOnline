@@ -333,7 +333,7 @@ export default function DashboardPage() {
                     />
                     <Tooltip
                       formatter={(value: number) => [formatCurrency(value), t('revenue')]}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
+                      contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
                       labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                     />
                     <Line
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                           `${value} ${t('orders')}`,
                           name,
                         ]}
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
+                        contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -431,7 +431,7 @@ export default function DashboardPage() {
                   <Tooltip
                     cursor={{ fill: 'hsl(var(--accent))' }}
                     formatter={(value: number) => [formatCurrency(value), t('revenue')]}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
                   />
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
                     {categoryPieData.map((_, idx) => (
