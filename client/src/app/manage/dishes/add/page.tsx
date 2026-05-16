@@ -121,19 +121,8 @@ export default function AddDishPage() {
           {errors.categoryId && <p className="mt-1 text-sm text-destructive">{errors.categoryId.message}</p>}
         </div>
 
-        <div>
-          <label className="text-sm font-medium">Trạng thái</label>
-          <select
-            {...register('status')}
-            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
-          >
-            <option value="Available">Hiển thị (Có sẵn)</option>
-            <option value="Hidden">Ẩn khỏi menu</option>
-          </select>
-          <p className="mt-1 text-xs text-muted-foreground">
-            &quot;Hết hàng&quot; do hệ thống tự đặt dựa trên kho nguyên liệu, không chỉnh thủ công.
-          </p>
-        </div>
+        {/* Status mac dinh la Available khi tao mon moi, sau do tu dong cap nhat theo kho */}
+        <input type="hidden" {...register('status')} />
 
         {/* Nutrition info */}
         <div>
