@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useOrderStore } from '@/stores/order.store'
 import { useDishes } from '@/hooks/use-dishes'
+import { useCategories } from '@/hooks/use-categories'
 import { useQueryClient } from '@tanstack/react-query'
 import { getConnection, startConnection } from '@/lib/signalr'
 import { formatCurrency } from '@/lib/utils'
@@ -12,7 +13,7 @@ import http from '@/lib/http'
 import { toast } from 'sonner'
 import { Search, X, Star } from 'lucide-react'
 import { useDishReviews, useCreateReview } from '@/hooks/use-reviews'
-import type { Dish, Review } from '@/types'
+import type { Category, Dish, Review } from '@/types'
 import Link from 'next/link'
 
 function GuestLoginForm({ onSubmit, t }: { onSubmit: (name: string) => void; t: (key: string) => string }) {
@@ -67,6 +68,7 @@ export default function TableMenuPage() {
   const searchParams = useSearchParams()
   const { setTable, setGuestName, guestName, addToCart, getTotalItems, tableNumber } = useOrderStore()
   const { data, isLoading } = useDishes({ status: 'Available', limit: 100 })
+  const { data: catData } = useCategories()
   const [tableStatus, setTableStatus] = useState<string | null>(null)
   const hasValidParams = !!(Number(params.number) && searchParams.get('token'))
   const [checkingTable, setCheckingTable] = useState(hasValidParams)
@@ -103,15 +105,33 @@ export default function TableMenuPage() {
   }, [queryClient])
 
   const allDishes: Dish[] = data?.data?.data ?? []
+  const categories: Category[] = catData?.data ?? []
   const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
+
+  const shuffledDishes = useMemo(() => {
+    const arr = [...allDishes]
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    return arr
+  }, [allDishes])
+
   const dishes = useMemo(() => {
-    if (!search.trim()) return allDishes
-    const q = search.toLowerCase()
-    return allDishes.filter((d) =>
-      d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
-    )
-  }, [allDishes, search])
+    let result = shuffledDishes
+    if (selectedCategory) {
+      result = result.filter((d) => d.categoryId === selectedCategory)
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter((d) =>
+        d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
+      )
+    }
+    return result
+  }, [shuffledDishes, search, selectedCategory])
   const totalItems = getTotalItems()
 
   const handleAddToCart = (dish: Dish) => {
@@ -171,6 +191,32 @@ export default function TableMenuPage() {
           placeholder={t('common.search') + '...'}
           className="w-full rounded-full border bg-background pl-10 pr-3 py-2 text-sm"
         />
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            selectedCategory === null
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+          }`}
+        >
+          {t('common.all')}
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategory(cat.id)}
+            className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              selectedCategory === cat.id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            }`}
+          >
+            {cat.name}
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
