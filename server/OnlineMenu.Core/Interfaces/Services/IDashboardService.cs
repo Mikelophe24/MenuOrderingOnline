@@ -11,8 +11,16 @@ public class DashboardData
     public int TotalOrders { get; set; }
     public int TotalGuests { get; set; }
     public int ActiveTables { get; set; }
+    public decimal AvgOrderValue { get; set; }
     public List<TopDishItem> TopDishes { get; set; } = new();
     public List<RevenueByDate> RevenueByDate { get; set; } = new();
+    public List<OrdersByStatus> OrdersByStatus { get; set; } = new();
+}
+
+public class OrdersByStatus
+{
+    public string Status { get; set; } = string.Empty;
+    public int Count { get; set; }
 }
 
 public class TopDishItem

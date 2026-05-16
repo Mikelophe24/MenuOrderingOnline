@@ -133,7 +133,7 @@
   },
   "manage": {
     "home": "Trang chủ",
-    "dashboard": "Tổng quan",
+    "dashboard": "Thống kê",
     "orders": "Quản lý đơn hàng",
     "tables": "Quản lý bàn ăn",
     "categories": "Quản lý danh mục",
@@ -165,7 +165,7 @@
     "reservations": "Quản lý đặt bàn"
   },
   "dashboard": {
-    "dashboard": "Tổng quan",
+    "dashboard": "Thống kê",
     "totalRevenue": "Tổng doanh thu",
     "totalOrders": "Tổng đơn hàng",
     "totalGuests": "Lượng khách",
@@ -176,7 +176,9 @@
     "noRevenueData": "Không có dữ liệu doanh thu trong khoảng thời gian này",
     "revenue": "Doanh thu",
     "orderCount": "Đơn thanh toán",
-    "orders": "đơn"
+    "orders": "đơn",
+    "avgOrderValue": "TB mỗi đơn",
+    "ordersByStatus": "Đơn hàng theo trạng thái"
   },
   "table": {
     "number": "Số bàn",

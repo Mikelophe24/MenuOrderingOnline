@@ -128,8 +128,10 @@ export interface DashboardData {
   totalOrders: number
   totalGuests: number
   activeTables: number
+  avgOrderValue: number
   topDishes: { dishId: number; dishName: string; orderCount: number }[]
   revenueByDate: { date: string; revenue: number }[]
+  ordersByStatus: { status: string; count: number }[]
 }
 
 // ====== INGREDIENTS ======

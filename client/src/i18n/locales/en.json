@@ -133,7 +133,7 @@
   },
   "manage": {
     "home": "Home",
-    "dashboard": "Dashboard",
+    "dashboard": "Statistics",
     "orders": "Order management",
     "tables": "Table management",
     "categories": "Category management",
@@ -165,7 +165,7 @@
     "reservations": "Reservation management"
   },
   "dashboard": {
-    "dashboard": "Dashboard",
+    "dashboard": "Statistics",
     "totalRevenue": "Total Revenue",
     "totalOrders": "Total Orders",
     "totalGuests": "Total Guests",
@@ -176,7 +176,9 @@
     "noRevenueData": "No revenue data for this period",
     "revenue": "Revenue",
     "orderCount": "Paid orders",
-    "orders": "orders"
+    "orders": "orders",
+    "avgOrderValue": "Avg per order",
+    "ordersByStatus": "Orders by status"
   },
   "table": {
     "number": "Table Number",

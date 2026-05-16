@@ -57,14 +57,27 @@ public class DashboardService : IDashboardService
             .OrderBy(x => x.Date)
             .ToListAsync();
 
+        var avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+        var ordersByStatus = await allOrders
+            .GroupBy(o => o.Status)
+            .Select(g => new OrdersByStatus
+            {
+                Status = g.Key.ToString(),
+                Count = g.Count()
+            })
+            .ToListAsync();
+
         return new DashboardData
         {
             TotalRevenue = totalRevenue,
             TotalOrders = totalOrders,
             TotalGuests = totalGuests,
             ActiveTables = activeTables,
+            AvgOrderValue = avgOrderValue,
             TopDishes = topDishes,
             RevenueByDate = revenueByDate,
+            OrdersByStatus = ordersByStatus,
         };
     }
 }
