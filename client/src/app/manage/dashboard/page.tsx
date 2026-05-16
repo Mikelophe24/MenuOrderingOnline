@@ -334,6 +334,8 @@ export default function DashboardPage() {
                     <Tooltip
                       formatter={(value: number) => [formatCurrency(value), t('revenue')]}
                       contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
+                        itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                        labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
                       labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                     />
                     <Line
@@ -380,6 +382,8 @@ export default function DashboardPage() {
                           name,
                         ]}
                         contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
+                        itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                        labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -432,6 +436,8 @@ export default function DashboardPage() {
                     cursor={{ fill: 'hsl(var(--accent))' }}
                     formatter={(value: number) => [formatCurrency(value), t('revenue')]}
                     contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
+                        itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                        labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
                   />
                   <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
                     {categoryPieData.map((_, idx) => (
