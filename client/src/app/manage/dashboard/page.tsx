@@ -336,7 +336,6 @@ export default function DashboardPage() {
                       contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
                         itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
                         labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
-                      labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                     />
                     <Line
                       type="monotone"
