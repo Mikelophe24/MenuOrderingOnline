@@ -326,8 +326,11 @@ function DishDetailModal({
       toast.error('Vui lòng chọn số sao')
       return
     }
+    // Random 4-digit suffix de moi review co name khac nhau (vd "Khach 4527")
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000)
+    const reviewerName = `Khách ${randomSuffix}`
     createReview.mutate(
-      { dishId: dish.id, guestName, tableNumber, rating, comment: comment.trim() || undefined },
+      { dishId: dish.id, guestName: reviewerName, tableNumber, rating, comment: comment.trim() || undefined },
       {
         onSuccess: () => {
           toast.success('Cảm ơn bạn đã đánh giá!')
