@@ -36,7 +36,7 @@ export default function OrderPage() {
   const guestOrders: Order[] = (guestOrdersData?.data ?? []).filter((o: Order) => o.status !== 'Cancelled')
 
   const statusLabels: Record<string, string> = {
-    Pending: 'Chờ xử lý',
+    Pending: 'Chờ xác nhận',
     Processing: 'Đang xử lý',
     Delivered: 'Đã giao',
     Paid: 'Đã thanh toán',

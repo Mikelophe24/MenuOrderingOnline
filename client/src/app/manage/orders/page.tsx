@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart, Receipt, Printer, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 
 const statusLabels: Record<string, string> = {
-  Pending: 'Chờ xử lý',
+  Pending: 'Chờ xác nhận',
   Processing: 'Đang xử lý',
   Delivered: 'Đã giao',
   Paid: 'Đã thanh toán',

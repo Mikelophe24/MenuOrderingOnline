@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useIngredients, useCreateIngredient, useUpdateIngredient, useDeleteIngredient, useUpdateStock, useLinkDishIngredient, useUnlinkDishIngredient } from '@/hooks/use-ingredients'
 import type { Ingredient } from '@/types'
 import { useDishes } from '@/hooks/use-dishes'
+import { useQueryClient } from '@tanstack/react-query'
+import { getConnection, startConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
 import { Plus, Trash2, AlertTriangle, Package, Link2, Unlink } from 'lucide-react'
 import type { Dish } from '@/types'
@@ -12,6 +14,20 @@ import type { Dish } from '@/types'
 export default function ManageIngredientsPage() {
   const { data, isLoading } = useIngredients()
   const { data: dishesData } = useDishes({ limit: 100 })
+  const queryClient = useQueryClient()
+
+  // Real-time: refresh ingredients when backend deducts/restores stock
+  useEffect(() => {
+    const conn = getConnection()
+    const onStockChanged = () => {
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] })
+    }
+    conn.on('StockChanged', onStockChanged)
+    void startConnection()
+    return () => {
+      conn.off('StockChanged', onStockChanged)
+    }
+  }, [queryClient])
   const createIngredient = useCreateIngredient()
   const updateIngredient = useUpdateIngredient()
   const deleteIngredient = useDeleteIngredient()

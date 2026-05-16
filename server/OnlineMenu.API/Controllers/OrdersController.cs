@@ -435,7 +435,7 @@ public class OrdersController : ControllerBase
         {
             var statusNames = new Dictionary<OrderStatus, string>
             {
-                { OrderStatus.Pending, "Chờ xử lý" },
+                { OrderStatus.Pending, "Chờ xác nhận" },
                 { OrderStatus.Processing, "Đang xử lý" },
                 { OrderStatus.Delivered, "Đã giao" },
                 { OrderStatus.Paid, "Đã thanh toán" },
