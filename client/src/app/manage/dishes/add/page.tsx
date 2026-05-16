@@ -127,10 +127,12 @@ export default function AddDishPage() {
             {...register('status')}
             className="mt-1 w-full rounded-md border bg-background px-3 py-2"
           >
-            <option value="Available">Có sẵn</option>
-            <option value="Unavailable">Hết hàng</option>
-            <option value="Hidden">Ẩn</option>
+            <option value="Available">Hiển thị (Có sẵn)</option>
+            <option value="Hidden">Ẩn khỏi menu</option>
           </select>
+          <p className="mt-1 text-xs text-muted-foreground">
+            &quot;Hết hàng&quot; do hệ thống tự đặt dựa trên kho nguyên liệu, không chỉnh thủ công.
+          </p>
         </div>
 
         {/* Nutrition info */}
