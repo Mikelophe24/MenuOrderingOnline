@@ -3,6 +3,10 @@ import type { Metadata } from 'next'
 import { DishGrid } from './dish-grid'
 import { BannerSlider } from './banner-slider'
 
+// Trang nay sau auth nen render on-demand - khong can prerender lúc build
+// Tranh tinh trang Docker build fail khi backend chua chay
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Nhất Nướng - Trang chủ',
   description: 'Nhà hàng Nhất Nướng - Đệ nhất nướng lẩu',
