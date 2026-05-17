@@ -620,14 +620,14 @@ export default function ManageOrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Đơn hàng</h1>
-          <p className="text-sm text-muted-foreground">Quản lý đơn hàng</p>
+          <h1 className="text-3xl font-bold">Đơn hàng</h1>
+          <p className="text-base text-muted-foreground mt-1">Quản lý đơn hàng</p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-base font-medium text-primary-foreground"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5" />
           Tạo đơn
         </button>
       </div>
@@ -637,26 +637,26 @@ export default function ManageOrdersPage() {
       {/* Date range filter */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Từ</span>
+          <span className="text-base font-medium text-muted-foreground">Từ</span>
           <input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
+            className="rounded-md border bg-background px-3 py-2 text-base"
           />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Đến</span>
+          <span className="text-base font-medium text-muted-foreground">Đến</span>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
+            className="rounded-md border bg-background px-3 py-2 text-base"
           />
         </div>
         <button
           onClick={handleReset}
-          className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+          className="rounded-md border px-4 py-2 text-base font-medium hover:bg-accent"
         >
           Reset
         </button>
@@ -669,12 +669,12 @@ export default function ManageOrdersPage() {
           placeholder="Bàn"
           value={tableFilter}
           onChange={(e) => setTableFilter(e.target.value)}
-          className="rounded-md border bg-background px-3 py-1.5 text-sm w-24"
+          className="rounded-md border bg-background px-3 py-2 text-base w-28"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border bg-background px-3 py-1.5 text-sm"
+          className="rounded-md border bg-background px-3 py-2 text-base"
         >
           <option value="">Trạng thái</option>
           {statuses.map((s) => (
@@ -725,7 +725,7 @@ export default function ManageOrdersPage() {
           <button
             key={s}
             onClick={() => setStatusFilter(statusFilter === s ? '' : s)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
               statusFilter === s ? 'ring-2 ring-primary' : ''
             } ${statusBadgeColors[s] ?? 'bg-muted'}`}
           >
@@ -736,32 +736,32 @@ export default function ManageOrdersPage() {
 
       {/* Orders table */}
       {isLoading ? (
-        <div className="text-center text-muted-foreground">Đang tải...</div>
+        <div className="text-center text-base text-muted-foreground py-8">Đang tải...</div>
       ) : filteredOrders.length === 0 ? (
-        <div className="text-center text-muted-foreground py-12">Không có đơn hàng</div>
+        <div className="text-center text-base text-muted-foreground py-12">Không có đơn hàng</div>
       ) : (
         <div className="rounded-lg border">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left text-sm font-medium">Mã đơn</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Bàn</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Món ăn</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Tổng tiền</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Trạng thái</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Nhân viên</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Thời gian</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Hành động</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Mã đơn</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Bàn</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Món ăn</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Tổng tiền</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Trạng thái</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Nhân viên</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Thời gian</th>
+                <th className="px-4 py-3.5 text-left text-base font-semibold">Hành động</th>
               </tr>
             </thead>
             <tbody>
               {ordersByDay.map((group) => (
                 <React.Fragment key={group.date}>
                   <tr>
-                    <td colSpan={8} className="bg-muted/70 px-4 py-2">
+                    <td colSpan={8} className="bg-muted/70 px-4 py-2.5">
                       <div className="flex items-center gap-3">
                         <div className="h-px flex-1 bg-border" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                        <span className="text-sm font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
                           {group.label} ({group.orders.length} đơn)
                         </span>
                         <div className="h-px flex-1 bg-border" />
@@ -781,14 +781,14 @@ export default function ManageOrdersPage() {
                     }
                     return (
                       <React.Fragment key={order.id}>
-                        <tr className="border-b">
-                          <td className="px-4 py-3 text-sm">#{order.id}</td>
-                          <td className="px-4 py-3 text-sm">Bàn {order.tableNumber}</td>
-                          <td className="px-4 py-3 text-sm">
+                        <tr className="border-b hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3.5 text-base font-medium">#{order.id}</td>
+                          <td className="px-4 py-3.5 text-base font-medium">Bàn {order.tableNumber}</td>
+                          <td className="px-4 py-3.5 text-base">
                             {items.length > 0 ? (
                               <button
                                 onClick={toggleExpand}
-                                className="flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-medium hover:bg-accent transition-colors"
+                                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent transition-colors"
                               >
                                 <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                 {items.length} món
@@ -797,16 +797,16 @@ export default function ManageOrdersPage() {
                               <span className="text-muted-foreground">Không có món</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3.5 text-base font-semibold text-primary">
                             {order.totalPrice?.toLocaleString('vi-VN')}đ
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3.5">
                             <select
                               value={order.status}
                               onChange={(e) =>
                                 handleStatusChange(order, e.target.value as OrderStatus)
                               }
-                              className="rounded-md border bg-background px-2 py-1 text-sm"
+                              className="rounded-md border bg-background px-2.5 py-1.5 text-sm font-medium"
                             >
                               {statuses.map((s) => (
                                 <option key={s} value={s}>
@@ -815,18 +815,18 @@ export default function ManageOrdersPage() {
                               ))}
                             </select>
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3.5 text-base">
                             {order.processedByName ?? '—'}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3.5 text-sm text-muted-foreground">
                             {formatDateTime(order.createdAt)}
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-1">
+                          <td className="px-4 py-3.5">
+                            <div className="flex gap-1.5">
                               {(order.status === 'Pending' || order.status === 'Processing') && (
                                 <button
                                   onClick={() => setEditOrder(order)}
-                                  className="rounded-md bg-orange-500 px-2 py-1 text-sm text-white hover:bg-orange-600"
+                                  className="rounded-md bg-orange-500 p-2 text-white hover:bg-orange-600"
                                   title="Sửa đơn"
                                 >
                                   <Pencil className="h-4 w-4" />
@@ -836,7 +836,7 @@ export default function ManageOrdersPage() {
                                 <button
                                   onClick={() => handleDelete(order.id)}
                                   disabled={deleteOrder.isPending}
-                                  className="rounded-md bg-destructive px-2 py-1 text-sm text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                                  className="rounded-md bg-destructive p-2 text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                                   title="Xóa"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -846,7 +846,7 @@ export default function ManageOrdersPage() {
                                 <button
                                   onClick={() => handlePaymentQR(order.id)}
                                   disabled={paymentQR.isPending}
-                                  className="rounded-md bg-green-600 px-2 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                                  className="rounded-md bg-green-600 p-2 text-white hover:bg-green-700 disabled:opacity-50"
                                   title="Thanh toán QR"
                                 >
                                   <QrCode className="h-4 w-4" />
@@ -854,7 +854,7 @@ export default function ManageOrdersPage() {
                               )}
                               <button
                                 onClick={() => setInvoiceOrder(order)}
-                                className="rounded-md bg-blue-600 px-2 py-1 text-sm text-white hover:bg-blue-700"
+                                className="rounded-md bg-blue-600 p-2 text-white hover:bg-blue-700"
                                 title="Hóa đơn"
                               >
                                 <Receipt className="h-4 w-4" />

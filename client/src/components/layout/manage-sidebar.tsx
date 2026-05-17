@@ -57,28 +57,28 @@ function SidebarContent({ navItems, pathname, account, onNavigate }: {
   return (
     <div className="flex h-full flex-col gap-2 p-4">
       <div className="mb-4 flex items-center gap-3 px-2">
-        <img src="/images/logo/logo.jpg" alt="Nhat Nuong" className="h-10 w-10 rounded-lg" />
+        <img src="/images/logo/logo.jpg" alt="Nhat Nuong" className="h-12 w-12 rounded-lg" />
         <div>
-          <h2 className="text-lg font-semibold leading-tight">Nhat Nuong</h2>
+          <h2 className="text-xl font-bold leading-tight">Nhat Nuong</h2>
           <p className="text-sm text-muted-foreground">
             {account?.name} ({account?.role})
           </p>
         </div>
       </div>
-      <nav className="flex flex-col gap-1.5">
+      <nav className="flex flex-col gap-1">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-4 py-3 text-base transition-all hover:bg-accent',
+              'flex items-center gap-3 rounded-lg px-4 py-3 text-[15px] font-medium transition-all hover:bg-accent',
               pathname.startsWith(item.href)
-                ? 'bg-primary text-primary-foreground font-medium'
-                : 'text-foreground/70 hover:text-foreground'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-foreground/80 hover:text-foreground'
             )}
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-[18px] w-[18px] shrink-0" />
             {item.label}
           </Link>
         ))}
@@ -96,7 +96,7 @@ export function ManageSidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r bg-background md:block">
+      <aside className="hidden w-72 shrink-0 border-r bg-background md:block">
         <SidebarContent navItems={navItems} pathname={pathname} account={account} />
       </aside>
 
@@ -113,7 +113,7 @@ export function ManageSidebar() {
       {open && (
         <>
           <div className="fixed inset-0 z-50 bg-black/50 md:hidden" onClick={() => setOpen(false)} />
-          <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-background shadow-xl md:hidden animate-in slide-in-from-left duration-200">
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 bg-background shadow-xl md:hidden animate-in slide-in-from-left duration-200">
             <button
               onClick={() => setOpen(false)}
               className="absolute right-3 top-3 rounded-md p-1.5 hover:bg-accent"

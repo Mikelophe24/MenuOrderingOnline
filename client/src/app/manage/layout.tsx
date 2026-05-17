@@ -260,8 +260,8 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       <ManageSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-14 items-center justify-between border-b px-6 pl-14 md:pl-6">
-          <h2 className="font-semibold">Quản lý nhà hàng Nhất Nướng</h2>
+        <header className="flex h-16 items-center justify-between border-b px-6 pl-14 md:pl-6">
+          <h2 className="text-lg font-bold">Quản lý nhà hàng Nhất Nướng</h2>
           <div className="flex items-center gap-2">
             <div className="relative">
               <button
@@ -319,17 +319,17 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
             <ThemeToggle />
             <div className="flex items-center gap-2">
               {account?.avatar ? (
-                <img src={account.avatar} alt={account.name} className="h-8 w-8 rounded-full object-cover" />
+                <img src={account.avatar} alt={account.name} className="h-9 w-9 rounded-full object-cover" />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                   {account?.name?.slice(0, 2).toUpperCase() ?? '??'}
                 </div>
               )}
-              <span className="text-sm text-muted-foreground">{account?.name}</span>
+              <span className="text-sm font-medium text-foreground/80">{account?.name}</span>
             </div>
             <button
               onClick={() => logoutMutation.mutate()}
-              className="rounded-md px-3 py-1 text-sm hover:bg-accent"
+              className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-accent"
             >
               Đăng xuất
             </button>
