@@ -68,25 +68,25 @@ export default function LandingPage() {
       <LandingNav />
 
       {/* Banner Slider with overlay */}
-      <section className="container mt-4">
+      <section className="container mt-3 sm:mt-4">
         <BannerSlider showOverlay />
       </section>
 
       {/* Giới thiệu nhà hàng */}
-      <section className="container py-12">
-        <div className="grid gap-8 md:grid-cols-2 items-center">
+      <section className="container py-8 sm:py-12">
+        <div className="grid gap-6 sm:gap-8 md:grid-cols-2 items-center">
           {/* Text */}
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             <div>
-              <span className="text-sm font-semibold text-red-600 uppercase tracking-wider">Về chúng tôi</span>
-              <h2 className="text-3xl font-bold mt-1">Nhất Nướng — Đệ Nhất Nướng Lẩu</h2>
+              <span className="text-xs sm:text-sm font-semibold text-red-600 uppercase tracking-wider">Về chúng tôi</span>
+              <h2 className="text-2xl sm:text-3xl font-bold mt-1">Nhất Nướng — Đệ Nhất Nướng Lẩu</h2>
             </div>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
               Nhất Nướng là thương hiệu hàng đầu trong chuỗi nhà hàng lẩu nướng than hoa không khói tại Hà Nội.
               Với triết lý mang đến trải nghiệm ẩm thực Việt Nam đích thực, chúng tôi phục vụ những món nướng và lẩu
               thơm ngon, đậm đà trên bếp than hồng đặc trưng.
             </p>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
               Nguyên liệu tươi ngon mỗi ngày — từ bò ta nướng tảng, sườn bò Mỹ, lõi vai bò Mỹ đến các set lẩu thái,
               lẩu nấm hải sản. Tất cả được phục vụ trong không gian ấm cúng, phù hợp cho gia đình, bạn bè và tiệc liên hoan.
             </p>
@@ -101,31 +101,31 @@ export default function LandingPage() {
           </div>
 
           {/* Images grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <img
               src="/images/about/about-banner.jpg"
               alt="Nhất Nướng - Nướng & Lẩu"
-              className="w-full h-48 object-cover rounded-xl col-span-2"
+              className="w-full h-40 sm:h-48 object-cover rounded-xl col-span-2"
             />
             <img
               src="/images/about/about-food-1.jpg"
               alt="Bò ta nướng tảng"
-              className="w-full h-40 object-cover rounded-xl"
+              className="w-full h-32 sm:h-40 object-cover rounded-xl"
             />
             <img
               src="/images/about/about-food-2.jpg"
               alt="Sườn bò Mỹ"
-              className="w-full h-40 object-cover rounded-xl"
+              className="w-full h-32 sm:h-40 object-cover rounded-xl"
             />
           </div>
         </div>
       </section>
 
       {/* Menu */}
-      <section id="thuc-don" className="container pb-12 space-y-8">
+      <section id="thuc-don" className="container pb-12 space-y-6 sm:space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Thực đơn</h1>
-          <p className="mt-2 text-lg text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">Thực đơn</h1>
+          <p className="mt-2 text-sm sm:text-base md:text-lg text-muted-foreground">
             Khám phá các món ăn hấp dẫn của chúng tôi
           </p>
         </div>
@@ -135,13 +135,14 @@ export default function LandingPage() {
         </Suspense>
       </section>
 
-      {/* Hotline floating */}
+      {/* Hotline floating - icon only tren mobile, full text tu sm tro len */}
       <a
         href="tel:0927083333"
-        className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full bg-green-500 px-5 py-3 font-medium text-white shadow-lg hover:bg-green-600 transition-colors z-50"
+        aria-label="Gọi hotline 0927 083 333"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 flex items-center gap-2 rounded-full bg-green-500 p-3 sm:px-5 sm:py-3 font-medium text-white shadow-lg hover:bg-green-600 transition-colors z-50"
       >
         <Phone className="h-5 w-5" />
-        0927 083 333
+        <span className="hidden sm:inline">0927 083 333</span>
       </a>
 
       {/* Footer */}

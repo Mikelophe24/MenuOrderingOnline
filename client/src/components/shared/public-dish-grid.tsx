@@ -66,7 +66,7 @@ export function PublicDishGrid({ dishes, categories }: { dishes: PublicDish[]; c
       {filtered.length === 0 ? (
         <p className="py-12 text-center text-muted-foreground">Chưa có món ăn nào.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
           {paginatedDishes.map((dish) => {
             const isOutOfStock = dish.status === 'Unavailable'
             return (
@@ -100,15 +100,15 @@ export function PublicDishGrid({ dishes, categories }: { dishes: PublicDish[]; c
                   </div>
                 )}
               </div>
-              <div className="p-4 space-y-1">
+              <div className="p-3 sm:p-4 space-y-1">
                 {dish.categoryName && (
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {dish.categoryName}
                   </span>
                 )}
-                <h3 className="font-semibold text-base leading-tight">{dish.name}</h3>
-                <p className="line-clamp-1 text-sm text-muted-foreground">{dish.description}</p>
-                <p className="text-lg font-bold text-primary pt-1">
+                <h3 className="font-semibold text-sm sm:text-base leading-tight line-clamp-2">{dish.name}</h3>
+                <p className="hidden sm:block line-clamp-1 text-sm text-muted-foreground">{dish.description}</p>
+                <p className="text-base sm:text-lg font-bold text-primary pt-1">
                   {dish.price.toLocaleString('vi-VN')}đ
                 </p>
               </div>
@@ -120,11 +120,11 @@ export function PublicDishGrid({ dishes, categories }: { dishes: PublicDish[]; c
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-4">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pt-4">
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="rounded-md border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
+            className="rounded-md border px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
           >
             Trước
           </button>
@@ -132,7 +132,7 @@ export function PublicDishGrid({ dishes, categories }: { dishes: PublicDish[]; c
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-md px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors min-w-[32px] ${
                 currentPage === page
                   ? 'bg-primary text-primary-foreground'
                   : 'border hover:bg-accent'
@@ -144,7 +144,7 @@ export function PublicDishGrid({ dishes, categories }: { dishes: PublicDish[]; c
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="rounded-md border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
+            className="rounded-md border px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
           >
             Sau
           </button>
