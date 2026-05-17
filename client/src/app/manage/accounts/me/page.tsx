@@ -1,6 +1,5 @@
 'use client'
 
-import { useRef } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/stores/auth.store'
 import { useMutation } from '@tanstack/react-query'
@@ -8,7 +7,7 @@ import http from '@/lib/http'
 import { useForm } from 'react-hook-form'
 import { useUploadImage } from '@/hooks/use-upload'
 import { toast } from 'sonner'
-import { Camera } from 'lucide-react'
+import { ImageUploadField } from '@/components/shared/image-upload-field'
 
 interface ProfileForm {
   name: string
@@ -18,7 +17,6 @@ interface ProfileForm {
 export default function AccountPage() {
   const account = useAuthStore((s) => s.account)
   const setAccount = useAuthStore((s) => s.setAccount)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadImage = useUploadImage()
 
   const { register, handleSubmit, setValue, watch } = useForm<ProfileForm>({
@@ -55,37 +53,24 @@ export default function AccountPage() {
 
       <form onSubmit={handleSubmit((d) => updateProfile.mutate(d))} className="space-y-4">
         {/* Avatar */}
-        <div className="flex items-center gap-4">
-          <div
-            className="relative cursor-pointer group"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="h-20 w-20 rounded-full object-cover" />
-            ) : (
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                {initials}
-              </div>
-            )}
-            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera className="h-6 w-6 text-white" />
-            </div>
-            {uploadImage.isPending && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              </div>
-            )}
+        <div>
+          <label className="text-sm font-medium">Ảnh đại diện</label>
+          <div className="mt-2">
+            <ImageUploadField
+              value={avatarUrl || undefined}
+              onChange={handleAvatarChange}
+              isUploading={uploadImage.isPending}
+              shape="circle"
+              size="sm"
+              hint="JPEG, PNG, WebP"
+              emptyLabel="Click để thêm ảnh đại diện"
+              fallback={
+                <div className="flex h-full w-full items-center justify-center bg-primary text-2xl font-bold text-primary-foreground">
+                  {initials}
+                </div>
+              }
+            />
           </div>
-          <div className="text-sm text-muted-foreground">
-            Click để đổi ảnh đại diện
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarChange}
-            className="hidden"
-          />
           <input type="hidden" {...register('avatar')} />
         </div>
 

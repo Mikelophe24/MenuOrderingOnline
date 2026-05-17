@@ -8,7 +8,7 @@ import { categorySchema, type CategoryFormValues } from '@/schemas/category.sche
 import { useCreateCategory } from '@/hooks/use-categories'
 import { useUploadImage } from '@/hooks/use-upload'
 import { toast } from 'sonner'
-import { ImagePlus } from 'lucide-react'
+import { ImageUploadField } from '@/components/shared/image-upload-field'
 
 export default function AddCategoryPage() {
   const router = useRouter()
@@ -53,26 +53,11 @@ export default function AddCategoryPage() {
         <div>
           <label className="text-sm font-medium">Hình ảnh</label>
           <div className="mt-1">
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 hover:bg-accent/50 transition-colors">
-              {preview ? (
-                <img src={preview} alt="Preview" className="h-40 w-40 rounded-lg object-cover" />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <ImagePlus className="h-10 w-10" />
-                  <span className="text-sm">Click để chọn ảnh</span>
-                  <span className="text-xs">JPEG, PNG, WebP (max 5MB)</span>
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </label>
-            {uploadImage.isPending && (
-              <p className="mt-1 text-sm text-muted-foreground">Đang tải ảnh lên...</p>
-            )}
+            <ImageUploadField
+              value={preview ?? undefined}
+              onChange={handleImageChange}
+              isUploading={uploadImage.isPending}
+            />
           </div>
         </div>
 
