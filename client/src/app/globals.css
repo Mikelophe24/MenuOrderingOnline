@@ -4,25 +4,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Vintage paper palette - matte/diu mat + text dam de doc ro */
+    --background: 38 20% 88%;            /* giay matte beige #E4DDCB */
+    --foreground: 25 50% 10%;            /* nau dam de tuong phan ro tren bg sang */
+    --card: 38 24% 92%;
+    --card-foreground: 25 50% 10%;
+    --popover: 38 24% 92%;
+    --popover-foreground: 25 50% 10%;
+    --primary: 25 55% 16%;               /* nau dam dam cho button readable */
+    --primary-foreground: 38 22% 95%;
+    --secondary: 36 16% 84%;
+    --secondary-foreground: 25 50% 14%;
+    --muted: 36 14% 86%;
+    --muted-foreground: 28 30% 28%;      /* nau medium - secondary text van rat ro */
+    --accent: 36 16% 84%;
+    --accent-foreground: 25 50% 14%;
+    --destructive: 5 65% 35%;
+    --destructive-foreground: 38 22% 95%;
+    --border: 35 20% 70%;                /* duong ke nau ro hon */
+    --input: 35 20% 70%;
+    --ring: 25 55% 16%;
     --radius: 0.5rem;
   }
 
