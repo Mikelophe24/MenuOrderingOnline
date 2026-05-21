@@ -13,18 +13,16 @@ export function getRefreshToken(): string | undefined {
 }
 
 export function setTokens(accessToken: string, refreshToken: string) {
-  // Decode token to get expiry
-  const payload = decodeToken(accessToken)
-  const accessExpires = payload ? new Date(payload.exp * 1000) : undefined
-
+  // Cookie sinh dai hon JWT de middleware/client con co hoi goi refresh-token.
+  // JWT van tu validate expiry o backend qua signature + exp claim, het han se tra 401 -> http.ts refresh.
   Cookies.set(ACCESS_TOKEN_KEY, accessToken, {
-    expires: accessExpires,
+    expires: 30,
     path: '/',
     sameSite: 'lax',
   })
 
   Cookies.set(REFRESH_TOKEN_KEY, refreshToken, {
-    expires: 30, // 30 days
+    expires: 30,
     path: '/',
     sameSite: 'lax',
   })
