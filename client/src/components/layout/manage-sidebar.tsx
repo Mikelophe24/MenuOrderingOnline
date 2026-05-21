@@ -48,23 +48,34 @@ const getNavItems = (role: Role | undefined) => {
   return items
 }
 
+const ROLE_LABEL_VI: Record<string, string> = {
+  Manager: 'Quản lý',
+  Employee: 'Nhân viên',
+}
+
 function SidebarContent({ navItems, pathname, account, onNavigate }: {
   navItems: ReturnType<typeof getNavItems>
   pathname: string
   account: { name: string; role: string } | null
   onNavigate?: () => void
 }) {
+  const roleLabel = account?.role ? (ROLE_LABEL_VI[account.role] ?? account.role) : ''
   return (
     <div className="flex h-full flex-col gap-2 p-4">
-      <div className="mb-4 flex items-center gap-3 px-2">
-        <img src="/images/logo/logo.jpg" alt="Nhat Nuong" className="h-12 w-12 rounded-lg" />
+      <Link
+        href="/manage/home"
+        onClick={onNavigate}
+        className="mb-4 flex items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-accent"
+        title="Về trang chủ"
+      >
+        <img src="/images/logo/logo.jpg" alt="Nhất Nướng" className="h-12 w-12 rounded-lg" />
         <div>
-          <h2 className="text-xl font-bold leading-tight">Nhat Nuong</h2>
+          <h2 className="text-xl font-bold leading-tight">Nhất Nướng</h2>
           <p className="text-sm text-muted-foreground">
-            {account?.name} ({account?.role})
+            {account?.name}{roleLabel && ` (${roleLabel})`}
           </p>
         </div>
-      </div>
+      </Link>
       <nav className="flex flex-col gap-1">
         {navItems.map((item) => (
           <Link

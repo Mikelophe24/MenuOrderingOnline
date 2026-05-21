@@ -51,7 +51,7 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
       </head>
       <body>
         <div class="header">
-          <h1>Nhat Nuong</h1>
+          <h1>Nhất Nướng</h1>
           <p>Hóa đơn thanh toán</p>
         </div>
         <div class="info">
@@ -99,7 +99,7 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
 
         <div className="space-y-4">
           <div className="text-center border-b border-dashed pb-4">
-            <h3 className="text-xl font-bold">Nhat Nuong</h3>
+            <h3 className="text-xl font-bold">Nhất Nướng</h3>
             <p className="text-sm text-muted-foreground">Hóa đơn thanh toán</p>
           </div>
 
@@ -591,7 +591,7 @@ export default function ManageOrdersPage() {
     if (!confirm('Bạn có chắc muốn xóa đơn hàng này?')) return
     deleteOrder.mutate(orderId, {
       onSuccess: () => { toast.success('Đã xóa đơn hàng') },
-      onError: () => { toast.error('Không thể xóa đơn đã thanh toán') },
+      onError: () => { toast.error('Chỉ có thể xóa đơn đang chờ xác nhận') },
     })
   }
 
@@ -832,7 +832,7 @@ export default function ManageOrdersPage() {
                                   <Pencil className="h-4 w-4" />
                                 </button>
                               )}
-                              {isManager && (
+                              {isManager && order.status === 'Pending' && (
                                 <button
                                   onClick={() => handleDelete(order.id)}
                                   disabled={deleteOrder.isPending}

@@ -750,37 +750,13 @@ public class OrdersController : ControllerBase
         var order = await _orderRepo.GetWithItemsAsync(id);
         if (order == null) return NotFound(ApiResponse<object>.Fail("Order not found", 404));
 
-        if (order.Status == OrderStatus.Paid)
-            return BadRequest(ApiResponse<object>.Fail("Không thể xóa đơn hàng đã thanh toán"));
-
-        // FIX #3: Restore stock if order was Processing or Delivered (stock already deducted)
-        if (order.Status == OrderStatus.Processing || order.Status == OrderStatus.Delivered)
-        {
-            foreach (var item in order.OrderItems)
-            {
-                var dishIngredients = await _context.DishIngredients
-                    .Where(di => di.DishId == item.DishId)
-                    .Include(di => di.Ingredient)
-                    .ToListAsync();
-
-                foreach (var di in dishIngredients)
-                {
-                    di.Ingredient.CurrentStock += di.QuantityNeeded * item.Quantity;
-                }
-            }
-            await _context.SaveChangesAsync();
-        }
+        // Chi cho phep xoa khi don dang cho xac nhan (Pending) - cac trang thai khac da phat sinh nghiep vu
+        if (order.Status != OrderStatus.Pending)
+            return BadRequest(ApiResponse<object>.Fail("Chỉ có thể xóa đơn hàng đang ở trạng thái chờ xác nhận"));
 
         await _orderRepo.DeleteAsync(order);
 
         await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
-
-        // Update dish availability after stock restoration
-        if (order.Status == OrderStatus.Processing || order.Status == OrderStatus.Delivered)
-        {
-            await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
-            await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
-        }
 
         return Ok(ApiResponse<object>.Success(null!, "Order deleted"));
     }

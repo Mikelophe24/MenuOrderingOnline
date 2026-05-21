@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ManageSidebar } from '@/components/layout/manage-sidebar'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
@@ -58,7 +59,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
     setNotifications((prev) => [notif, ...prev])
     playNotificationSound()
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Nhat Nuong', {
+      new Notification('Nhất Nướng', {
         body: notif.title,
         icon: '/images/logo/logo.jpg',
       })
@@ -127,8 +128,8 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
 
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Nhat Nuong - Thanh toan', {
-            body: `Ban ${order.tableNumber} da thanh toan ${order.totalPrice.toLocaleString('vi-VN')}d`,
+          new Notification('Nhất Nướng - Thanh toán', {
+            body: `Bàn ${order.tableNumber} đã thanh toán ${order.totalPrice.toLocaleString('vi-VN')}đ`,
             icon: '/images/logo/logo.jpg',
           })
         }
@@ -166,7 +167,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         setNotifications((prev) => [notif, ...prev])
         playNotificationSound()
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Nhat Nuong', { body: notif.title, icon: '/images/logo/logo.jpg' })
+          new Notification('Nhất Nướng', { body: notif.title, icon: '/images/logo/logo.jpg' })
         }
         toast.info(`Đặt bàn mới: ${reservation.guestName} - ${reservation.partySize} khách`, {
           duration: 5000,
@@ -317,7 +318,11 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
               )}
             </div>
             <ThemeToggle />
-            <div className="flex items-center gap-2">
+            <Link
+              href="/manage/accounts/me"
+              className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-accent"
+              title="Tài khoản của tôi"
+            >
               {account?.avatar ? (
                 <img src={account.avatar} alt={account.name} className="h-9 w-9 rounded-full object-cover" />
               ) : (
@@ -326,7 +331,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                 </div>
               )}
               <span className="text-sm font-medium text-foreground/80">{account?.name}</span>
-            </div>
+            </Link>
             <button
               onClick={() => logoutMutation.mutate()}
               className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-accent"

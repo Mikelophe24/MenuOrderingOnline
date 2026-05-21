@@ -8,8 +8,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin', 'vietnamese'] })
 
 export const metadata: Metadata = {
-  title: 'Nhat Nuong - He thong goi mon truc tuyen',
-  description: 'He thong menu dien tu va goi mon tai ban cho nha hang Nhat Nuong',
+  title: 'Nhất Nướng - Hệ thống gọi món trực tuyến',
+  description: 'Hệ thống menu điện tử và gọi món tại bàn cho nhà hàng Nhất Nướng',
 }
 
 // Khoa zoom tren mobile - giu kich thuoc UI co dinh
