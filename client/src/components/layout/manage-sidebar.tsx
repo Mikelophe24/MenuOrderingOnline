@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth.store'
 import { Role } from '@/types'
 import {
-  Home,
   LayoutDashboard,
   ClipboardList,
   UtensilsCrossed,
@@ -21,11 +20,12 @@ import {
   CalendarCheck,
   Menu,
   X,
+  ScrollText,
 } from 'lucide-react'
 
 const getNavItems = (role: Role | undefined) => {
   const items = [
-    { href: '/manage/home', icon: Home, label: 'Trang chủ' },
+    { href: '/manage/home', icon: ScrollText, label: 'Xem thực đơn' },
     ...(role === Role.Manager ? [{ href: '/manage/dashboard', icon: LayoutDashboard, label: 'Thống kê' }] : []),
     { href: '/manage/orders', icon: ClipboardList, label: 'Quản lý đơn hàng' },
     { href: '/manage/categories', icon: FolderOpen, label: 'Quản lý danh mục' },
@@ -66,7 +66,7 @@ function SidebarContent({ navItems, pathname, account, onNavigate }: {
         href="/manage/home"
         onClick={onNavigate}
         className="mb-4 flex items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-accent"
-        title="Về trang chủ"
+        title="Xem thực đơn"
       >
         <img src="/images/logo/logo.jpg" alt="Nhất Nướng" className="h-12 w-12 rounded-lg" />
         <div>

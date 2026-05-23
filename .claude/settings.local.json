@@ -62,7 +62,18 @@
       "Bash(ls -la \"D:\\\\OnlineMenuApp\\\\client\\\\src\\\\app\\\\\\(auth\\)\")",
       "WebFetch(domain:iconsaigon.com)",
       "WebFetch(domain:www.facebook.com)",
-      "WebFetch(domain:www.nhatnuong.vn)"
+      "WebFetch(domain:www.nhatnuong.vn)",
+      "Bash(git worktree *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git check-ignore *)",
+      "Bash(dotnet user-secrets *)",
+      "Bash(printenv ASPNETCORE_ENVIRONMENT)",
+      "Bash(printenv DOTNET_ENVIRONMENT)",
+      "Bash(echo \"===EXIT $?===\")",
+      "Bash(git commit *)"
     ]
   }
 }
