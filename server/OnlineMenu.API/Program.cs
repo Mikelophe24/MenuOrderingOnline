@@ -28,6 +28,14 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddHostedService<OnlineMenu.API.Extensions.ReservationBackgroundService>();
 
+// ===== Chatbot (Groq) =====
+builder.Services.AddHttpClient<OnlineMenu.Infrastructure.Services.Chatbot.GroqClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddScoped<OnlineMenu.Infrastructure.Services.Chatbot.ChatContextBuilder>();
+builder.Services.AddScoped<IChatbotService, OnlineMenu.Infrastructure.Services.Chatbot.ChatbotService>();
+
 // ===== Authentication (JWT) =====
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -167,6 +175,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<OrderHub>("/hubs/order");
+app.MapHub<OnlineMenu.API.Hubs.ChatHub>("/hubs/chat");
 
 
 app.Run();

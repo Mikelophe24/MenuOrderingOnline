@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<DishIngredient> DishIngredients => Set<DishIngredient>();
     public DbSet<Reservation> Reservations => Set<Reservation>();
+    public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -146,6 +148,33 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.ProcessedById)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ChatSession
+        modelBuilder.Entity<ChatSession>(entity =>
+        {
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.LastActivityAt);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasOne(e => e.AssignedStaff)
+                  .WithMany()
+                  .HasForeignKey(e => e.AssignedStaffId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ChatMessage
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasIndex(e => new { e.SessionId, e.CreatedAt });
+            entity.Property(e => e.Role).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Content).IsRequired();
+
+            entity.HasOne(e => e.Session)
+                  .WithMany(s => s.Messages)
+                  .HasForeignKey(e => e.SessionId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -11,6 +11,9 @@ backups/
 client/.env.local
 client/.env.*.local
 
+# Secrets: appsettings.Development.json chua API key thuc (Groq, ...) — chi giu local
+server/OnlineMenu.API/appsettings.Development.json
+
 # .NET
 server/**/bin/
 server/**/obj/

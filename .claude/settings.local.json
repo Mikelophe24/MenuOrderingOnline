@@ -73,7 +73,30 @@
       "Bash(printenv ASPNETCORE_ENVIRONMENT)",
       "Bash(printenv DOTNET_ENVIRONMENT)",
       "Bash(echo \"===EXIT $?===\")",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\OnlineMenuApp\\\\server\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(git clone *)",
+      "Bash(git -C D:/hotronguoikhiemthi config user.name \"trandz123\")",
+      "Bash(git -C D:/hotronguoikhiemthi config user.email \"205863924+trandz123@users.noreply.github.com\")",
+      "Bash(git -C D:/hotronguoikhiemthi config --get user.name)",
+      "Bash(git -C D:/hotronguoikhiemthi config --get user.email)",
+      "Bash(git -C D:/hotronguoikhiemthi status)",
+      "Bash(git -C D:/hotronguoikhiemthi branch -m main)",
+      "Bash(git -C D:/hotronguoikhiemthi add .gitignore README.md docs/PLAN.md docs/FEATURES.md)",
+      "Bash(git *)",
+      "Bash(where gh *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(Get-ChildItem -Path D:\\\\OnlineMenuApp -Directory -ErrorAction SilentlyContinue)",
+      "Bash(dir \"D:\\\\OnlineMenuApp\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(python *)",
+      "Bash(ASPNETCORE_ENVIRONMENT=Development dotnet run --no-build)",
+      "Bash(tee /tmp/api.log)",
+      "Bash(tasklist /FI \"PID eq 40636\")",
+      "Bash(tee /tmp/api2.log)",
+      "Bash(tee /tmp/api3.log)"
     ]
   }
 }

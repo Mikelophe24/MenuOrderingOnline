@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { QueryProvider } from '@/components/layout/query-provider'
+import { ChatWidget } from '@/components/chat/chat-widget'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -38,6 +39,7 @@ export default function RootLayout({
         >
           <QueryProvider>
             {children}
+            <ChatWidget />
             <Toaster richColors position="top-right" duration={2000} />
           </QueryProvider>
         </ThemeProvider>

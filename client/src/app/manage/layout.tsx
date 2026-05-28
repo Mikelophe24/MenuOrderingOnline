@@ -11,16 +11,17 @@ import { getAccessToken } from '@/lib/tokens'
 import { startConnection, getConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Bell, CalendarCheck } from 'lucide-react'
+import { Bell, CalendarCheck, MessageCircle } from 'lucide-react'
 import { playAmountVoice } from '@/lib/voice-amount'
 import { formatTime } from '@/lib/utils'
 import http from '@/lib/http'
+import { startChatConnection, getChatConnection } from '@/lib/chat-signalr'
 import type { ReactNode } from 'react'
 import type { Order, Reservation, ApiResponse, PaginatedResponse, Dish, Table, DashboardData, Ingredient } from '@/types'
 
 interface Notification {
   id: string
-  type: 'order' | 'reservation'
+  type: 'order' | 'reservation' | 'chat'
   title: string
   subtitle: string
   time: string
@@ -208,6 +209,76 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ChatHub: lang nghe escalation tu khach + day vao chuong thong bao toan layout
+  useEffect(() => {
+    let cancelled = false
+    const escalatedSessionIds = new Set<number>() // dedup khi reconnect
+
+    async function connectChat() {
+      const conn = await startChatConnection()
+      if (!conn || cancelled) return
+      try {
+        await conn.invoke('JoinStaffChats')
+      } catch {
+        // ignore
+      }
+
+      conn.on('ChatEscalated', (payload: { sessionId: number; lastUserMessage: string | null; escalatedAt: string }) => {
+        // Dedup: cung 1 sessionId chi push notif 1 lan (tranh re-fire khi reconnect server)
+        if (escalatedSessionIds.has(payload.sessionId)) return
+        escalatedSessionIds.add(payload.sessionId)
+
+        const notif: Notification = {
+          id: `chat-${payload.sessionId}-${Date.now()}`,
+          type: 'chat',
+          title: `Khách yêu cầu hỗ trợ`,
+          subtitle: payload.lastUserMessage ?? '(không có nội dung)',
+          time: payload.escalatedAt ?? new Date().toISOString(),
+          link: `/manage/chats/${payload.sessionId}`,
+        }
+        setNotifications((prev) => [notif, ...prev])
+        playNotificationSound()
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Nhất Nướng - Hỗ trợ khách', {
+            body: notif.subtitle,
+            icon: '/images/logo/logo.jpg',
+          })
+        }
+        toast.info(`Khách yêu cầu hỗ trợ qua chat`, {
+          description: payload.lastUserMessage ?? '',
+          duration: 2000,
+          action: { label: 'Xem', onClick: () => router.push(notif.link) },
+        })
+        queryClient.invalidateQueries({ queryKey: ['staff-chats'] })
+      })
+
+      conn.on('SessionRemoved', (payload: { sessionId: number }) => {
+        escalatedSessionIds.delete(payload.sessionId)
+        // Xoa khoi notification panel neu chua xem
+        setNotifications((prev) => prev.filter((n) => !n.id.startsWith(`chat-${payload.sessionId}-`)))
+        queryClient.invalidateQueries({ queryKey: ['staff-chats'] })
+      })
+
+      conn.onreconnected(async () => {
+        try {
+          await conn.invoke('JoinStaffChats')
+        } catch {
+          // ignore
+        }
+      })
+    }
+
+    connectChat()
+
+    return () => {
+      cancelled = true
+      const conn = getChatConnection()
+      conn.off('ChatEscalated')
+      conn.off('SessionRemoved')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Prefetch data + route bundles for all manage pages on mount
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
@@ -301,8 +372,14 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                             onClick={() => { setShowNotifPanel(false); router.push(notif.link) }}
                             className="flex w-full items-start gap-3 border-b px-4 py-3 text-left hover:bg-accent last:border-0"
                           >
-                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${notif.type === 'reservation' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-primary/10 text-primary'}`}>
-                              {notif.type === 'reservation' ? <CalendarCheck className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                              notif.type === 'reservation' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
+                              notif.type === 'chat' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                              'bg-primary/10 text-primary'
+                            }`}>
+                              {notif.type === 'reservation' ? <CalendarCheck className="h-4 w-4" /> :
+                               notif.type === 'chat' ? <MessageCircle className="h-4 w-4" /> :
+                               <Bell className="h-4 w-4" />}
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-medium">{notif.title}</p>

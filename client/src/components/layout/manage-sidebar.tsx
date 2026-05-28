@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   ScrollText,
+  MessageCircle,
 } from 'lucide-react'
 
 const getNavItems = (role: Role | undefined) => {
@@ -32,6 +33,7 @@ const getNavItems = (role: Role | undefined) => {
     { href: '/manage/dishes', icon: UtensilsCrossed, label: 'Quản lý món ăn' },
     { href: '/manage/tables', icon: Armchair, label: 'Quản lý bàn ăn' },
     { href: '/manage/reservations', icon: CalendarCheck, label: 'Quản lý đặt bàn' },
+    { href: '/manage/chats', icon: MessageCircle, label: 'Hỗ trợ khách' },
     { href: '/manage/ingredients', icon: Warehouse, label: 'Quản lý kho' },
     { href: '/manage/recipes', icon: BookOpen, label: 'Công thức' },
   ]
