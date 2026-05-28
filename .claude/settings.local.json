@@ -96,7 +96,8 @@
       "Bash(tee /tmp/api.log)",
       "Bash(tasklist /FI \"PID eq 40636\")",
       "Bash(tee /tmp/api2.log)",
-      "Bash(tee /tmp/api3.log)"
+      "Bash(tee /tmp/api3.log)",
+      "Bash(echo \"---grep_exit: $?---\")"
     ]
   }
 }
