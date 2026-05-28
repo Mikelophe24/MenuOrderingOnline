@@ -39,6 +39,7 @@ services:
       Cloudinary__CloudName: "${CLOUDINARY_CLOUD_NAME}"
       Cloudinary__ApiKey: "${CLOUDINARY_API_KEY}"
       Cloudinary__ApiSecret: "${CLOUDINARY_API_SECRET}"
+      Groq__ApiKey: "${GROQ_API_KEY}"
       AllowedOrigins__0: "https://${DOMAIN}"
       AllowedOrigins__1: "http://${DOMAIN}"
     ports:
