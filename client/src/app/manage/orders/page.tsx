@@ -4,9 +4,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteOrders, useUpdateOrderStatus, useDeleteOrder, usePaymentQR, useCreateStaffOrder, useUpdateOrderItems } from '@/hooks/use-orders'
 import { useTables } from '@/hooks/use-tables'
 import { useDishes } from '@/hooks/use-dishes'
+import { useIngredients } from '@/hooks/use-ingredients'
 import { formatCurrency, formatDateTime, formatDayLabel } from '@/lib/utils'
 import { getConnection } from '@/lib/signalr'
-import { OrderStatus, Role, type Order, type OrderItem, type Dish, type Table } from '@/types'
+import { OrderStatus, Role, type Order, type OrderItem, type Dish, type Table, type Ingredient } from '@/types'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import { Users, Snowflake, UtensilsCrossed, Truck, CreditCard, QrCode, X, Loader2, Plus, Minus, Search, ShoppingCart, Receipt, Printer, ChevronDown, Pencil, Trash2 } from 'lucide-react'
@@ -155,13 +156,58 @@ function InvoiceDialog({ order, onClose }: { order: Order; onClose: () => void }
   )
 }
 
+function CartQuantityInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value))
+
+  // Đồng bộ khi giá trị thật thay đổi (vd: bị ghim về mức tối đa, bấm +/-)
+  useEffect(() => { setDraft(String(value)) }, [value])
+
+  return (
+    <input
+      type="number"
+      min={0}
+      value={draft}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => {
+        const v = e.target.value
+        setDraft(v)
+        if (v === '') {
+          onCommit(0)               // xóa hết -> trở về 0, vẫn giữ món trong giỏ
+          return
+        }
+        const n = parseInt(v, 10)
+        if (!isNaN(n)) onCommit(n)
+      }}
+      onBlur={() => setDraft(String(value))}   // chuẩn hóa lại theo giá trị thật (sau khi ghim max)
+      className="w-12 rounded border bg-background px-1 py-0.5 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+    />
+  )
+}
+
 function CreateOrderForm({ onClose }: { onClose: () => void }) {
   const { data: tablesData } = useTables()
   const { data: dishesData } = useDishes({ status: 'Available', limit: 100 })
+  const { data: ingredientsData } = useIngredients()
   const createOrder = useCreateStaffOrder()
 
   const tables: Table[] = tablesData?.data?.data ?? []
   const allDishes: Dish[] = dishesData?.data?.data ?? []
+  const ingredients: Ingredient[] = ingredientsData?.data ?? []
+
+  // Số phần tối đa có thể làm cho mỗi món = min(floor(tồn kho / lượng cần)) qua các nguyên liệu.
+  // Món không gắn nguyên liệu nào => không giới hạn (không có trong map).
+  const maxPortionsByDish = useMemo(() => {
+    const map = new Map<number, number>()
+    for (const ing of ingredients) {
+      for (const link of ing.dishes) {
+        if (link.quantityNeeded <= 0) continue
+        const possible = Math.floor(ing.currentStock / link.quantityNeeded)
+        const prev = map.get(link.id)
+        map.set(link.id, prev === undefined ? possible : Math.min(prev, possible))
+      }
+    }
+    return map
+  }, [ingredients])
 
   const [tableNumber, setTableNumber] = useState<number>(0)
   const [search, setSearch] = useState('')
@@ -174,21 +220,49 @@ function CreateOrderForm({ onClose }: { onClose: () => void }) {
   }, [allDishes, search])
 
   const addToCart = (dish: Dish) => {
+    const max = maxPortionsByDish.get(dish.id)
+    if (max !== undefined && max <= 0) {
+      toast.error(`Hết nguyên liệu cho món ${dish.name}`, { id: `stock-${dish.id}` })
+      return
+    }
     setCart((prev) => {
       const existing = prev.find((item) => item.dishId === dish.id)
       if (existing) {
+        if (max !== undefined && existing.quantity >= max) {
+          toast.error(`Hiện tại chỉ còn đủ nguyên liệu cho ${max} món ${dish.name}`, { id: `stock-${dish.id}` })
+          return prev
+        }
         return prev.map((item) => item.dishId === dish.id ? { ...item, quantity: item.quantity + 1 } : item)
       }
       return [...prev, { dishId: dish.id, dish, quantity: 1, note: '' }]
     })
   }
 
+  // Ghim đúng theo số phần tối đa còn nguyên liệu + cảnh báo khi vượt.
+  const clampQty = (dishId: number, qty: number) => {
+    const stockMax = maxPortionsByDish.get(dishId)
+    if (stockMax !== undefined && qty > stockMax) {
+      const name = cart.find((i) => i.dishId === dishId)?.dish.name
+      toast.error(`Hiện tại chỉ còn đủ nguyên liệu cho ${stockMax} món${name ? ` ${name}` : ''}`, { id: `stock-${dishId}` })
+      return stockMax
+    }
+    return qty
+  }
+
+  // Nút +/- : về 0 thì bỏ món khỏi giỏ (giữ như cũ)
   const updateQty = (dishId: number, qty: number) => {
-    if (qty <= 0) {
+    const next = clampQty(dishId, qty)
+    if (next <= 0) {
       setCart((prev) => prev.filter((item) => item.dishId !== dishId))
     } else {
-      setCart((prev) => prev.map((item) => item.dishId === dishId ? { ...item, quantity: qty } : item))
+      setCart((prev) => prev.map((item) => item.dishId === dishId ? { ...item, quantity: next } : item))
     }
+  }
+
+  // Ô nhập số : xóa hết -> về 0 nhưng vẫn giữ món trong giỏ
+  const setItemQty = (dishId: number, qty: number) => {
+    const next = Math.max(0, clampQty(dishId, qty))
+    setCart((prev) => prev.map((item) => item.dishId === dishId ? { ...item, quantity: next } : item))
   }
 
   const updateNote = (dishId: number, note: string) => {
@@ -199,11 +273,12 @@ function CreateOrderForm({ onClose }: { onClose: () => void }) {
 
   const handleSubmit = () => {
     if (!tableNumber) { toast.error('Vui lòng chọn bàn'); return }
-    if (cart.length === 0) { toast.error('Vui lòng chọn ít nhất 1 món'); return }
+    const orderItems = cart.filter((item) => item.quantity > 0)
+    if (orderItems.length === 0) { toast.error('Vui lòng chọn ít nhất 1 món'); return }
     createOrder.mutate(
       {
         tableNumber,
-        items: cart.map((item) => ({ dishId: item.dishId, quantity: item.quantity, note: item.note || undefined })),
+        items: orderItems.map((item) => ({ dishId: item.dishId, quantity: item.quantity, note: item.note || undefined })),
       },
       {
         onSuccess: (res) => {
@@ -253,15 +328,20 @@ function CreateOrderForm({ onClose }: { onClose: () => void }) {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto mb-4">
           {filteredDishes.map((dish) => {
             const inCart = cart.find((item) => item.dishId === dish.id)
+            const max = maxPortionsByDish.get(dish.id)
+            const soldOut = max !== undefined && max <= 0
             return (
               <button
                 key={dish.id}
                 onClick={() => addToCart(dish)}
-                className={`rounded-lg border p-2 text-left text-sm transition-colors hover:border-primary ${inCart ? 'border-primary bg-primary/5' : ''}`}
+                disabled={soldOut}
+                className={`rounded-lg border p-2 text-left text-sm transition-colors hover:border-primary ${inCart ? 'border-primary bg-primary/5' : ''} ${soldOut ? 'opacity-50 cursor-not-allowed hover:border-border' : ''}`}
               >
                 <div className="font-medium truncate">{dish.name}</div>
                 <div className="text-primary text-xs">{formatCurrency(dish.price)}</div>
-                {inCart && <div className="text-xs text-muted-foreground mt-0.5">× {inCart.quantity}</div>}
+                {soldOut ? (
+                  <div className="text-xs text-destructive mt-0.5">Hết nguyên liệu</div>
+                ) : inCart && <div className="text-xs text-muted-foreground mt-0.5">× {inCart.quantity}</div>}
               </button>
             )
           })}
@@ -273,31 +353,38 @@ function CreateOrderForm({ onClose }: { onClose: () => void }) {
             <h4 className="font-medium text-sm flex items-center gap-1">
               <ShoppingCart className="h-4 w-4" /> Đơn hàng ({cart.length} món)
             </h4>
-            {cart.map((item) => (
-              <div key={item.dishId} className="flex items-center gap-2 text-sm">
-                <div className="flex-1">
-                  <div className="font-medium">{item.dish.name}</div>
-                  <div className="text-muted-foreground">{formatCurrency(item.dish.price)}</div>
+            {cart.map((item) => {
+              const max = maxPortionsByDish.get(item.dishId)
+              const atMax = max !== undefined && item.quantity >= max
+              return (
+                <div key={item.dishId} className="flex items-center gap-2 text-sm">
+                  <div className="flex-1">
+                    <div className="font-medium">{item.dish.name}</div>
+                    <div className="text-muted-foreground">{formatCurrency(item.dish.price)}</div>
+                    {atMax && (
+                      <div className="text-xs text-destructive">Chỉ còn đủ nguyên liệu cho {max} món</div>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={item.note}
+                    onChange={(e) => updateNote(item.dishId, e.target.value)}
+                    placeholder="Ghi chú"
+                    className="w-24 rounded border bg-background px-2 py-1 text-xs"
+                  />
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => updateQty(item.dishId, item.quantity - 1)} className="rounded border p-0.5 hover:bg-accent">
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <CartQuantityInput value={item.quantity} onCommit={(n) => setItemQty(item.dishId, n)} />
+                    <button onClick={() => updateQty(item.dishId, item.quantity + 1)} className="rounded border p-0.5 hover:bg-accent">
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="w-20 text-right font-medium">{formatCurrency(item.dish.price * item.quantity)}</div>
                 </div>
-                <input
-                  type="text"
-                  value={item.note}
-                  onChange={(e) => updateNote(item.dishId, e.target.value)}
-                  placeholder="Ghi chú"
-                  className="w-24 rounded border bg-background px-2 py-1 text-xs"
-                />
-                <div className="flex items-center gap-1">
-                  <button onClick={() => updateQty(item.dishId, item.quantity - 1)} className="rounded border p-0.5 hover:bg-accent">
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <span className="w-6 text-center">{item.quantity}</span>
-                  <button onClick={() => updateQty(item.dishId, item.quantity + 1)} className="rounded border p-0.5 hover:bg-accent">
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-                <div className="w-20 text-right font-medium">{formatCurrency(item.dish.price * item.quantity)}</div>
-              </div>
-            ))}
+              )
+            })}
             <div className="border-t pt-2 flex justify-between font-bold text-sm">
               <span>Tổng cộng</span>
               <span className="text-primary">{formatCurrency(totalPrice)}</span>

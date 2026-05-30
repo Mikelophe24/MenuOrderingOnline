@@ -33,17 +33,21 @@ public class DashboardService : IDashboardService
             .Where(t => t.Status == TableStatus.Occupied)
             .CountAsync();
 
+        // Xếp hạng theo tổng số lượng món được gọi (Sum Quantity), chỉ tính đồ ăn.
+        // Loại danh mục đồ uống (tên chứa "uống" / "rượu" / "bia").
         var topDishes = await _context.OrderItems
-            .Include(oi => oi.Dish)
-            .Where(oi => oi.Order.CreatedAt >= from && oi.Order.CreatedAt <= to && oi.Order.Status == OrderStatus.Paid)
+            .Where(oi => oi.Order.CreatedAt >= from && oi.Order.CreatedAt <= to && oi.Order.Status == OrderStatus.Paid
+                && !oi.Dish.Category.Name.ToLower().Contains("uống")
+                && !oi.Dish.Category.Name.ToLower().Contains("rượu")
+                && !oi.Dish.Category.Name.ToLower().Contains("bia"))
             .GroupBy(oi => new { oi.DishId, oi.Dish.Name })
             .Select(g => new TopDishItem
             {
                 DishId = g.Key.DishId,
                 DishName = g.Key.Name,
-                OrderCount = g.Select(x => x.OrderId).Distinct().Count()
+                Quantity = g.Sum(x => x.Quantity)
             })
-            .OrderByDescending(x => x.OrderCount)
+            .OrderByDescending(x => x.Quantity)
             .Take(10)
             .ToListAsync();
 

@@ -126,7 +126,7 @@ export default function DashboardPage() {
         const dishRows = dashboard.topDishes.map((d, i) => ({
           'Hạng': i + 1,
           'Tên món': d.dishName,
-          'Số đơn': d.orderCount,
+          'Số lượng': d.quantity,
         }))
         const dishSheet = XLSX.utils.json_to_sheet(dishRows)
         dishSheet['!cols'] = [{ wch: 8 }, { wch: 30 }, { wch: 12 }]
@@ -233,8 +233,8 @@ export default function DashboardPage() {
       ` : ''}
       ${dashboard.topDishes?.length ? `
         <h2>Xếp hạng món ăn</h2>
-        <table><thead><tr><th>#</th><th>Món ăn</th><th>Số đơn</th></tr></thead><tbody>
-          ${dashboard.topDishes.map((d, i) => `<tr><td>${i < 3 ? `<span class="medal ${['gold','silver','bronze'][i]}">${i+1}</span>` : i+1}</td><td>${d.dishName}</td><td>${d.orderCount}</td></tr>`).join('')}
+        <table><thead><tr><th>#</th><th>Món ăn</th><th>Số lượng</th></tr></thead><tbody>
+          ${dashboard.topDishes.map((d, i) => `<tr><td>${i < 3 ? `<span class="medal ${['gold','silver','bronze'][i]}">${i+1}</span>` : i+1}</td><td>${d.dishName}</td><td>${d.quantity}</td></tr>`).join('')}
         </tbody></table>
       ` : ''}
       </body></html>
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                         innerRadius={65}
                         outerRadius={110}
                         paddingAngle={2}
-                        dataKey="orderCount"
+                        dataKey="quantity"
                         nameKey="dishName"
                       >
                         {dashboard.topDishes.slice(0, 5).map((_, idx) => (
@@ -374,7 +374,7 @@ export default function DashboardPage() {
                       </Pie>
                       <Tooltip
                         formatter={(value: number, name: string) => [
-                          `${value} đơn`,
+                          `${value} phần`,
                           name,
                         ]}
                         contentStyle={{ borderRadius: '12px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: 'hsl(var(--popover))', color: 'hsl(var(--popover-foreground))' }}
@@ -391,7 +391,7 @@ export default function DashboardPage() {
                           style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
                         />
                         <span className="text-muted-foreground truncate">{item.dishName}</span>
-                        <span className="ml-auto font-medium shrink-0">{item.orderCount}</span>
+                        <span className="ml-auto font-medium shrink-0">{item.quantity}</span>
                       </div>
                     ))}
                   </div>

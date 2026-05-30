@@ -129,7 +129,7 @@ export interface DashboardData {
   totalGuests: number
   activeTables: number
   avgOrderValue: number
-  topDishes: { dishId: number; dishName: string; orderCount: number }[]
+  topDishes: { dishId: number; dishName: string; quantity: number }[]
   revenueByDate: { date: string; revenue: number }[]
   revenueByCategory: { categoryId: number; categoryName: string; revenue: number }[]
 }

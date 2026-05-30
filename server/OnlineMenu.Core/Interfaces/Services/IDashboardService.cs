@@ -28,7 +28,7 @@ public class TopDishItem
 {
     public int DishId { get; set; }
     public string DishName { get; set; } = string.Empty;
-    public int OrderCount { get; set; }
+    public int Quantity { get; set; }
 }
 
 public class RevenueByDate
