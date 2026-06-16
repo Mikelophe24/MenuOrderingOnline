@@ -929,7 +929,7 @@ export default function ManageOrdersPage() {
                                   <Trash2 className="h-4 w-4" />
                                 </button>
                               )}
-                              {order.status !== 'Paid' && order.status !== 'Cancelled' && (
+                              {order.status === 'Delivered' && (
                                 <button
                                   onClick={() => handlePaymentQR(order.id)}
                                   disabled={paymentQR.isPending}

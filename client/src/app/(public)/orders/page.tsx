@@ -278,7 +278,7 @@ export default function OrderPage() {
                     </span>
                     <div className="flex items-center gap-3">
                       <span className="font-semibold">{formatCurrency(order.totalPrice)}</span>
-                      {order.status !== 'Paid' && order.status !== 'Cancelled' && (
+                      {order.status === 'Delivered' && (
                         <button
                           onClick={() => {
                             paymentQR.mutate(order.id, {
