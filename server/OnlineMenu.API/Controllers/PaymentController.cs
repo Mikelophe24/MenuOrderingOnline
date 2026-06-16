@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OnlineMenu.API.Extensions;
 using OnlineMenu.API.Hubs;
-using OnlineMenu.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using OnlineMenu.Core.Enums;
 using OnlineMenu.Core.Interfaces.Repositories;
@@ -40,131 +39,111 @@ public class PaymentController : ControllerBase
     }
 
     /// <summary>
-    /// Webhook endpoint for bank-transaction services (Casso, SePay) to notify of incoming transfers.
-    /// When a matching transaction is found, auto-marks the order as Paid.
-    /// Supports both Casso ({ data: [{ description, amount }] }) and
-    /// SePay ({ content, transferAmount, transferType }) payload formats.
+    /// Webhook endpoint for SePay (https://sepay.vn) to notify of incoming bank transfers.
+    /// SePay sends one transaction per request:
+    ///   { "content": "...", "transferAmount": 50000, "transferType": "in", "code": null }
+    /// and authenticates with header `Authorization: Apikey {SePay:ApiKey}`.
+    /// When the order code (DH{id}) is matched and the amount is sufficient,
+    /// the order is automatically marked as Paid.
     /// </summary>
     [HttpPost("webhook")]
-    [HttpPost("/webhook")]
-    [HttpPost("/")]
-    public async Task<IActionResult> PaymentWebhook([FromBody] JsonElement body)
+    public async Task<IActionResult> SePayWebhook([FromBody] JsonElement body)
     {
-        // Verify webhook key - reject if not configured or not matching
-        var expectedKey = _configuration["Casso:WebhookKey"];
+        // Verify API key - SePay sends it as `Authorization: Apikey <key>`.
+        var expectedKey = _configuration["SePay:ApiKey"];
         if (string.IsNullOrEmpty(expectedKey))
         {
-            _logger.LogError("Payment webhook: Casso:WebhookKey is not configured. Rejecting request.");
+            _logger.LogError("SePay webhook: SePay:ApiKey is not configured. Rejecting request.");
             return StatusCode(503, new { message = "Webhook not configured" });
         }
 
-        var secureToken = Request.Headers["Secure-Token"].FirstOrDefault();
         var authHeader = Request.Headers["Authorization"].FirstOrDefault();
-        var providedKey = secureToken
-            ?? authHeader?.Replace("Apikey ", "", StringComparison.OrdinalIgnoreCase).Trim()
-            ?? authHeader?.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim();
+        var providedKey = authHeader?.Replace("Apikey ", "", StringComparison.OrdinalIgnoreCase).Trim();
 
         if (providedKey != expectedKey)
         {
-            _logger.LogWarning("Payment webhook: invalid key");
+            _logger.LogWarning("SePay webhook: invalid API key (Authorization header {State})",
+                string.IsNullOrEmpty(authHeader) ? "missing" : "present but mismatched");
             return Unauthorized();
         }
 
-        // Build the list of incoming transactions from either Casso or SePay payload format.
-        //   Casso: { "data": [ { "description": "...", "amount": 50000 }, ... ] }
-        //   SePay: { "content": "...", "transferAmount": 50000, "transferType": "in" }
-        var transactions = new List<(string Description, int Amount)>();
+        // Only auto-confirm incoming money (transferType = "in").
+        var transferType = body.TryGetProperty("transferType", out var tt) ? tt.GetString() : "in";
+        if (!string.Equals(transferType, "in", StringComparison.OrdinalIgnoreCase))
+            return Ok(new { success = true });
 
-        if (body.TryGetProperty("data", out var dataArray) && dataArray.ValueKind == JsonValueKind.Array)
+        var amount = body.TryGetProperty("transferAmount", out var amt) ? ReadAmount(amt) : 0;
+
+        // Order code lives in the transfer content (e.g. "DH5 Ban3").
+        // Fall back to SePay's parsed "code" field when content has no DH code.
+        var content = body.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
+        var description = content;
+        if (!Regex.IsMatch(description, @"DH\d+", RegexOptions.IgnoreCase)
+            && body.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String)
         {
-            foreach (var t in dataArray.EnumerateArray())
-            {
-                var desc = t.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "";
-                var amt = t.TryGetProperty("amount", out var a) ? ReadAmount(a) : 0;
-                transactions.Add((desc, amt));
-            }
+            description = code.GetString() ?? description;
         }
-        else if (body.TryGetProperty("transferAmount", out var sepayAmount))
+
+        _logger.LogInformation("SePay webhook received: content='{Content}', amount={Amount}", content, amount);
+
+        // Parse order ID from description (e.g. "DH5 Ban3" or "DH5")
+        var match = Regex.Match(description, @"DH(\d+)", RegexOptions.IgnoreCase);
+        if (!match.Success)
         {
-            // SePay sends one transaction per call; only auto-confirm incoming money.
-            var transferType = body.TryGetProperty("transferType", out var tt) ? tt.GetString() : "in";
-            if (string.Equals(transferType, "in", StringComparison.OrdinalIgnoreCase))
-            {
-                var desc = body.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
-                // Fall back to SePay's parsed "code" field if content has no DH code.
-                if (!Regex.IsMatch(desc, @"DH\d+", RegexOptions.IgnoreCase)
-                    && body.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String)
-                {
-                    desc = code.GetString() ?? desc;
-                }
-                transactions.Add((desc, ReadAmount(sepayAmount)));
-            }
-        }
-        else
-        {
+            _logger.LogWarning("SePay webhook: no order code (DHxxx) found in '{Description}'", description);
             return Ok(new { success = true });
         }
 
-        foreach (var (description, amount) in transactions)
+        var orderId = int.Parse(match.Groups[1].Value);
+        var order = await _orderRepo.GetWithItemsAsync(orderId);
+
+        if (order == null)
         {
-            _logger.LogInformation("Payment webhook received: {Description}, Amount: {Amount}", description, amount);
-
-            // Parse order ID from description (e.g. "DH5 Ban3" or "DH5")
-            var match = Regex.Match(description, @"DH(\d+)", RegexOptions.IgnoreCase);
-            if (!match.Success) continue;
-
-            var orderId = int.Parse(match.Groups[1].Value);
-            var order = await _orderRepo.GetWithItemsAsync(orderId);
-
-            if (order == null)
-            {
-                _logger.LogWarning("Payment webhook: order {OrderId} not found", orderId);
-                continue;
-            }
-
-            if (order.Status == OrderStatus.Paid || order.Status == OrderStatus.Cancelled)
-            {
-                _logger.LogInformation("Payment webhook: order {OrderId} already {Status}", orderId, order.Status);
-                continue;
-            }
-
-            // Verify amount matches
-            if (amount < (int)order.TotalPrice)
-            {
-                _logger.LogWarning("Payment webhook: amount mismatch for order {OrderId}. Expected {Expected}, got {Actual}",
-                    orderId, (int)order.TotalPrice, amount);
-                continue;
-            }
-
-            // Atomic status update: only mark as Paid if not already Paid/Cancelled
-            // This prevents race conditions from duplicate webhook calls
-            var updated = await _context.Orders
-                .Where(o => o.Id == orderId && o.Status != OrderStatus.Paid && o.Status != OrderStatus.Cancelled)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(o => o.Status, OrderStatus.Paid)
-                    .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
-
-            if (updated == 0)
-            {
-                _logger.LogInformation("Payment webhook: order {OrderId} already processed (race condition avoided)", orderId);
-                continue;
-            }
-
-            // Update in-memory object to match DB state before broadcasting
-            order.Status = OrderStatus.Paid;
-            order.UpdatedAt = DateTime.UtcNow;
-
-            await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
-
-            // Notify via SignalR
-            var orderDto = OrderHelper.MapToDto(order);
-
-            await _hubContext.Clients.Group("management").SendAsync("PaymentReceived", orderDto);
-            await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
-            await _hubContext.Clients.Group($"table-{order.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
-
-            _logger.LogInformation("Order {OrderId} auto-marked as Paid via bank transfer", orderId);
+            _logger.LogWarning("SePay webhook: order {OrderId} not found", orderId);
+            return Ok(new { success = true });
         }
+
+        if (order.Status == OrderStatus.Paid || order.Status == OrderStatus.Cancelled)
+        {
+            _logger.LogInformation("SePay webhook: order {OrderId} already {Status}", orderId, order.Status);
+            return Ok(new { success = true });
+        }
+
+        // Verify the transferred amount covers the order total.
+        if (amount < (int)order.TotalPrice)
+        {
+            _logger.LogWarning("SePay webhook: amount mismatch for order {OrderId}. Expected {Expected}, got {Actual}",
+                orderId, (int)order.TotalPrice, amount);
+            return Ok(new { success = true });
+        }
+
+        // Atomic status update: only mark as Paid if not already Paid/Cancelled.
+        // This prevents race conditions from duplicate webhook calls.
+        var updated = await _context.Orders
+            .Where(o => o.Id == orderId && o.Status != OrderStatus.Paid && o.Status != OrderStatus.Cancelled)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.Status, OrderStatus.Paid)
+                .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
+
+        if (updated == 0)
+        {
+            _logger.LogInformation("SePay webhook: order {OrderId} already processed (race condition avoided)", orderId);
+            return Ok(new { success = true });
+        }
+
+        // Update in-memory object to match DB state before broadcasting.
+        order.Status = OrderStatus.Paid;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
+
+        // Notify via SignalR
+        var orderDto = OrderHelper.MapToDto(order);
+        await _hubContext.Clients.Group("management").SendAsync("PaymentReceived", orderDto);
+        await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
+        await _hubContext.Clients.Group($"table-{order.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
+
+        _logger.LogInformation("Order {OrderId} auto-marked as Paid via SePay bank transfer", orderId);
 
         return Ok(new { success = true });
     }

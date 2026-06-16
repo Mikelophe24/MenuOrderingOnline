@@ -41,7 +41,7 @@ ssh -p 8686 root@161.248.4.184
 ### Buoc 4: Cap nhat he thong
 
 ```bash
-apt update && apt upgrade -y
+
 ```
 
 ### Buoc 5: Cai Docker
@@ -75,7 +75,7 @@ VIETQR_API_KEY=...
 VIETQR_ACCOUNT_NO=...
 VIETQR_ACCOUNT_NAME=...
 VIETQR_ACQ_ID=970418
-CASSO_WEBHOOK_KEY=...
+SEPAY_API_KEY=...
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
@@ -141,13 +141,15 @@ docker compose up -d
 
 ---
 
-## Cau Hinh Casso Webhook
+## Cau Hinh SePay Webhook
 
-Vao app.casso.vn → Webhook → URL:
-
-```
-https://nhatnuong.site/api/payment/webhook
-```
+1. Dang nhap https://my.sepay.vn → lien ket tai khoan ngan hang nhan tien (dung so TK voi `VIETQR_ACCOUNT_NO`).
+2. Vao **Cong ty → Cau hinh → Webhooks → Them Webhook**:
+   - **URL:** `https://nhatnuong.site/api/payment/webhook`
+   - **Kieu xac thuc:** API Key
+   - **API Key:** dat trung khit voi `SEPAY_API_KEY` trong file `.env` (SePay se gui kem header `Authorization: Apikey <key>`).
+   - **Su kien:** chi tien vao (transferType = in).
+3. Sau khi luu, dung muc **Lich su goi webhook** trong SePay de kiem tra tung lan goi + ma HTTP tra ve.
 
 ---
 

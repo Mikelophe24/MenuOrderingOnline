@@ -57,6 +57,8 @@ SignalR là thư viện của ASP.NET Core cho phép server đẩy dữ liệu �
 - Cập nhật trạng thái đơn hàng cho khách
 - Thông báo thay đổi trạng thái bàn
 - Cập nhật tình trạng món ăn (còn/hết) cho menu khách
+- Thông báo lịch đặt bàn mới và thay đổi trạng thái đặt bàn
+- Truyền hội thoại realtime giữa khách và nhân viên khi khách yêu cầu hỗ trợ trực tiếp (trợ lý ảo AI tự chuyển tiếp)
 
 ### 2.1.2. Cơ sở dữ liệu
 
@@ -77,6 +79,9 @@ Các bảng chính trong hệ thống:
 | `DishIngredients` | Bảng trung gian món-nguyên liệu | N-1 với Dishes, N-1 với Ingredients |
 | `Accounts` | Tài khoản nhân viên (email, mật khẩu, vai trò) | 1-N với Orders (ProcessedBy) |
 | `DishReviews` | Đánh giá món ăn | N-1 với Dishes |
+| `Reservations` | Lịch đặt bàn của khách (tên, SĐT, số khách, giờ đặt, trạng thái) | N-1 với Tables, N-1 với Accounts (người duyệt) |
+| `ChatSessions` | Phiên hội thoại của khách với trợ lý ảo/nhân viên | 1-N với ChatMessages, N-1 với Accounts (nhân viên phụ trách) |
+| `ChatMessages` | Tin nhắn trong phiên chat (vai trò: khách/bot/nhân viên/hệ thống) | N-1 với ChatSessions |
 
 **ORM — Object-Relational Mapping**
 
@@ -106,9 +111,11 @@ Controller là thành phần tiếp nhận HTTP request, xử lý logic, và tr�
 | `DishesController` | Quản lý món ăn (CRUD, upload ảnh) |
 | `IngredientsController` | Quản lý nguyên liệu và tồn kho |
 | `AccountsController` | Quản lý tài khoản nhân viên |
-| `AuthController` | Xác thực (đăng nhập, đổi mật khẩu, Google OAuth) |
+| `AuthController` | Xác thực (đăng nhập, đăng xuất, làm mới token, đổi mật khẩu) |
 | `PaymentController` | Xử lý thanh toán (webhook ngân hàng) |
 | `DashboardController` | Thống kê doanh thu |
+| `ReservationsController` | Quản lý đặt bàn (khách đặt/tra cứu/hủy; nhân viên duyệt và gán bàn) |
+| `ChatbotController` | Trợ lý ảo AI (nhận tin nhắn, sinh câu trả lời, chuyển tiếp nhân viên) |
 
 **Middleware Pipeline**
 
@@ -120,7 +127,7 @@ Request → Exception Handling → Authentication → Authorization → CORS →
 
 - **Exception Handling:** Bắt lỗi toàn cục, trả response lỗi thống nhất.
 - **Authentication:** Xác thực JWT token từ header `Authorization: Bearer {token}`.
-- **Authorization:** Kiểm tra quyền truy cập dựa trên vai trò (Owner, Employee).
+- **Authorization:** Kiểm tra quyền truy cập dựa trên vai trò (Manager, Employee).
 - **CORS:** Cho phép frontend (domain khác) gọi API.
 
 **Dependency Injection (DI)**
@@ -131,8 +138,8 @@ ASP.NET Core có sẵn cơ chế DI — tự động cung cấp (inject) các de
 
 - **JWT (JSON Web Token):** Sau khi đăng nhập thành công, server tạo JWT chứa thông tin user (userId, role). Client gửi token này trong mỗi request để xác thực.
 - **Role-based Authorization:** Phân quyền dựa trên vai trò:
-  - `Owner`: Toàn quyền (quản lý nhân viên, xóa bàn, xem thống kê)
-  - `Employee`: Quản lý đơn hàng, bàn, món ăn
+  - `Manager`: Toàn quyền (quản lý nhân viên, xóa bàn/món/đơn, xem thống kê)
+  - `Employee`: Quản lý đơn hàng, bàn, món ăn, nguyên liệu, đặt bàn, hỗ trợ chat
   - `Guest`: Đặt món và xem đơn hàng (xác thực bằng table token, không cần đăng nhập)
 
 ### 2.1.4. React và Framework Next.js (Frontend)
@@ -185,6 +192,22 @@ client/src/
 └── middleware.ts           # Middleware xác thực route
 ```
 
+### 2.1.5. Trí tuệ nhân tạo và Mô hình ngôn ngữ lớn (Trợ lý ảo AI)
+
+**Mô hình ngôn ngữ lớn (LLM — Large Language Model)** là mô hình trí tuệ nhân tạo được huấn luyện trên khối lượng dữ liệu văn bản khổng lồ, có khả năng hiểu và sinh ngôn ngữ tự nhiên. Hệ thống tích hợp một **trợ lý ảo (chatbot)** dựa trên LLM để tự động tư vấn cho khách hàng về món ăn, giá cả, giờ mở cửa và chính sách nhà hàng.
+
+Các kiến thức nền tảng được áp dụng:
+
+- **Gọi LLM qua API:** Hệ thống sử dụng dịch vụ **Groq** (API tương thích chuẩn OpenAI `chat/completions`) với mô hình `llama-3.3-70b-versatile`. Backend gửi yêu cầu HTTP kèm hội thoại và nhận về câu trả lời, không cần tự huấn luyện hay vận hành mô hình.
+
+- **System Prompt:** Mỗi yêu cầu được gắn một "lời nhắc hệ thống" quy định vai trò, văn phong (xưng "em", gọi khách "anh/chị") và các quy tắc ràng buộc (không bịa thông tin, không tự ý đặt bàn/xác nhận thanh toán).
+
+- **RAG (Retrieval-Augmented Generation — Sinh có tăng cường truy hồi):** Thay vì để mô hình tự "nhớ", hệ thống **truy xuất menu và chính sách thực tế từ cơ sở dữ liệu** rồi nạp vào system prompt. Nhờ đó trợ lý ảo luôn tư vấn đúng món, đúng giá hiện hành và tránh "ảo giác" (hallucination) — đưa ra thông tin sai.
+
+- **Quản lý ngữ cảnh hội thoại:** Lưu lịch sử tin nhắn theo phiên (session) và chỉ gửi lại N lượt gần nhất cho mô hình để vừa giữ mạch hội thoại vừa tiết kiệm token.
+
+- **Cơ chế leo thang (escalation):** Khi gặp câu hỏi ngoài khả năng hoặc khách yêu cầu, hệ thống chuyển phiên chat sang trạng thái chờ nhân viên; nhân viên trực tiếp trả lời khách realtime qua SignalR và trợ lý ảo ngừng can thiệp.
+
 ---
 
 ## 2.2. Công cụ sử dụng
@@ -233,7 +256,7 @@ Lý do chọn SQL Server: tích hợp tốt nhất với Entity Framework Core, 
 | FluentValidation | 11.11.0 | Kiểm tra dữ liệu đầu vào — validate request body (email hợp lệ, quantity > 0, ...) |
 | AutoMapper | 13.0.1 | Ánh xạ tự động giữa Entity (DB) và DTO (API response), giảm code thủ công |
 | CloudinaryDotNet | 1.28.0 | Upload và quản lý hình ảnh món ăn trên Cloudinary cloud |
-| Google.Apis.Auth | 1.68.0 | Xác thực đăng nhập bằng tài khoản Google (OAuth 2.0) |
+| HttpClientFactory | (tích hợp .NET) | Gọi API Groq (chat/completions) cho trợ lý ảo AI từ tầng Infrastructure |
 | Swashbuckle | 6.9.0 | Tự động tạo tài liệu API (Swagger UI) để kiểm thử endpoint |
 
 ### 2.2.5. Thư viện Frontend
@@ -249,22 +272,20 @@ Lý do chọn SQL Server: tích hợp tốt nhất với Entity Framework Core, 
 | Zod | 3.24.0 | Khai báo schema và validate dữ liệu form (email, password, số lượng, ...) |
 | Recharts | 2.15.0 | Vẽ biểu đồ thống kê doanh thu trên trang Dashboard |
 | qrcode.react | 4.1.0 | Tạo mã QR cho từng bàn để khách quét truy cập menu |
-| next-intl | 4.8.3 | Hỗ trợ đa ngôn ngữ (Tiếng Việt, English) |
 | xlsx | 0.18.5 | Xuất dữ liệu đơn hàng, thống kê ra file Excel |
 | date-fns | 4.1.0 | Xử lý và format ngày tháng (hiển thị thời gian đặt đơn, thống kê theo ngày) |
 | Lucide React | 0.468.0 | Bộ icon SVG (icon bàn, đơn hàng, thanh toán, ...) |
 | Sonner | 1.7.0 | Hiển thị thông báo toast (đặt món thành công, lỗi, cảnh báo) |
 | next-themes | 0.4.4 | Chuyển đổi giao diện sáng/tối (dark mode) |
-| @react-oauth/google | 0.13.4 | Nút đăng nhập bằng Google trên frontend |
 
 ### 2.2.6. Dịch vụ bên ngoài (Third-party Services)
 
 | Dịch vụ | Vai trò trong dự án |
 |---------|---------------------|
 | **VietQR API** (vietqr.io) | Tạo mã QR thanh toán chuẩn ngân hàng Việt Nam — mã QR chứa thông tin chuyển khoản (số tài khoản, số tiền, nội dung) để khách quét bằng app ngân hàng |
-| **Casso.vn** | Theo dõi biến động tài khoản ngân hàng — khi khách chuyển tiền, Casso gửi webhook đến server để tự động xác nhận thanh toán |
+| **SePay** | Theo dõi biến động tài khoản ngân hàng — khi khách chuyển tiền, SePay gửi webhook đến server để tự động xác nhận thanh toán |
 | **Cloudinary** (cloudinary.com) | Lưu trữ hình ảnh món ăn trên cloud — upload từ trang quản lý, trả về URL ảnh để hiển thị trên menu |
-| **Google OAuth 2.0** | Cho phép nhân viên đăng nhập bằng tài khoản Google thay vì nhập email/mật khẩu |
+| **Groq AI** (groq.com) | Dịch vụ suy luận mô hình ngôn ngữ lớn (LLM) — cung cấp mô hình `llama-3.3-70b-versatile` cho trợ lý ảo tư vấn khách hàng |
 
 ### 2.2.7. Công cụ phát triển
 
