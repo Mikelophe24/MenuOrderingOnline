@@ -11,10 +11,12 @@ namespace OnlineMenu.API.Controllers;
 public class CategoriesController : ControllerBase
 {
     private readonly IRepository<Category> _categoryRepo;
+    private readonly IRepository<Dish> _dishRepo;
 
-    public CategoriesController(IRepository<Category> categoryRepo)
+    public CategoriesController(IRepository<Category> categoryRepo, IRepository<Dish> dishRepo)
     {
         _categoryRepo = categoryRepo;
+        _dishRepo = dishRepo;
     }
 
     [HttpGet]
@@ -91,6 +93,13 @@ public class CategoriesController : ControllerBase
     {
         var category = await _categoryRepo.GetByIdAsync(id);
         if (category == null) return NotFound();
+
+        // Chan xoa danh muc khi van con mon an (FK Restrict). Bao loi than thien thay vi 500.
+        var hasDishes = await _dishRepo.ExistsAsync(d => d.CategoryId == id);
+        if (hasDishes)
+            return BadRequest(ApiResponse<object>.Fail(
+                "Danh mục vẫn còn món ăn. Vui lòng xóa hoặc chuyển hết món sang danh mục khác trước khi xóa danh mục."));
+
         await _categoryRepo.DeleteAsync(category);
         return Ok(ApiResponse<object>.Success(null!, "Deleted"));
     }

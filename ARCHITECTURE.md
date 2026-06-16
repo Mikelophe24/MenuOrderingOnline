@@ -17,7 +17,7 @@ He thong dat mon truc tuyen cho nha hang, cho phep khach hang quet ma QR tren ba
 | ORM          | Entity Framework Core                                        |
 | Database     | SQL Server                                                   |
 | Auth         | JWT (Access Token + Refresh Token)                           |
-| Thanh toan   | VietQR API + Casso.vn Webhook                                |
+| Thanh toan   | VietQR API + SePay Webhook                                   |
 | Upload anh   | Cloudinary                                                   |
 | QR Code      | qrcode.react (client), VietQR API (thanh toan)               |
 | Bieu do      | Recharts                                                     |
@@ -107,7 +107,7 @@ OnlineMenuApp/
 │   │   │   ├── CategoriesController.cs  # CRUD danh muc
 │   │   │   ├── IngredientsController.cs # CRUD nguyen lieu
 │   │   │   ├── ReviewsController.cs     # Danh gia mon an
-│   │   │   ├── PaymentController.cs     # Casso webhook (auto-mark Paid)
+│   │   │   ├── PaymentController.cs     # SePay webhook (auto-mark Paid)
 │   │   │   ├── DashboardController.cs   # Thong ke doanh thu
 │   │   │   ├── AccountsController.cs    # Quan ly tai khoan
 │   │   │   └── UploadController.cs      # Upload anh Cloudinary
@@ -119,7 +119,7 @@ OnlineMenuApp/
 │   │   ├── Middleware/
 │   │   │   └── ExceptionMiddleware.cs   # Global error handling
 │   │   ├── Program.cs                   # DI, CORS, Auth, Pipeline
-│   │   └── appsettings.json             # Config (DB, JWT, VietQR, Casso, Cloudinary)
+│   │   └── appsettings.json             # Config (DB, JWT, VietQR, SePay, Cloudinary)
 │   │
 │   ├── OnlineMenu.Core/                 # Domain Layer (khong phu thuoc gi)
 │   │   ├── Entities/
@@ -225,7 +225,7 @@ OnlineMenuApp/
 │   │  Controllers  │  │  OrderHub     │  │  External APIs   │       │
 │   │  (REST API)   │  │  (SignalR)    │  │                  │       │
 │   │               │  │               │  │  - VietQR        │       │
-│   │  11 controllers│ │  Groups:      │  │  - Casso Webhook │       │
+│   │  11 controllers│ │  Groups:      │  │  - SePay Webhook │       │
 │   │               │  │  - management │  │  - Cloudinary    │       │
 │   │               │  │  - table-{n}  │  │  - Google OAuth  │       │
 │   └───────┬───────┘  └───────────────┘  └──────────────────┘       │
@@ -418,7 +418,7 @@ OrderItem luu `DishName`, `DishPrice`, `DishImage` tai thoi diem dat mon. Khi mo
 | POST   | /api/reviews            | Public      | Gui danh gia                 |
 | GET    | /api/dashboard          | Owner/Emp   | Thong ke doanh thu           |
 | POST   | /api/upload/image       | Owner/Emp   | Upload anh Cloudinary        |
-| POST   | /api/payment/webhook    | Casso Key   | Webhook nhan thong bao CK    |
+| POST   | /api/payment/webhook    | SePay Key   | Webhook nhan thong bao CK    |
 
 ---
 
@@ -484,7 +484,7 @@ Hub endpoint: `/hubs/order`
   [Thanh toan]
        │
        ├── Online: POST /orders/{id}/payment-qr → VietQR → Khach quet QR banking
-       │           → Chuyen khoan → Casso webhook → Auto mark Paid
+       │           → Chuyen khoan → SePay webhook → Auto mark Paid
        │
        └── Tai quan: Nhan vien mark Delivered → Paid
 ```
@@ -549,12 +549,12 @@ Hub endpoint: `/hubs/order`
   Ngan hang xu ly
        │
        ▼
-  Casso.vn nhan webhook tu ngan hang
+  SePay nhan webhook tu ngan hang
        │
        ▼
-  Casso goi POST /api/payment/webhook
+  SePay goi POST /api/payment/webhook
        │
-       ├── Xac minh Secure-Token header
+       ├── Xac minh header Authorization: Apikey
        ├── Parse orderId tu description (regex: DH(\d+))
        ├── Kiem tra order ton tai + chua Paid/Cancelled
        ├── Kiem tra amount >= TotalPrice
@@ -661,7 +661,7 @@ policy.WithOrigins(allowedOrigins)
 ### Bao Mat
 - **JWT**: Access Token 60 phut, Refresh Token 30 ngay
 - **Password**: Hash bang BCrypt (trong AuthService)
-- **Webhook**: Xac minh `Secure-Token` header tu Casso
+- **Webhook**: Xac minh header `Authorization: Apikey` tu SePay
 - **Race Condition**: `ExecuteUpdateAsync` atomic cho payment webhook
 - **CORS**: Chi cho phep origin cu the, co `AllowCredentials`
 - **SignalR**: Token tu query string cho WebSocket handshake
@@ -718,7 +718,7 @@ VIETQR_API_KEY=...
 VIETQR_ACCOUNT_NO=...
 VIETQR_ACCOUNT_NAME=...
 VIETQR_ACQ_ID=970418
-CASSO_WEBHOOK_KEY=...
+SEPAY_API_KEY=...
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
@@ -808,4 +808,4 @@ docker compose up -d
 | Khach hang      | `https://nhatnuong.site/tables/{n}?token=...` (quet QR) |
 | Quan ly         | `https://nhatnuong.site/manage`                    |
 | Tai khoan admin | `owner@gmail.com` / `123456`                       |
-| Casso webhook   | `https://nhatnuong.site/api/payment/webhook`       |
+| SePay webhook   | `https://nhatnuong.site/api/payment/webhook`       |

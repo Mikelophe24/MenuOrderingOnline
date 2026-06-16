@@ -25,9 +25,11 @@ Khách đến nhà hàng
 - **Quản lý món ăn:** Mỗi món thuộc một danh mục, có giá, mô tả, hình ảnh. Trạng thái khả dụng được tự động cập nhật dựa trên tồn kho nguyên liệu.
 - **Quản lý đơn hàng:** Đơn hàng gắn với bàn và tên khách. Trạng thái đơn đi qua các bước: Chờ xử lý → Đang chế biến → Đã giao → Đã thanh toán. Nhân viên cập nhật trạng thái trên trang quản lý.
 - **Quản lý nguyên liệu:** Mỗi món ăn liên kết với các nguyên liệu cần thiết. Khi đơn hàng được xác nhận chế biến, hệ thống tự động trừ tồn kho. Khi nguyên liệu hết, món ăn tự động chuyển sang trạng thái không khả dụng.
-- **Quản lý nhân viên:** Chủ quán (Owner) tạo tài khoản cho nhân viên (Employee). Không có đăng ký công khai — chỉ Owner quản lý tài khoản.
+- **Quản lý nhân viên:** Người quản lý (Manager) tạo tài khoản cho nhân viên (Employee). Không có đăng ký công khai — chỉ Manager quản lý tài khoản.
+- **Đặt bàn:** Khách đặt bàn trực tuyến (tên, số điện thoại, số khách, giờ đến). Nhân viên duyệt và gán bàn phù hợp; hệ thống có dịch vụ chạy nền tự động chuyển bàn sang trạng thái Đã đặt trước và tự đánh dấu khách không đến (No-show).
+- **Trợ lý ảo AI:** Khách có thể chat hỏi đáp về món ăn, giá cả, chính sách; trợ lý ảo trả lời tự động dựa trên dữ liệu menu thực tế và chuyển tiếp sang nhân viên khi cần.
 - **Thanh toán:** Khách thanh toán bằng chuyển khoản ngân hàng qua mã QR. Hệ thống tích hợp webhook để tự động xác nhận khi nhận được tiền.
-- **Thống kê:** Chủ quán xem doanh thu theo ngày, món bán chạy, biểu đồ doanh thu, và xuất báo cáo Excel.
+- **Thống kê:** Người quản lý xem doanh thu theo ngày, món bán chạy, biểu đồ doanh thu, và xuất báo cáo Excel.
 
 ### 3.1.3. Phân tích yêu cầu nghiệp vụ
 
@@ -42,9 +44,10 @@ Khách đến nhà hàng
 | 5 | Thanh toán QR tự động | Tạo QR chuyển khoản, webhook ngân hàng xác nhận tự động |
 | 6 | Quản lý bàn | CRUD bàn, sinh QR, đổi token, tự động chuyển trạng thái bàn |
 | 7 | Quản lý món ăn | CRUD món, upload ảnh lên cloud, phân danh mục |
-| 8 | Quản lý nhân viên | Owner tạo/xóa tài khoản Employee, phân quyền |
+| 8 | Quản lý nhân viên | Manager tạo/xóa tài khoản Employee, phân quyền |
 | 9 | Thống kê doanh thu | Biểu đồ doanh thu theo ngày, top món bán chạy, xuất Excel |
-| 10 | Đa ngôn ngữ | Hỗ trợ Tiếng Việt và English |
+| 10 | Đặt bàn trực tuyến | Khách đặt bàn theo ngày giờ, nhân viên duyệt và gán bàn; hệ thống tự chuyển trạng thái bàn |
+| 11 | Trợ lý ảo AI | Chatbot tư vấn món ăn, giá, chính sách dựa trên menu thực tế; tự chuyển nhân viên khi cần |
 
 **Yêu cầu phi chức năng:**
 
@@ -63,9 +66,9 @@ Khách đến nhà hàng
 
 | Tác nhân | Vai trò | Xác thực |
 |----------|---------|----------|
-| **Khách hàng (Guest)** | Quét QR, xem menu, đặt món, theo dõi đơn, thanh toán | Xác thực bằng table token (trong URL QR), không cần đăng nhập |
-| **Nhân viên (Employee)** | Quản lý đơn hàng, bàn, món ăn, nguyên liệu, tạo đơn hộ khách | Đăng nhập bằng email/mật khẩu hoặc Google |
-| **Chủ quán (Owner)** | Toàn quyền Employee + quản lý nhân viên, xem thống kê, xóa bàn | Đăng nhập bằng email/mật khẩu hoặc Google |
+| **Khách hàng (Guest)** | Quét QR, xem menu, đặt món, theo dõi đơn, thanh toán, đặt bàn, chat với trợ lý ảo | Xác thực bằng table token (trong URL QR), không cần đăng nhập |
+| **Nhân viên (Employee)** | Quản lý đơn hàng, bàn, món ăn, nguyên liệu, đặt bàn, tạo đơn hộ khách, hỗ trợ chat | Đăng nhập bằng email và mật khẩu |
+| **Quản lý (Manager)** | Toàn quyền Employee + quản lý nhân viên, xem thống kê, xóa bàn/món/đơn | Đăng nhập bằng email và mật khẩu |
 
 ### 3.2.2. Biểu đồ Use Case (UC)
 
@@ -77,34 +80,42 @@ Khách đến nhà hàng
                         │                                         │
   ┌──────────┐          │  ┌─────────────────────────────────┐    │
   │          │          │  │ Quét QR truy cập bàn            │    │
-  │  Khách   │─────────→│  │ Xem menu                        │    │
-  │  hàng    │          │  │ Đặt món                          │    │
-  │ (Guest)  │          │  │ Xem/Hủy đơn hàng                │    │
-  │          │          │  │ Thanh toán QR                    │    │
-  └──────────┘          │  │ Đánh giá món ăn                  │    │
-                        │  └─────────────────────────────────┘    │
+  │          │          │  │ Xem menu                        │    │
+  │  Khách   │          │  │ Đặt món                          │    │
+  │  hàng    │─────────→│  │ Xem/Hủy đơn hàng                │    │
+  │ (Guest)  │          │  │ Thanh toán QR                    │    │
+  │          │          │  │ Đánh giá món ăn                  │    │
+  │          │          │  │ Đặt bàn trực tuyến               │    │
+  │          │          │  │ Chat với trợ lý ảo AI            │    │
+  └──────────┘          │  └─────────────────────────────────┘    │
                         │                                         │
   ┌──────────┐          │  ┌─────────────────────────────────┐    │
   │          │          │  │ Quản lý đơn hàng                │    │
-  │ Nhân     │─────────→│  │ Quản lý bàn                     │    │
-  │ viên     │          │  │ Quản lý món ăn                   │    │
-  │(Employee)│          │  │ Quản lý nguyên liệu             │    │
-  │          │          │  │ Tạo đơn hộ khách                 │    │
-  └──────────┘          │  │ In hóa đơn                       │    │
-                        │  └─────────────────────────────────┘    │
+  │          │          │  │ Quản lý bàn                     │    │
+  │ Nhân     │          │  │ Quản lý món ăn / danh mục        │    │
+  │ viên     │─────────→│  │ Quản lý nguyên liệu             │    │
+  │(Employee)│          │  │ Duyệt đặt bàn                    │    │
+  │          │          │  │ Tạo đơn hộ khách / In hóa đơn    │    │
+  │          │          │  │ Hỗ trợ chat khách               │    │
+  └──────────┘          │  └─────────────────────────────────┘    │
                         │                                         │
   ┌──────────┐          │  ┌─────────────────────────────────┐    │
   │          │          │  │ Toàn bộ chức năng Employee       │    │
-  │  Chủ     │─────────→│  │ Quản lý nhân viên (CRUD)        │    │
-  │  quán    │          │  │ Xem thống kê doanh thu           │    │
-  │ (Owner)  │          │  │ Xuất báo cáo Excel               │    │
-  │          │          │  │ Xóa bàn                          │    │
+  │  Quản    │          │  │ Quản lý nhân viên (CRUD)        │    │
+  │  lý      │─────────→│  │ Xem thống kê doanh thu           │    │
+  │(Manager) │          │  │ Xuất báo cáo Excel               │    │
+  │          │          │  │ Xóa bàn / món / đơn              │    │
   └──────────┘          │  └─────────────────────────────────┘    │
                         │                                         │
                         │  ┌─────────────────────────────────┐    │
   ┌──────────┐          │  │ Gửi webhook thanh toán           │    │
-  │ Casso.vn │─────────→│  │ (tự động, không có giao diện)    │    │
+  │ SePay    │─────────→│  │ (tự động, không có giao diện)    │    │
   │ (Webhook)│          │  └─────────────────────────────────┘    │
+  └──────────┘          │                                         │
+                        │  ┌─────────────────────────────────┐    │
+  ┌──────────┐          │  │ Sinh câu trả lời tư vấn (LLM)    │    │
+  │ Groq AI  │─────────→│  │ (gọi qua API, không giao diện)  │    │
+  │  (LLM)   │          │  └─────────────────────────────────┘    │
   └──────────┘          │                                         │
                         └─────────────────────────────────────────┘
 ```
@@ -120,19 +131,24 @@ Khách đến nhà hàng
 | UC05 | Hủy đơn hàng | Guest | Hủy đơn đang ở trạng thái Chờ xử lý |
 | UC06 | Thanh toán QR | Guest | Tạo QR chuyển khoản, quét bằng app ngân hàng |
 | UC07 | Đánh giá món ăn | Guest | Chấm sao và viết nhận xét cho món đã đặt |
-| UC08 | Quản lý đơn hàng | Employee, Owner | Xem danh sách đơn, cập nhật trạng thái (Chờ → Chế biến → Giao → Thanh toán), hủy đơn |
-| UC09 | Tạo đơn hộ khách | Employee, Owner | Nhân viên chọn bàn, chọn món, tạo đơn thay khách |
-| UC10 | In hóa đơn | Employee, Owner | Xem và in hóa đơn thanh toán cho đơn hàng |
-| UC11 | Quản lý bàn | Employee, Owner | Thêm/sửa/xóa bàn, xem QR, đổi token, chuyển trạng thái |
-| UC12 | Quản lý món ăn | Employee, Owner | Thêm/sửa/xóa món, upload ảnh, phân danh mục |
-| UC13 | Quản lý danh mục | Employee, Owner | Thêm/sửa/xóa danh mục món ăn |
-| UC14 | Quản lý nguyên liệu | Employee, Owner | Thêm/sửa/xóa nguyên liệu, cập nhật tồn kho, liên kết với món |
-| UC15 | Quản lý nhân viên | Owner | Tạo/xóa tài khoản Employee |
-| UC16 | Xem thống kê | Owner | Biểu đồ doanh thu, top món bán chạy, lọc theo ngày |
-| UC17 | Xuất báo cáo | Owner | Xuất dữ liệu thống kê ra file Excel |
-| UC18 | Đăng nhập | Employee, Owner | Đăng nhập bằng email/mật khẩu hoặc Google OAuth |
-| UC19 | Đổi mật khẩu | Employee, Owner | Thay đổi mật khẩu tài khoản |
-| UC20 | Webhook thanh toán | Casso.vn | Nhận thông báo giao dịch, tự động đánh dấu đơn đã thanh toán |
+| UC08 | Quản lý đơn hàng | Employee, Quản lý | Xem danh sách đơn, cập nhật trạng thái (Chờ → Chế biến → Giao → Thanh toán), hủy đơn |
+| UC09 | Tạo đơn hộ khách | Employee, Quản lý | Nhân viên chọn bàn, chọn món, tạo đơn thay khách |
+| UC10 | In hóa đơn | Employee, Quản lý | Xem và in hóa đơn thanh toán cho đơn hàng |
+| UC11 | Quản lý bàn | Employee, Quản lý | Thêm/sửa/xóa bàn, xem QR, đổi token, chuyển trạng thái |
+| UC12 | Quản lý món ăn | Employee, Quản lý | Thêm/sửa/xóa món, upload ảnh, phân danh mục |
+| UC13 | Quản lý danh mục | Employee, Quản lý | Thêm/sửa/xóa danh mục món ăn |
+| UC14 | Quản lý nguyên liệu | Employee, Quản lý | Thêm/sửa/xóa nguyên liệu, cập nhật tồn kho, liên kết với món |
+| UC15 | Quản lý nhân viên | Quản lý | Tạo/xóa tài khoản Employee |
+| UC16 | Xem thống kê | Quản lý | Biểu đồ doanh thu, top món bán chạy, lọc theo ngày |
+| UC17 | Xuất báo cáo | Quản lý | Xuất dữ liệu thống kê ra file Excel |
+| UC18 | Đăng nhập | Employee, Quản lý | Đăng nhập bằng email và mật khẩu |
+| UC19 | Đổi mật khẩu | Employee, Quản lý | Thay đổi mật khẩu tài khoản |
+| UC20 | Webhook thanh toán | SePay | Nhận thông báo giao dịch, tự động đánh dấu đơn đã thanh toán |
+| UC21 | Đặt bàn trực tuyến | Guest | Khách nhập tên, SĐT, số khách, giờ đến để gửi yêu cầu đặt bàn |
+| UC22 | Tra cứu/Hủy đặt bàn | Guest | Khách tra cứu lịch đặt theo số điện thoại, hủy khi còn được phép |
+| UC23 | Duyệt đặt bàn | Employee, Quản lý | Duyệt/từ chối yêu cầu, gán bàn phù hợp với số khách |
+| UC24 | Chat với trợ lý ảo | Guest | Khách hỏi đáp với chatbot AI, có thể yêu cầu gặp nhân viên thật |
+| UC25 | Hỗ trợ chat | Employee, Quản lý | Tiếp nhận và trả lời các phiên chat được khách yêu cầu hỗ trợ |
 
 ### 3.2.3. Biểu đồ lớp (Class Diagram)
 
@@ -145,7 +161,7 @@ Khách đến nhà hàng
 │ Email: string    │       │ Description: str │
 │ Password: string │       │ CreatedAt: Date  │
 │ Role: enum       │       │ UpdatedAt: Date  │
-│   (Owner|Employee)       └────────┬─────────┘
+│  (Manager|Employee)      └────────┬─────────┘
 │ Avatar: string?  │                │ 1
 │ CreatedAt: Date  │                │
 │ UpdatedAt: Date  │                │ N
@@ -230,6 +246,10 @@ Khách đến nhà hàng
 | Dish ↔ Ingredient | N-N: Một món cần nhiều nguyên liệu, một nguyên liệu dùng cho nhiều món (qua bảng trung gian DishIngredient) |
 | Account → Order | 1-N: Một nhân viên xử lý nhiều đơn (ProcessedBy) |
 | Dish → DishReview | 1-N: Một món có nhiều đánh giá |
+| Table → Reservation | 1-N: Một bàn gắn với nhiều lượt đặt bàn |
+| Account → Reservation | 1-N: Một nhân viên duyệt nhiều lượt đặt (ProcessedBy) |
+| ChatSession → ChatMessage | 1-N: Một phiên hội thoại có nhiều tin nhắn |
+| Account → ChatSession | 1-N: Một nhân viên phụ trách nhiều phiên chat (AssignedStaff) |
 
 ### 3.2.4. Biểu đồ hoạt động (Activity Diagram)
 
@@ -344,7 +364,7 @@ Hiển thị QR cho khách
 Khách quét QR bằng app ngân hàng → Chuyển tiền
     │
     ▼
-Casso.vn phát hiện giao dịch → Gửi webhook đến server
+SePay phát hiện giao dịch → Gửi webhook đến server
     │
     ▼
 Server kiểm tra:
@@ -363,6 +383,84 @@ Kiểm tra bàn còn đơn active? ──── Không ──→ Bàn → Availa
     ▼
 Thông báo realtime → Khách ("Thanh toán thành công!") + Nhân viên
     │
+    ▼
+[Kết thúc]
+```
+
+**Luồng đặt bàn trực tuyến:**
+
+```
+[Bắt đầu]
+    │
+    ▼
+Khách vào trang Đặt bàn → nhập tên, SĐT, số khách, giờ đến
+    │
+    ▼
+Hệ thống kiểm tra dữ liệu (giờ hợp lệ, trước ít nhất 2 giờ?) ── Không ──→ Báo lỗi
+    │
+    Hợp lệ
+    │
+    ▼
+Tạo yêu cầu đặt bàn (Status = Pending)
+    │
+    ▼
+Gửi thông báo realtime → Nhân viên (NewReservation)
+    │
+    ▼
+Nhân viên duyệt yêu cầu:
+  - Từ chối ──→ Status = Rejected → Thông báo khách
+  - Duyệt   ──→ Chọn bàn (kiểm tra sức chứa >= số khách) → Status = Approved
+    │
+    ▼
+Dịch vụ chạy nền (mỗi 1 phút) kiểm tra lịch:
+  - Trước giờ đặt 30 phút  → Bàn → Reserved
+  - Sau giờ đặt 15 phút mà khách chưa đến → Status = NoShow → giải phóng bàn
+    │
+    ▼
+Khách đến → phục vụ bình thường (Status = Completed)
+    │
+    ▼
+[Kết thúc]
+```
+
+> Khách có thể tra cứu trạng thái đặt bàn theo số điện thoại và hủy khi yêu cầu còn ở trạng thái Pending/Approved.
+
+**Luồng hỏi đáp với trợ lý ảo AI:**
+
+```
+[Bắt đầu]
+    │
+    ▼
+Khách mở khung chat, gửi câu hỏi
+    │
+    ▼
+Hệ thống tạo/khôi phục phiên (ChatSession) → lưu tin nhắn khách
+    │
+    ▼
+Phiên đang ở trạng thái Active (bot phụ trách)? ── Không (đã có nhân viên) ──→ Chuyển thẳng tin tới nhân viên
+    │
+    Có
+    │
+    ▼
+Lấy menu + chính sách từ DB → dựng System Prompt (RAG)
+    │
+    ▼
+Gọi Groq LLM (kèm lịch sử N lượt gần nhất) → sinh câu trả lời
+    │
+    ▼
+Câu trả lời hợp lệ / đủ tự tin? ── Không ──→ Gợi ý "Gọi nhân viên thật"
+    │
+    Có
+    │
+    ▼
+Trả lời khách
+    │
+    ▼
+Khách bấm "Gọi nhân viên thật"? ── Có ──→ Status = WaitingStaff → Thông báo nhân viên (ChatEscalated)
+    │                                              │
+    Không                                          ▼
+    │                                    Nhân viên vào trả lời (Status = StaffJoined),
+    │                                    bot ngừng can thiệp → chat realtime qua SignalR
     ▼
 [Kết thúc]
 ```
@@ -435,6 +533,9 @@ Thông báo realtime → Khách ("Thanh toán thành công!") + Nhân viên
 | 7 | OrderItems | Chi tiết đơn hàng |
 | 8 | Accounts | Tài khoản nhân viên |
 | 9 | DishReviews | Đánh giá món ăn |
+| 10 | Reservations | Lịch đặt bàn của khách |
+| 11 | ChatSessions | Phiên hội thoại trợ lý ảo / nhân viên |
+| 12 | ChatMessages | Tin nhắn trong phiên chat |
 
 ### 3.3.2. Chi tiết từng bảng
 
@@ -532,7 +633,7 @@ Thông báo realtime → Khách ("Thanh toán thành công!") + Nhân viên
 | Name | nvarchar | Not Null | Họ tên |
 | Email | nvarchar | Unique, Not Null | Email đăng nhập |
 | Password | nvarchar | Not Null | Mật khẩu (BCrypt hash) |
-| Role | int (enum) | Not Null | 0=Owner, 1=Employee |
+| Role | int (enum) | Not Null | 0=Manager, 1=Employee |
 | Avatar | nvarchar | Nullable | URL ảnh đại diện |
 | CreatedAt | datetime2 | Not Null | Ngày tạo |
 | UpdatedAt | datetime2 | Not Null | Ngày cập nhật |
@@ -547,6 +648,46 @@ Thông báo realtime → Khách ("Thanh toán thành công!") + Nhân viên
 | Rating | int | Not Null | Điểm (1-5 sao) |
 | Comment | nvarchar | Nullable | Nhận xét |
 | CreatedAt | datetime2 | Not Null | Ngày đánh giá |
+
+**Bảng Reservations (Đặt bàn)**
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|-----|---------------|-----------|-------|
+| Id | int | PK, Identity | Mã đặt bàn |
+| GuestName | nvarchar | Not Null | Tên khách đặt |
+| GuestPhone | nvarchar | Not Null | Số điện thoại liên hệ |
+| PartySize | int | Not Null | Số lượng khách |
+| ReservationTime | datetime2 | Not Null | Thời gian đặt đến |
+| Note | nvarchar | Nullable | Ghi chú |
+| Status | int (enum) | Not Null | 0=Pending, 1=Approved, 2=Rejected, 3=Completed, 4=NoShow, 5=Cancelled |
+| TableId | int? | FK → Tables.Id, Nullable | Bàn được gán khi duyệt |
+| ProcessedById | int? | FK → Accounts.Id, Nullable | Nhân viên duyệt |
+| CreatedAt | datetime2 | Not Null | Ngày tạo |
+| UpdatedAt | datetime2 | Not Null | Ngày cập nhật |
+
+**Bảng ChatSessions (Phiên hội thoại)**
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|-----|---------------|-----------|-------|
+| Id | int | PK, Identity | Mã phiên |
+| Token | uniqueidentifier | Not Null | GUID khách dùng để nhận diện phiên (ẩn danh) |
+| Status | int (enum) | Not Null | 0=Active, 1=WaitingStaff, 2=StaffJoined, 3=Closed |
+| AssignedStaffId | int? | FK → Accounts.Id, Nullable | Nhân viên phụ trách |
+| EscalatedAt | datetime2 | Nullable | Thời điểm chuyển nhân viên |
+| ClosedAt | datetime2 | Nullable | Thời điểm đóng phiên |
+| LastActivityAt | datetime2 | Not Null | Hoạt động gần nhất |
+| CreatedAt | datetime2 | Not Null | Ngày tạo |
+| UpdatedAt | datetime2 | Not Null | Ngày cập nhật |
+
+**Bảng ChatMessages (Tin nhắn chat)**
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|-----|---------------|-----------|-------|
+| Id | int | PK, Identity | Mã tin nhắn |
+| SessionId | int | FK → ChatSessions.Id | Mã phiên |
+| Role | int (enum) | Not Null | 0=User (khách), 1=Bot, 2=Staff (nhân viên), 3=System |
+| Content | nvarchar | Not Null | Nội dung tin nhắn |
+| CreatedAt | datetime2 | Not Null | Thời điểm gửi |
 
 ### 3.3.3. Sơ đồ quan hệ (ERD)
 
@@ -578,4 +719,18 @@ Thông báo realtime → Khách ("Thanh toán thành công!") + Nhân viên
                     ┌─────▼───┐ ┌────▼────────┐
                     │ Dishes  │ │ Ingredients │
                     └─────────┘ └─────────────┘
+
+                       ┌─────────────────┐
+                       │  Reservations   │
+                       └──┬──────────┬───┘
+                          │ N      N │   (Table được gán / Account duyệt)
+                          │ 1      1 │
+                    ┌─────▼───┐ ┌────▼────────┐
+                    │ Tables  │ │  Accounts   │
+                    └─────────┘ └─────────────┘
+
+ ┌───────────────┐       ┌─────────────────┐       ┌────────────────┐
+ │   Accounts    │─1──N─→│  ChatSessions   │─1──N─→│  ChatMessages  │
+ │ (AssignStaff) │       └─────────────────┘       └────────────────┘
+ └───────────────┘
 ```

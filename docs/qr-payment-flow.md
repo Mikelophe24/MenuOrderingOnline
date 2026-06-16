@@ -9,7 +9,7 @@ Hệ thống thanh toán QR cho phép khách hàng thanh toán đơn hàng bằn
 | Thành phần | Công nghệ | Vai trò |
 |------------|-----------|---------|
 | Tạo mã QR | [VietQR API](https://vietqr.io) | Sinh mã QR chuẩn ngân hàng Việt Nam |
-| Theo dõi giao dịch | [Casso.vn](https://casso.vn) | Webhook khi có tiền vào tài khoản |
+| Theo dõi giao dịch | [SePay](https://sepay.vn) | Webhook khi có tiền vào tài khoản |
 | Thông báo realtime | SignalR (.NET) | Đẩy trạng thái thanh toán về client ngay lập tức |
 | Frontend realtime | @microsoft/signalr | Nhận sự kiện từ server, cập nhật UI |
 
@@ -19,7 +19,7 @@ Hệ thống thanh toán QR cho phép khách hàng thanh toán đơn hàng bằn
 Khách bấm "Thanh toán"
     → Backend gọi VietQR API tạo mã QR
     → Khách quét QR bằng app ngân hàng, chuyển tiền
-    → Casso.vn phát hiện giao dịch, gửi webhook đến server
+    → SePay phát hiện giao dịch, gửi webhook đến server
     → Server xác nhận thanh toán, cập nhật DB
     → SignalR thông báo realtime đến khách + quản lý
     → Khách thấy "Thanh toán thành công!", modal QR tự đóng
@@ -144,40 +144,39 @@ Frontend nhận response, hiển thị modal chứa:
 
 ## Phase 3: Webhook tự động xác nhận thanh toán
 
-### 3.1 Casso.vn phát hiện giao dịch
+### 3.1 SePay phát hiện giao dịch
 
-[Casso.vn](https://casso.vn) là dịch vụ **theo dõi biến động số dư** tài khoản ngân hàng. Khi có tiền vào tài khoản nhà hàng:
+[SePay](https://sepay.vn) là dịch vụ **theo dõi biến động số dư** tài khoản ngân hàng. Khi có tiền vào tài khoản nhà hàng:
 
 ```
 Ngân hàng ghi nhận giao dịch
-    → Casso.vn phát hiện biến động mới
-    → Casso gửi HTTP POST webhook đến server
+    → SePay phát hiện biến động số dư mới
+    → SePay gửi HTTP POST webhook đến server
 ```
 
-**Webhook URL** (cấu hình trên Casso dashboard): `https://{domain}/api/payment/webhook`
+**Webhook URL** (cấu hình trên SePay dashboard): `https://{domain}/api/payment/webhook`
 
 ### 3.2 Server nhận và xử lý webhook
 
-**File:** `server/OnlineMenu.API/Controllers/PaymentController.cs` — method `CassoWebhook`
+**File:** `server/OnlineMenu.API/Controllers/PaymentController.cs` — method `SePayWebhook`
 
 #### Bước 1: Xác thực webhook
 
 ```csharp
-var secureToken = Request.Headers["Secure-Token"].FirstOrDefault()
-    ?? Request.Headers["Authorization"].FirstOrDefault()?.Replace("Apikey ", "");
+var apiKey = Request.Headers["Authorization"].FirstOrDefault()?.Replace("Apikey ", "");
 
-if (secureToken != webhookKey)    // webhookKey = "onlinemenu2026"
+if (apiKey != sePayApiKey)    // sePayApiKey = "onlinemenu2026"
     return Unauthorized();
 ```
 
-Server kiểm tra header `Secure-Token` hoặc `Authorization: Apikey ...` có khớp với key đã cấu hình không. Nếu sai → trả 401 Unauthorized, chặn webhook giả mạo.
+SePay gửi kèm header `Authorization: Apikey <key>`. Server cắt tiền tố `Apikey ` rồi so sánh với key đã cấu hình. Nếu sai → trả 401 Unauthorized, chặn webhook giả mạo.
 
 **Cấu hình key** trong `appsettings.json`:
 
 ```json
 {
-  "Casso": {
-    "WebhookKey": "onlinemenu2026"
+  "SePay": {
+    "ApiKey": "onlinemenu2026"
   }
 }
 ```
@@ -185,21 +184,26 @@ Server kiểm tra header `Secure-Token` hoặc `Authorization: Apikey ...` có k
 #### Bước 2: Parse dữ liệu giao dịch
 
 ```csharp
-var data = body.GetProperty("data");    // Mảng giao dịch
-foreach (var tx in data.EnumerateArray())
-{
-    var description = tx.GetProperty("description").GetString();  // "DH5 Ban3"
-    var amount = tx.GetProperty("amount").GetInt64();              // 150000
-}
+var content = body.GetProperty("content").GetString();              // "DH5 Ban3" (nội dung CK)
+var transferAmount = body.GetProperty("transferAmount").GetInt64(); // 150000
+var transferType = body.GetProperty("transferType").GetString();    // "in" | "out"
+var code = body.TryGetProperty("code", out var c)
+    ? c.GetString() : null;                                         // mã SePay tự bóc tách
+
+if (transferType != "in") return Ok();    // Chỉ xử lý tiền vào ("in"), bỏ qua "out"
 ```
 
-Casso gửi mảng `data[]` chứa các giao dịch mới. Mỗi giao dịch có `description` (nội dung CK) và `amount` (số tiền).
+Khác với định dạng mảng cũ, SePay gửi **một giao dịch cho mỗi request** (không phải mảng). Các trường chính: `content` (nội dung CK), `transferAmount` (số tiền, kiểu int), `transferType` ("in" = tiền vào / "out" = tiền ra — chỉ xử lý "in"), và `code` (mã do SePay tự bóc tách, dùng làm phương án dự phòng khi `content` không chứa mã DH).
 
 #### Bước 3: Trích xuất mã đơn hàng bằng Regex
 
 ```csharp
-var match = Regex.Match(description, @"DH(\d+)", RegexOptions.IgnoreCase);
-if (!match.Success) continue;    // Không khớp format → bỏ qua
+// Ưu tiên content, nếu không khớp thì thử code (SePay bóc tách)
+var source = content;
+var match = Regex.Match(source ?? "", @"DH(\d+)", RegexOptions.IgnoreCase);
+if (!match.Success && code != null)
+    match = Regex.Match(code, @"DH(\d+)", RegexOptions.IgnoreCase);
+if (!match.Success) return Ok();    // Không khớp format → bỏ qua
 
 var orderId = int.Parse(match.Groups[1].Value);    // orderId = 5
 ```
@@ -214,10 +218,10 @@ Regex `DH(\d+)` tìm pattern "DH" + số trong nội dung chuyển khoản:
 var order = await _orderRepo.GetWithItemsAsync(orderId);
 
 // Bỏ qua nếu:
-if (order == null) continue;                                    // Đơn không tồn tại
-if (order.Status == OrderStatus.Paid) continue;                 // Đã thanh toán rồi
-if (order.Status == OrderStatus.Cancelled) continue;            // Đã hủy
-if (amount < (long)order.TotalPrice) continue;                  // Chuyển thiếu tiền
+if (order == null) return Ok();                                 // Đơn không tồn tại
+if (order.Status == OrderStatus.Paid) return Ok();              // Đã thanh toán rồi
+if (order.Status == OrderStatus.Cancelled) return Ok();         // Đã hủy
+if (transferAmount < (long)order.TotalPrice) return Ok();       // Chuyển thiếu tiền
 ```
 
 #### Bước 5: Cập nhật trạng thái atomic (chống duplicate)
@@ -231,7 +235,7 @@ var updated = await _context.Orders
         .SetProperty(o => o.Status, OrderStatus.Paid)
         .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
 
-if (updated == 0) continue;    // Đã bị cập nhật bởi request khác → bỏ qua
+if (updated == 0) return Ok();    // Đã bị cập nhật bởi request khác → bỏ qua
 ```
 
 **Tại sao dùng `ExecuteUpdateAsync` thay vì `UpdateAsync`?**
@@ -244,7 +248,7 @@ SET Status = 'Paid', UpdatedAt = GETUTCDATE()
 WHERE Id = 5 AND Status != 'Paid' AND Status != 'Cancelled'
 ```
 
-Câu lệnh này là **atomic** ở mức database — nếu Casso gửi webhook trùng (duplicate), chỉ lần đầu tiên thành công (`updated = 1`), các lần sau `updated = 0` và bị bỏ qua. Không cần lock hay transaction thêm.
+Câu lệnh này là **atomic** ở mức database — nếu SePay gửi webhook trùng (duplicate), chỉ lần đầu tiên thành công (`updated = 1`), các lần sau `updated = 0` và bị bỏ qua. Không cần lock hay transaction thêm.
 
 #### Bước 6: Cập nhật in-memory object
 
@@ -433,7 +437,7 @@ Nếu tất cả đơn tại bàn đều đã Paid hoặc Cancelled → bàn chu
 │  ┌──────────────────────────────────────┐  │       │              │
 │  │        PaymentController             │  │       │              │
 │  │                                      │  │       │              │
-│  │  CassoWebhook(body)         ◄────────┼──┼── Casso.vn webhook │
+│  │  SePayWebhook(body)         ◄────────┼──┼── SePay webhook    │
 │  │  1. Xác thực token                  │  │       │              │
 │  │  2. Parse description → orderId     │  │       │              │
 │  │  3. Kiểm tra order + amount         │  │       │              │
@@ -472,7 +476,7 @@ Nếu tất cả đơn tại bàn đều đã Paid hoặc Cancelled → bàn chu
                              │ Biến động số dư
                              ▼
                     ┌──────────────────┐
-                    │   Casso.vn       │
+                    │   SePay          │
                     │                  │
                     │ Theo dõi TK      │
                     │ → POST webhook   │────→  Backend (PaymentController)
@@ -486,15 +490,15 @@ Nếu tất cả đơn tại bàn đều đã Paid hoặc Cancelled → bàn chu
 ### 1. Chống webhook giả mạo
 
 ```
-Request đến → Kiểm tra header Secure-Token hoặc Authorization
-    → Khớp "onlinemenu2026" → Xử lý tiếp
+Request đến → Kiểm tra header Authorization: Apikey <key>
+    → Cắt tiền tố "Apikey ", khớp "onlinemenu2026" → Xử lý tiếp
     → Không khớp → 401 Unauthorized (chặn)
 ```
 
 ### 2. Chống thanh toán thiếu tiền
 
 ```
-Số tiền chuyển (amount) < Tổng đơn hàng (TotalPrice)
+Số tiền chuyển (transferAmount) < Tổng đơn hàng (TotalPrice)
     → Bỏ qua giao dịch, không đánh dấu Paid
     → Khách cần chuyển lại đúng số tiền
 ```
@@ -572,20 +576,21 @@ Order status = Cancelled → bỏ qua (đã hủy)
     "AccountName": "tên chủ tài khoản",
     "AcqId": "mã ngân hàng (ví dụ: 970418 = TPBank)"
   },
-  "Casso": {
-    "WebhookKey": "secret key cấu hình trên Casso dashboard"
+  "SePay": {
+    "ApiKey": "secret key cấu hình trên SePay dashboard"
   }
 }
 ```
 
-### Casso.vn Dashboard
+### SePay Dashboard
 
-1. Đăng ký tài khoản tại [casso.vn](https://casso.vn)
-2. Liên kết tài khoản ngân hàng
-3. Tạo webhook:
+1. Đăng nhập [my.sepay.vn](https://my.sepay.vn)
+2. Vào **Công ty → Cấu hình → Webhooks**
+3. Liên kết tài khoản ngân hàng (cùng số tài khoản với VietQR)
+4. Tạo webhook:
    - **URL:** `https://{domain}/api/payment/webhook`
-   - **Secure Token:** phải khớp với `Casso.WebhookKey` trong appsettings.json
-4. Casso sẽ tự động gửi POST request mỗi khi có giao dịch mới
+   - **Kiểu xác thực:** API Key — gửi qua header `Authorization: Apikey <key>`, phải khớp với `SePay:ApiKey` trong appsettings.json
+5. SePay sẽ tự động gửi POST request (một giao dịch mỗi request) mỗi khi có giao dịch mới
 
 ### VietQR API
 

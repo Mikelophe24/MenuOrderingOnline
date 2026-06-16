@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation'
 import { useCategories, useDeleteCategory } from '@/hooks/use-categories'
 import { useDishes } from '@/hooks/use-dishes'
 import { useAuthStore } from '@/stores/auth.store'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import type { Category, Dish } from '@/types'
-import { Role } from '@/types'
+import { Role, DishStatus } from '@/types'
+import { HttpError } from '@/lib/http'
 import { toast } from 'sonner'
 
 export default function ManageCategoriesPage() {
@@ -18,6 +19,7 @@ export default function ManageCategoriesPage() {
   const deleteCategory = useDeleteCategory()
   const account = useAuthStore((s) => s.account)
   const [search, setSearch] = useState('')
+  const [viewCat, setViewCat] = useState<Category | null>(null)
 
   const allDishes: Dish[] = dishData?.data?.data ?? []
   const categories: Category[] = data?.data ?? []
@@ -34,11 +36,24 @@ export default function ManageCategoriesPage() {
 
   const handleDelete = (e: React.MouseEvent, id: number, name: string) => {
     e.stopPropagation()
+    const count = getDishCount(id)
+    if (count > 0) {
+      toast.error(
+        `Danh mục "${name}" còn ${count} món. Vui lòng xóa hoặc chuyển hết món sang danh mục khác trước khi xóa danh mục.`
+      )
+      return
+    }
     if (!confirm(`Xóa danh mục "${name}"?`)) return
     deleteCategory.mutate(id, {
       onSuccess: () => toast.success('Xóa danh mục thành công'),
+      onError: (err) =>
+        toast.error(err instanceof HttpError ? String(err.payload) : 'Xóa danh mục thất bại'),
     })
   }
+
+  const viewDishes: Dish[] = viewCat
+    ? allDishes.filter((d) => d.categoryId === viewCat.id)
+    : []
 
   return (
     <div className="space-y-6">
@@ -73,8 +88,8 @@ export default function ManageCategoriesPage() {
                 <th className="px-4 py-3 text-left text-sm font-medium">Hình ảnh</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Tên</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Mô tả</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Số món</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Thao tác</th>
+                <th className="pl-4 pr-12 py-3 text-center text-sm font-medium">Số món</th>
+                <th className="pl-16 pr-4 py-3 text-left text-sm font-medium">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -102,13 +117,29 @@ export default function ManageCategoriesPage() {
                     <td className="px-4 py-4 text-sm text-muted-foreground">
                       {cat.description || '—'}
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-sm font-medium">
+                    <td className="pl-4 pr-12 py-4 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setViewCat(cat)
+                        }}
+                        title="Xem món trong danh mục"
+                        className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-sm font-medium hover:bg-primary/20"
+                      >
                         {getDishCount(cat.id)}
-                      </span>
+                      </button>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="pl-12 pr-4 py-4">
                       <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setViewCat(cat)
+                          }}
+                          className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
+                        >
+                          Xem món
+                        </button>
                         <Link
                           href={`/manage/categories/${cat.id}/edit`}
                           onClick={(e) => e.stopPropagation()}
@@ -131,6 +162,74 @@ export default function ManageCategoriesPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {viewCat && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setViewCat(null)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-lg border bg-background shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <h2 className="text-lg font-semibold">
+                Món trong &quot;{viewCat.name}&quot;
+              </h2>
+              <button
+                onClick={() => setViewCat(null)}
+                aria-label="Đóng"
+                className="rounded-md p-1 text-muted-foreground hover:bg-accent"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-4">
+              {viewDishes.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Chưa có món nào trong danh mục này.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {viewDishes.map((d) => (
+                    <li key={d.id} className="flex items-center gap-3 rounded-md border p-2">
+                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
+                        {d.image ? (
+                          <img src={d.image} alt={d.name} className="h-full w-full object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{d.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {d.price.toLocaleString('vi-VN')}đ
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${
+                          d.status === DishStatus.Available
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {d.status === DishStatus.Available
+                          ? 'Đang bán'
+                          : d.status === DishStatus.Unavailable
+                            ? 'Hết'
+                            : 'Ẩn'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="border-t px-4 py-3 text-sm text-muted-foreground">
+              Tổng: {viewDishes.length} món
+            </div>
+          </div>
         </div>
       )}
     </div>
