@@ -51,6 +51,11 @@ public class IngredientsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateIngredientRequest request)
     {
+        // Chặn trùng tên nguyên liệu
+        var exists = await _context.Ingredients.AnyAsync(i => i.Name == request.Name);
+        if (exists)
+            return BadRequest(ApiResponse<object>.Fail("Nguyên liệu đã tồn tại"));
+
         var ingredient = new Ingredient
         {
             Name = request.Name,
