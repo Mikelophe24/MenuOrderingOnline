@@ -88,8 +88,8 @@ export default function ManageCategoriesPage() {
                 <th className="px-4 py-3 text-left text-sm font-medium">Hình ảnh</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Tên</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Mô tả</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Số món</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Thao tác</th>
+                <th className="pl-4 pr-12 py-3 text-center text-sm font-medium">Số món</th>
+                <th className="pl-16 pr-4 py-3 text-left text-sm font-medium">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -117,7 +117,7 @@ export default function ManageCategoriesPage() {
                     <td className="px-4 py-4 text-sm text-muted-foreground">
                       {cat.description || '—'}
                     </td>
-                    <td className="px-4 py-4 text-center">
+                    <td className="pl-4 pr-12 py-4 text-center">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -129,7 +129,7 @@ export default function ManageCategoriesPage() {
                         {getDishCount(cat.id)}
                       </button>
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="pl-12 pr-4 py-4">
                       <div className="flex gap-2">
                         <button
                           onClick={(e) => {
