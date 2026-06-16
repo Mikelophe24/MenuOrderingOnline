@@ -40,13 +40,15 @@ public class PaymentController : ControllerBase
     }
 
     /// <summary>
-    /// Webhook endpoint for Casso.vn to notify of incoming bank transactions.
+    /// Webhook endpoint for bank-transaction services (Casso, SePay) to notify of incoming transfers.
     /// When a matching transaction is found, auto-marks the order as Paid.
+    /// Supports both Casso ({ data: [{ description, amount }] }) and
+    /// SePay ({ content, transferAmount, transferType }) payload formats.
     /// </summary>
     [HttpPost("webhook")]
     [HttpPost("/webhook")]
     [HttpPost("/")]
-    public async Task<IActionResult> CassoWebhook([FromBody] JsonElement body)
+    public async Task<IActionResult> PaymentWebhook([FromBody] JsonElement body)
     {
         // Verify webhook key - reject if not configured or not matching
         var expectedKey = _configuration["Casso:WebhookKey"];
@@ -68,14 +70,43 @@ public class PaymentController : ControllerBase
             return Unauthorized();
         }
 
-        if (!body.TryGetProperty("data", out var dataArray))
-            return Ok(new { success = true });
+        // Build the list of incoming transactions from either Casso or SePay payload format.
+        //   Casso: { "data": [ { "description": "...", "amount": 50000 }, ... ] }
+        //   SePay: { "content": "...", "transferAmount": 50000, "transferType": "in" }
+        var transactions = new List<(string Description, int Amount)>();
 
-        foreach (var transaction in dataArray.EnumerateArray())
+        if (body.TryGetProperty("data", out var dataArray) && dataArray.ValueKind == JsonValueKind.Array)
         {
-            var description = transaction.GetProperty("description").GetString() ?? "";
-            var amount = transaction.GetProperty("amount").GetInt32();
+            foreach (var t in dataArray.EnumerateArray())
+            {
+                var desc = t.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "";
+                var amt = t.TryGetProperty("amount", out var a) ? ReadAmount(a) : 0;
+                transactions.Add((desc, amt));
+            }
+        }
+        else if (body.TryGetProperty("transferAmount", out var sepayAmount))
+        {
+            // SePay sends one transaction per call; only auto-confirm incoming money.
+            var transferType = body.TryGetProperty("transferType", out var tt) ? tt.GetString() : "in";
+            if (string.Equals(transferType, "in", StringComparison.OrdinalIgnoreCase))
+            {
+                var desc = body.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
+                // Fall back to SePay's parsed "code" field if content has no DH code.
+                if (!Regex.IsMatch(desc, @"DH\d+", RegexOptions.IgnoreCase)
+                    && body.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String)
+                {
+                    desc = code.GetString() ?? desc;
+                }
+                transactions.Add((desc, ReadAmount(sepayAmount)));
+            }
+        }
+        else
+        {
+            return Ok(new { success = true });
+        }
 
+        foreach (var (description, amount) in transactions)
+        {
             _logger.LogInformation("Payment webhook received: {Description}, Amount: {Amount}", description, amount);
 
             // Parse order ID from description (e.g. "DH5 Ban3" or "DH5")
@@ -136,5 +167,15 @@ public class PaymentController : ControllerBase
         }
 
         return Ok(new { success = true });
+    }
+
+    // Reads a JSON amount that may be an integer, a decimal, or a numeric string.
+    private static int ReadAmount(JsonElement el)
+    {
+        if (el.ValueKind == JsonValueKind.Number)
+            return el.TryGetInt32(out var i) ? i : (int)el.GetDecimal();
+        if (el.ValueKind == JsonValueKind.String && decimal.TryParse(el.GetString(), out var d))
+            return (int)d;
+        return 0;
     }
 }
