@@ -12,6 +12,18 @@ import type { Dish, Category } from '@/types'
 import { Role } from '@/types'
 import { toast } from 'sonner'
 
+const dishStatusLabels: Record<string, string> = {
+  Available: 'Có sẵn',
+  Unavailable: 'Đã hết',
+  Hidden: 'Ẩn',
+}
+
+const dishStatusClass: Record<string, string> = {
+  Available: 'text-green-600 dark:text-green-400 font-medium',
+  Unavailable: 'text-red-600 dark:text-red-400 font-medium',
+  Hidden: 'text-muted-foreground font-medium',
+}
+
 export default function ManageDishesPage() {
   const router = useRouter()
   const [search, setSearch] = useState('')
@@ -129,7 +141,11 @@ export default function ManageDishesPage() {
                   <td className="px-4 py-4 text-base font-semibold">
                     {dish.price?.toLocaleString('vi-VN')}đ
                   </td>
-                  <td className="px-4 py-4 text-base">{dish.status}</td>
+                  <td className="px-4 py-4 text-base">
+                    <span className={dishStatusClass[dish.status] ?? 'font-medium'}>
+                      {dishStatusLabels[dish.status] ?? dish.status}
+                    </span>
+                  </td>
                   <td className="px-4 py-4">
                     <div className="flex gap-2">
                       <Link
