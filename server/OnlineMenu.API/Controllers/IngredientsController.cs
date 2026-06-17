@@ -84,6 +84,20 @@ public class IngredientsController : ControllerBase
         var ingredient = await _context.Ingredients.FindAsync(id);
         if (ingredient == null) return NotFound(ApiResponse<object>.Fail("Not found"));
 
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Tên nguyên liệu không được để trống"));
+        if (string.IsNullOrWhiteSpace(request.Unit))
+            return BadRequest(ApiResponse<object>.Fail("Đơn vị không được để trống"));
+        if (request.CurrentStock < 0)
+            return BadRequest(ApiResponse<object>.Fail("Tồn kho không được âm"));
+        if (request.MinStock < 0)
+            return BadRequest(ApiResponse<object>.Fail("Tồn tối thiểu không được âm"));
+
+        // Chặn trùng tên với nguyên liệu khác (loại trừ chính nó)
+        if (await _context.Ingredients.AnyAsync(i => i.Name == request.Name && i.Id != id))
+            return BadRequest(ApiResponse<object>.Fail("Nguyên liệu đã tồn tại"));
+
         ingredient.Name = request.Name;
         ingredient.Unit = request.Unit;
         ingredient.CurrentStock = request.CurrentStock;
