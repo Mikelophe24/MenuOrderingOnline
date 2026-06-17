@@ -54,8 +54,15 @@ public class TablesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTableRequest request)
     {
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (request.Number <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Số bàn phải lớn hơn 0"));
+        if (request.Capacity <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Sức chứa phải lớn hơn 0"));
+
+        // Chặn trùng số bàn
         if (await _tableRepo.ExistsAsync(t => t.Number == request.Number))
-            return BadRequest(ApiResponse<object>.Fail("Table number already exists"));
+            return BadRequest(ApiResponse<object>.Fail("Số bàn đã tồn tại"));
 
         var table = new Table
         {
