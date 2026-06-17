@@ -410,7 +410,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
               <span className="text-sm font-medium text-foreground/80">{account?.name}</span>
             </Link>
             <button
-              onClick={() => logoutMutation.mutate()}
+              onClick={() => { if (confirm('Bạn có chắc muốn đăng xuất?')) logoutMutation.mutate() }}
               className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-accent"
             >
               Đăng xuất
