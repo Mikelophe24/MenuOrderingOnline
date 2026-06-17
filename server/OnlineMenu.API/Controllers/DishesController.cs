@@ -23,12 +23,29 @@ public class DishesController : ControllerBase
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int limit = 10,
-        [FromQuery] string? status = null)
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null)
     {
+        DishStatus? dishStatus = status != null && Enum.TryParse<DishStatus>(status, out var parsed)
+            ? parsed : null;
+        var keyword = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+
         System.Linq.Expressions.Expression<Func<Dish, bool>>? filter = null;
-        if (status != null && Enum.TryParse<DishStatus>(status, out var dishStatus))
+        if (dishStatus.HasValue && keyword != null)
         {
-            filter = d => d.Status == dishStatus;
+            var st = dishStatus.Value;
+            string kw = keyword;
+            filter = d => d.Status == st && (d.Name.Contains(kw) || d.Description.Contains(kw));
+        }
+        else if (dishStatus.HasValue)
+        {
+            var st = dishStatus.Value;
+            filter = d => d.Status == st;
+        }
+        else if (keyword != null)
+        {
+            string kw = keyword;
+            filter = d => d.Name.Contains(kw) || d.Description.Contains(kw);
         }
 
         var (items, totalCount) = await _dishRepo.GetPagedAsync(page, limit, filter, includeProperties: "Category");

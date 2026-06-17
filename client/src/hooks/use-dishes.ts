@@ -22,7 +22,7 @@ function toStringParams(params?: Record<string, unknown>): Record<string, string
   return result
 }
 
-export function useDishes(params?: { page?: number; limit?: number; status?: string }) {
+export function useDishes(params?: { page?: number; limit?: number; status?: string; search?: string }) {
   return useQuery({
     queryKey: ['dishes', params],
     queryFn: () =>

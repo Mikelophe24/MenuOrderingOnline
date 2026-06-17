@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -14,29 +14,31 @@ import { toast } from 'sonner'
 
 export default function ManageDishesPage() {
   const router = useRouter()
-  const { data, isLoading } = useDishes({ limit: 100 })
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+
+  // Debounce tu khoa roi goi server (tranh goi API moi phim go)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  const { data, isLoading } = useDishes({ limit: 100, search: debouncedSearch || undefined })
   const { data: catData } = useCategories()
   const deleteDish = useDeleteDish()
   const account = useAuthStore((s) => s.account)
-  const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
 
   const allDishes: Dish[] = data?.data?.data ?? []
   const categories: Category[] = ((catData?.data as unknown as { data: Category[] })?.data) ?? catData?.data ?? []
 
+  // Tim kiem theo ten/mo ta da xu ly o server; o day chi loc theo danh muc
   const filteredDishes = useMemo(() => {
-    let result = allDishes
     if (selectedCategory) {
-      result = result.filter((d) => d.categoryId === selectedCategory)
+      return allDishes.filter((d) => d.categoryId === selectedCategory)
     }
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter((d) =>
-        d.name.toLowerCase().includes(q) || d.description?.toLowerCase().includes(q)
-      )
-    }
-    return result
-  }, [allDishes, search, selectedCategory])
+    return allDishes
+  }, [allDishes, selectedCategory])
 
   const handleDelete = (e: React.MouseEvent, id: number, name: string) => {
     e.stopPropagation()
