@@ -88,6 +88,15 @@ public class CategoriesController : ControllerBase
     {
         var category = await _categoryRepo.GetByIdAsync(id);
         if (category == null) return NotFound();
+
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Tên danh mục không được để trống"));
+
+        // Chặn trùng tên với danh mục khác (loại trừ chính nó)
+        if (await _categoryRepo.ExistsAsync(c => c.Name == request.Name && c.Id != id))
+            return BadRequest(ApiResponse<object>.Fail("Danh mục đã tồn tại"));
+
         category.Name = request.Name;
         category.Description = request.Description;
         category.Image = request.Image ?? category.Image;
