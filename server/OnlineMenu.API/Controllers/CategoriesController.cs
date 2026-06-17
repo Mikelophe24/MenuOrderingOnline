@@ -56,6 +56,14 @@ public class CategoriesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
     {
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Tên danh mục không được để trống"));
+
+        // Chặn trùng tên danh mục
+        if (await _categoryRepo.ExistsAsync(c => c.Name == request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Danh mục đã tồn tại"));
+
         var category = new Category
         {
             Name = request.Name,
