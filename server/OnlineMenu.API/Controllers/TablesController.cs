@@ -82,6 +82,16 @@ public class TablesController : ControllerBase
         var table = await _tableRepo.GetByIdAsync(id);
         if (table == null) return NotFound();
 
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (request.Number <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Số bàn phải lớn hơn 0"));
+        if (request.Capacity <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Sức chứa phải lớn hơn 0"));
+
+        // Chặn trùng số bàn với bàn khác (loại trừ chính bàn đang sửa)
+        if (await _tableRepo.ExistsAsync(t => t.Number == request.Number && t.Id != id))
+            return BadRequest(ApiResponse<object>.Fail("Số bàn đã tồn tại"));
+
         table.Number = request.Number;
         table.Capacity = request.Capacity;
         table.Status = Enum.Parse<TableStatus>(request.Status);

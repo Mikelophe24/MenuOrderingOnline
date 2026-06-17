@@ -6,6 +6,7 @@ import { useTables, useCreateTable, useDeleteTable, useChangeToken, useUpdateTab
 import { QRCodeSVG } from 'qrcode.react'
 import { TableStatus, type Table } from '@/types'
 import { toast } from 'sonner'
+
 const statusStyles: Record<string, { active: string; inactive: string }> = {
   Available: {
     active: 'bg-green-500 text-white shadow-md shadow-green-500/30',
@@ -26,6 +27,8 @@ const tableStatusLabels: Record<string, string> = {
   Occupied: 'Đang sử dụng',
   Reserved: 'Đã đặt trước',
 }
+
+type TableStatusValue = 'Available' | 'Occupied' | 'Reserved'
 
 function StatusToggle({ table, onUpdate }: { table: Table; onUpdate: (status: string) => void }) {
   return (
@@ -56,6 +59,41 @@ export default function ManageTablesPage() {
   const changeToken = useChangeToken()
   const updateTable = useUpdateTable()
 
+  const tables: Table[] = data?.data?.data ?? []
+  // Số bàn mới = số bàn cao nhất + 1 (tự động đánh số, không trùng kể cả khi đã xóa bàn)
+  const nextTableNumber = tables.reduce((max, t) => Math.max(max, t.number), 0) + 1
+
+  const [addOpen, setAddOpen] = useState(false)
+  const [addCapacity, setAddCapacity] = useState(4)
+  const [editTable, setEditTable] = useState<Table | null>(null)
+  const [editCapacity, setEditCapacity] = useState(4)
+
+  const errMsg = (err: unknown) =>
+    (err as Error & { payload?: { message?: string } }).payload?.message
+
+  const handleAdd = () => {
+    if (addCapacity < 1) { toast.error('Số ghế phải lớn hơn 0'); return }
+    createTable.mutate(
+      { number: nextTableNumber, capacity: addCapacity, status: 'Available' },
+      {
+        onSuccess: () => { toast.success(`Thêm bàn ${nextTableNumber} thành công`); setAddOpen(false); setAddCapacity(4) },
+        onError: (err) => toast.error(errMsg(err) ?? 'Không thể thêm bàn'),
+      }
+    )
+  }
+
+  const handleEdit = () => {
+    if (!editTable) return
+    if (editCapacity < 1) { toast.error('Số ghế phải lớn hơn 0'); return }
+    updateTable.mutate(
+      { id: editTable.id, data: { number: editTable.number, capacity: editCapacity, status: editTable.status as TableStatusValue } },
+      {
+        onSuccess: () => { toast.success(`Cập nhật bàn ${editTable.number} thành công`); setEditTable(null) },
+        onError: (err) => toast.error(errMsg(err) ?? 'Không thể cập nhật bàn'),
+      }
+    )
+  }
+
   const handleDelete = (id: number, number: number) => {
     if (!confirm(`Bạn có chắc muốn xóa bàn ${number}?`)) return
     deleteTable.mutate(id, {
@@ -78,12 +116,7 @@ export default function ManageTablesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Quản lý bàn ăn</h1>
         <button
-          onClick={() =>
-            createTable.mutate(
-              { number: (data?.data?.data?.length ?? 0) + 1, capacity: 4, status: 'Available' },
-              { onSuccess: () => toast.success('Thêm bàn thành công') }
-            )
-          }
+          onClick={() => { setAddCapacity(4); setAddOpen(true) }}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
           Thêm bàn
@@ -94,7 +127,7 @@ export default function ManageTablesPage() {
         <div className="text-center text-muted-foreground">Đang tải...</div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {data?.data?.data?.map((table: Table) => {
+          {tables.map((table: Table) => {
             const qrUrl = getQRUrl(table)
             return (
               <div key={table.id} className="rounded-lg border p-4 space-y-3">
@@ -105,7 +138,7 @@ export default function ManageTablesPage() {
                     table={table}
                     onUpdate={(status) =>
                       updateTable.mutate(
-                        { id: table.id, data: { number: table.number, capacity: table.capacity, status: status as 'Available' | 'Occupied' | 'Reserved' } },
+                        { id: table.id, data: { number: table.number, capacity: table.capacity, status: status as TableStatusValue } },
                         { onSuccess: () => toast.success(`Cập nhật trạng thái bàn ${table.number}`) }
                       )
                     }
@@ -137,6 +170,12 @@ export default function ManageTablesPage() {
                     Đổi QR Code
                   </button>
                   <button
+                    onClick={() => { setEditTable(table); setEditCapacity(table.capacity) }}
+                    className="rounded-md border border-blue-300 px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                  >
+                    Sửa
+                  </button>
+                  <button
                     onClick={() => handleDelete(table.id, table.number)}
                     className="rounded-md border border-destructive px-2 py-1 text-sm text-destructive"
                   >
@@ -146,6 +185,59 @@ export default function ManageTablesPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Modal thêm bàn */}
+      {addOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setAddOpen(false)}>
+          <div className="mx-4 w-full max-w-sm rounded-xl bg-card p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold">Thêm bàn ăn</h3>
+            <p className="text-sm text-muted-foreground">
+              Số bàn (tự động): <span className="font-semibold text-foreground">{nextTableNumber}</span>
+            </p>
+            <div>
+              <label className="text-sm font-medium">Số ghế</label>
+              <input
+                type="number"
+                min={1}
+                value={addCapacity}
+                onChange={(e) => setAddCapacity(Number(e.target.value))}
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setAddOpen(false)} className="rounded-md border px-4 py-2 text-sm">Hủy</button>
+              <button onClick={handleAdd} disabled={createTable.isPending} className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
+                {createTable.isPending ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal sửa bàn */}
+      {editTable && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setEditTable(null)}>
+          <div className="mx-4 w-full max-w-sm rounded-xl bg-card p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold">Sửa bàn {editTable.number}</h3>
+            <div>
+              <label className="text-sm font-medium">Số ghế</label>
+              <input
+                type="number"
+                min={1}
+                value={editCapacity}
+                onChange={(e) => setEditCapacity(Number(e.target.value))}
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setEditTable(null)} className="rounded-md border px-4 py-2 text-sm">Hủy</button>
+              <button onClick={handleEdit} disabled={updateTable.isPending} className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
+                {updateTable.isPending ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
