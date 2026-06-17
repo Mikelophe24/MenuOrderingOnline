@@ -194,7 +194,7 @@ export default function ManageTablesPage() {
           <div className="mx-4 w-full max-w-sm rounded-xl bg-card p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold">Thêm bàn ăn</h3>
             <p className="text-sm text-muted-foreground">
-              Số bàn (tự động): <span className="font-semibold text-foreground">{nextTableNumber}</span>
+              Số bàn: <span className="font-semibold text-foreground">{nextTableNumber}</span>
             </p>
             <div>
               <label className="text-sm font-medium">Số ghế</label>
