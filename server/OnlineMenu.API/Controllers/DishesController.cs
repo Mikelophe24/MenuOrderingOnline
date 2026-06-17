@@ -131,6 +131,18 @@ public class DishesController : ControllerBase
         var dish = await _dishRepo.GetByIdAsync(id);
         if (dish == null) return NotFound(ApiResponse<object>.Fail("Dish not found", 404));
 
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Tên món không được để trống"));
+        if (request.Price < 1000)
+            return BadRequest(ApiResponse<object>.Fail("Giá món phải từ 1.000đ"));
+        if (request.CategoryId <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Vui lòng chọn danh mục"));
+
+        // Chặn trùng tên với món khác (loại trừ chính món đang sửa)
+        if (await _dishRepo.ExistsAsync(d => d.Name == request.Name && d.Id != id))
+            return BadRequest(ApiResponse<object>.Fail("Món ăn đã tồn tại"));
+
         dish.Name = request.Name;
         dish.Price = request.Price;
         dish.Description = request.Description ?? dish.Description;
