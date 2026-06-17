@@ -76,7 +76,7 @@ export function useCancelGuestOrder() {
 export function useCreateStaffOrder() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: { tableNumber: number; guestName?: string; items: GuestOrder[] }) =>
+    mutationFn: (data: { tableNumber: number; guestName?: string; items: GuestOrder[]; force?: boolean }) =>
       http.post<ApiResponse<Order>>('/orders', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })

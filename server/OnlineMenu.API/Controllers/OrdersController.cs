@@ -107,6 +107,10 @@ public class OrdersController : ControllerBase
         if (table == null)
             return BadRequest(ApiResponse<object>.Fail("Bàn không tồn tại"));
 
+        // Cảnh báo khi tạo đơn cho bàn đã được đặt trước (nhân viên có thể xác nhận tiếp tục với Force = true)
+        if (table.Status == TableStatus.Reserved && !request.Force)
+            return Conflict(ApiResponse<object>.Fail("Bàn đã được đặt trước. Bạn có chắc muốn tạo đơn cho bàn này?"));
+
         var dishIds = request.Items.Select(i => i.DishId).Distinct().ToList();
         var dishes = await _dishRepo.FindAsync(d => dishIds.Contains(d.Id));
         var dishMap = dishes.ToDictionary(d => d.Id);

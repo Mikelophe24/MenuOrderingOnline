@@ -14,10 +14,12 @@ namespace OnlineMenu.API.Controllers;
 public class TablesController : ControllerBase
 {
     private readonly ITableRepository _tableRepo;
+    private readonly IOrderRepository _orderRepo;
 
-    public TablesController(ITableRepository tableRepo)
+    public TablesController(ITableRepository tableRepo, IOrderRepository orderRepo)
     {
         _tableRepo = tableRepo;
+        _orderRepo = orderRepo;
     }
 
     [HttpGet]
@@ -106,6 +108,15 @@ public class TablesController : ControllerBase
     {
         var table = await _tableRepo.GetByIdAsync(id);
         if (table == null) return NotFound();
+
+        // Chặn xóa bàn khi còn đơn hàng chưa hoàn tất (Chờ xác nhận / Đang xử lý / Đã giao)
+        var hasActiveOrder = await _orderRepo.ExistsAsync(o => o.TableId == id
+            && o.Status != OrderStatus.Paid
+            && o.Status != OrderStatus.Cancelled);
+        if (hasActiveOrder)
+            return BadRequest(ApiResponse<object>.Fail(
+                "Bàn đang có đơn hàng chưa thanh toán. Vui lòng xử lý đơn trước khi xóa."));
+
         await _tableRepo.DeleteAsync(table);
         return Ok(ApiResponse<object>.Success(null!, "Deleted"));
     }

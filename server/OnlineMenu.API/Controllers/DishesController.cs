@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using OnlineMenu.API.Hubs;
 using OnlineMenu.Application.DTOs;
 using OnlineMenu.Application.DTOs.Dishes;
 using OnlineMenu.Core.Entities;
 using OnlineMenu.Core.Enums;
 using OnlineMenu.Core.Interfaces.Repositories;
+using OnlineMenu.Infrastructure.Data;
 
 namespace OnlineMenu.API.Controllers;
 
@@ -13,10 +17,14 @@ namespace OnlineMenu.API.Controllers;
 public class DishesController : ControllerBase
 {
     private readonly IDishRepository _dishRepo;
+    private readonly AppDbContext _context;
+    private readonly IHubContext<OrderHub> _hubContext;
 
-    public DishesController(IDishRepository dishRepo)
+    public DishesController(IDishRepository dishRepo, AppDbContext context, IHubContext<OrderHub> hubContext)
     {
         _dishRepo = dishRepo;
+        _context = context;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -155,6 +163,9 @@ public class DishesController : ControllerBase
 
         await _dishRepo.UpdateAsync(dish);
 
+        // Thông báo realtime để menu khách hàng cập nhật ngay (tên, giá, trạng thái...)
+        await _hubContext.Clients.All.SendAsync("DishStatusChanged",
+            new { dish.Id, dish.Name, Status = dish.Status.ToString() });
 
         return Ok(ApiResponse<object>.Success(null!, "Updated"));
     }
@@ -165,6 +176,21 @@ public class DishesController : ControllerBase
     {
         var dish = await _dishRepo.GetByIdAsync(id);
         if (dish == null) return NotFound(ApiResponse<object>.Fail("Dish not found", 404));
+
+        // Chặn xóa món đang nằm trong đơn hàng chưa thanh toán → gợi ý Ẩn món
+        var inActiveOrder = await _context.OrderItems.AnyAsync(oi => oi.DishId == id
+            && (oi.Order.Status == OrderStatus.Pending
+                || oi.Order.Status == OrderStatus.Processing
+                || oi.Order.Status == OrderStatus.Delivered));
+        if (inActiveOrder)
+            return BadRequest(ApiResponse<object>.Fail(
+                "Món đang nằm trong đơn hàng chưa thanh toán. Vui lòng dùng chức năng \"Ẩn món\" thay vì xóa."));
+
+        // Món đã có trong lịch sử đơn hàng (đã thanh toán/đã hủy) → giữ lịch sử, không xóa cứng
+        var inAnyOrder = await _context.OrderItems.AnyAsync(oi => oi.DishId == id);
+        if (inAnyOrder)
+            return BadRequest(ApiResponse<object>.Fail(
+                "Món đã có trong lịch sử đơn hàng nên không thể xóa. Vui lòng dùng chức năng \"Ẩn món\"."));
 
         await _dishRepo.DeleteAsync(dish);
         return Ok(ApiResponse<object>.Success(null!, "Deleted"));

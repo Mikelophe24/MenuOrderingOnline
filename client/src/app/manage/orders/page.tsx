@@ -275,9 +275,14 @@ function CreateOrderForm({ onClose }: { onClose: () => void }) {
     if (!tableNumber) { toast.error('Vui lòng chọn bàn'); return }
     const orderItems = cart.filter((item) => item.quantity > 0)
     if (orderItems.length === 0) { toast.error('Vui lòng chọn ít nhất 1 món'); return }
+    // Bàn đã đặt trước → hỏi xác nhận trước khi tạo đơn
+    const selectedTable = tables.find((t) => t.number === tableNumber)
+    const force = selectedTable?.status === 'Reserved'
+    if (force && !confirm('Bàn đã được đặt trước. Vẫn tạo đơn cho bàn này?')) return
     createOrder.mutate(
       {
         tableNumber,
+        force,
         items: orderItems.map((item) => ({ dishId: item.dishId, quantity: item.quantity, note: item.note || undefined })),
       },
       {

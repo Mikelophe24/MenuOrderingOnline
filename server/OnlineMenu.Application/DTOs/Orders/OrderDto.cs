@@ -34,7 +34,8 @@ public record GuestOrderItem(int DishId, int Quantity, string? Note);
 public record CreateStaffOrderRequest(
     int TableNumber,
     string? GuestName,
-    List<GuestOrderItem> Items
+    List<GuestOrderItem> Items,
+    bool Force = false
 );
 
 public record UpdateOrderStatusRequest(string Status);
