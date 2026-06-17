@@ -88,6 +88,18 @@ public class DishesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateDishRequest request)
     {
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Tên món không được để trống"));
+        if (request.Price < 1000)
+            return BadRequest(ApiResponse<object>.Fail("Giá món phải từ 1.000đ"));
+        if (request.CategoryId <= 0)
+            return BadRequest(ApiResponse<object>.Fail("Vui lòng chọn danh mục"));
+
+        // Chặn trùng tên món
+        if (await _dishRepo.ExistsAsync(d => d.Name == request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Món ăn đã tồn tại"));
+
         var dish = new Dish
         {
             Name = request.Name,
