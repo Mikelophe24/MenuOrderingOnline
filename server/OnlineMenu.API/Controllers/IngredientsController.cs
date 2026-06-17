@@ -51,6 +51,16 @@ public class IngredientsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateIngredientRequest request)
     {
+        // Kiểm tra tính hợp lệ của dữ liệu
+        if (string.IsNullOrWhiteSpace(request.Name))
+            return BadRequest(ApiResponse<object>.Fail("Tên nguyên liệu không được để trống"));
+        if (string.IsNullOrWhiteSpace(request.Unit))
+            return BadRequest(ApiResponse<object>.Fail("Đơn vị không được để trống"));
+        if (request.CurrentStock < 0)
+            return BadRequest(ApiResponse<object>.Fail("Tồn kho không được âm"));
+        if (request.MinStock < 0)
+            return BadRequest(ApiResponse<object>.Fail("Tồn tối thiểu không được âm"));
+
         // Chặn trùng tên nguyên liệu
         var exists = await _context.Ingredients.AnyAsync(i => i.Name == request.Name);
         if (exists)
