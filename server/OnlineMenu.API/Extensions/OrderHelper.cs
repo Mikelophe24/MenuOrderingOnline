@@ -98,4 +98,27 @@ public static class OrderHelper
             await hubContext.Clients.All.SendAsync("DishStatusChanged", changed);
         }
     }
+
+    /// <summary>
+    /// Deducts ingredient stock for the given order items. Used when items are merged into an
+    /// order that has already passed the Processing stage (its existing items were deducted,
+    /// but the freshly merged ones were not yet).
+    /// </summary>
+    public static async Task DeductStockForItemsAsync(AppDbContext context, IEnumerable<OrderItem> items)
+    {
+        foreach (var item in items)
+        {
+            var dishIngredients = await context.DishIngredients
+                .Where(di => di.DishId == item.DishId)
+                .Include(di => di.Ingredient)
+                .ToListAsync();
+
+            foreach (var di in dishIngredients)
+            {
+                di.Ingredient.CurrentStock -= di.QuantityNeeded * item.Quantity;
+                if (di.Ingredient.CurrentStock < 0) di.Ingredient.CurrentStock = 0;
+            }
+        }
+        await context.SaveChangesAsync();
+    }
 }

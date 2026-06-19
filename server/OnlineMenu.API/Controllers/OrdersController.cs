@@ -172,6 +172,9 @@ public class OrdersController : ControllerBase
         Order order;
         if (existingOrder != null)
         {
+            // Capture status BEFORE merge to know whether existing items were already deducted.
+            var mergedIntoStatus = existingOrder.Status;
+
             foreach (var item in newItems)
             {
                 item.OrderId = existingOrder.Id;
@@ -185,6 +188,25 @@ public class OrdersController : ControllerBase
                     .SetProperty(o => o.TotalPrice, o => o.TotalPrice + addedPrice)
                     .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
             existingOrder.TotalPrice += addedPrice;
+
+            // Items merged into an order that already passed Processing weren't stock-deducted
+            // yet, so deduct them now. A Delivered order also drops back to Processing because
+            // the newly added items still need to be cooked.
+            if (mergedIntoStatus is OrderStatus.Processing or OrderStatus.Delivered)
+            {
+                await OrderHelper.DeductStockForItemsAsync(_context, newItems);
+
+                if (mergedIntoStatus == OrderStatus.Delivered)
+                {
+                    await _context.Orders
+                        .Where(o => o.Id == existingOrder.Id)
+                        .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OrderStatus.Processing));
+                    existingOrder.Status = OrderStatus.Processing;
+                }
+
+                await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
+                await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
+            }
 
             if (userId > 0) existingOrder.ProcessedById = userId;
             order = existingOrder;
@@ -323,7 +345,10 @@ public class OrdersController : ControllerBase
         Order order;
         if (existingOrder != null)
         {
-            // Add items to existing Pending order
+            // Capture status BEFORE merge to know whether existing items were already deducted.
+            var mergedIntoStatus = existingOrder.Status;
+
+            // Add items to the existing active order
             foreach (var item in newItems)
             {
                 item.OrderId = existingOrder.Id;
@@ -338,6 +363,26 @@ public class OrdersController : ControllerBase
                     .SetProperty(o => o.TotalPrice, o => o.TotalPrice + addedPrice)
                     .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
             existingOrder.TotalPrice += addedPrice;
+
+            // Items merged into an order that already passed Processing weren't stock-deducted
+            // yet, so deduct them now. A Delivered order also drops back to Processing because
+            // the newly added items still need to be cooked.
+            if (mergedIntoStatus is OrderStatus.Processing or OrderStatus.Delivered)
+            {
+                await OrderHelper.DeductStockForItemsAsync(_context, newItems);
+
+                if (mergedIntoStatus == OrderStatus.Delivered)
+                {
+                    await _context.Orders
+                        .Where(o => o.Id == existingOrder.Id)
+                        .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OrderStatus.Processing));
+                    existingOrder.Status = OrderStatus.Processing;
+                }
+
+                await OrderHelper.CheckAndUpdateDishAvailabilityAsync(_context, _hubContext);
+                await _hubContext.Clients.Group("management").SendAsync("StockChanged", new { });
+            }
+
             order = existingOrder;
         }
         else
