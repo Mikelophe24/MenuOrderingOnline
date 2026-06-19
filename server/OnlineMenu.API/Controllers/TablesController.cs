@@ -94,9 +94,23 @@ public class TablesController : ControllerBase
         if (await _tableRepo.ExistsAsync(t => t.Number == request.Number && t.Id != id))
             return BadRequest(ApiResponse<object>.Fail("Số bàn đã tồn tại"));
 
+        var newStatus = Enum.Parse<TableStatus>(request.Status);
+
+        // Không cho chuyển bàn sang "Trống" khi vẫn còn đơn hàng đang hoạt động
+        // (Chờ xác nhận / Đang xử lý / Đã giao). Bàn chỉ được trống khi mọi đơn đã thanh toán/hủy.
+        if (newStatus == TableStatus.Available && table.Status != TableStatus.Available)
+        {
+            var hasActiveOrder = await _orderRepo.ExistsAsync(o => o.TableId == id
+                && o.Status != OrderStatus.Paid
+                && o.Status != OrderStatus.Cancelled);
+            if (hasActiveOrder)
+                return BadRequest(ApiResponse<object>.Fail(
+                    "Bàn đang có đơn hàng hoạt động, không thể chuyển sang Trống. Vui lòng thanh toán hoặc hủy đơn trước."));
+        }
+
         table.Number = request.Number;
         table.Capacity = request.Capacity;
-        table.Status = Enum.Parse<TableStatus>(request.Status);
+        table.Status = newStatus;
 
         await _tableRepo.UpdateAsync(table);
         return Ok(ApiResponse<object>.Success(null!, "Updated"));

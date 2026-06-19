@@ -68,8 +68,10 @@ export default function ManageTablesPage() {
   const [editTable, setEditTable] = useState<Table | null>(null)
   const [editCapacity, setEditCapacity] = useState(4)
 
-  const errMsg = (err: unknown) =>
-    (err as Error & { payload?: { message?: string } }).payload?.message
+  const errMsg = (err: unknown) => {
+    const payload = (err as { payload?: unknown }).payload
+    return typeof payload === 'string' ? payload : (payload as { message?: string })?.message
+  }
 
   const handleAdd = () => {
     if (addCapacity < 1) { toast.error('Số ghế phải lớn hơn 0'); return }
@@ -139,7 +141,10 @@ export default function ManageTablesPage() {
                     onUpdate={(status) =>
                       updateTable.mutate(
                         { id: table.id, data: { number: table.number, capacity: table.capacity, status: status as TableStatusValue } },
-                        { onSuccess: () => toast.success(`Cập nhật trạng thái bàn ${table.number}`) }
+                        {
+                          onSuccess: () => toast.success(`Cập nhật trạng thái bàn ${table.number}`),
+                          onError: (err) => toast.error(errMsg(err) ?? 'Không thể đổi trạng thái bàn'),
+                        }
                       )
                     }
                   />
