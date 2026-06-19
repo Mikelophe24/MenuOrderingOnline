@@ -1,19 +1,22 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { MessageCircle } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useChat } from '@/hooks/use-chat'
 import { ChatPanel } from './chat-panel'
 
 /**
- * Floating chatbot widget. An cho user da dang nhap (Manager/Employee) — chi hien cho khach an danh.
+ * Floating chatbot widget. Chi hien o trang chu (landing "/") cho khach an danh.
+ * An o cac trang khac (dat ban, mon, ban, don) va khi co staff/manager dang nhap.
  * Mount global o root layout.
  */
 export function ChatWidget() {
   const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
   const account = useAuthStore((s) => s.account)
+  const pathname = usePathname()
   const chat = useChat()
 
   // Tranh hydration mismatch: chi render sau khi mount client
@@ -21,6 +24,7 @@ export function ChatWidget() {
 
   if (!mounted) return null
   if (account) return null // an khi co staff/manager dang nhap
+  if (pathname !== '/') return null // chi hien tro ly ao o trang chu
 
   return (
     <>
