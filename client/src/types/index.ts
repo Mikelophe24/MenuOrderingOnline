@@ -187,6 +187,26 @@ export interface Reservation {
   updatedAt: string
 }
 
+// ====== BANK TRANSACTIONS (Sổ thu) ======
+export interface BankTransaction {
+  id: number
+  sePayId: number
+  gateway?: string
+  accountNumber?: string
+  amount: number
+  transferType: string
+  content?: string
+  code?: string
+  matchedOrderId?: number
+  transactionDate: string
+  createdAt: string
+}
+
+export interface TransactionSummary {
+  todayTotal: number
+  todayCount: number
+}
+
 // ====== API RESPONSE ======
 export interface ApiResponse<T> {
   data: T

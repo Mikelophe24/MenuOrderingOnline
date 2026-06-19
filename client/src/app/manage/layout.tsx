@@ -11,7 +11,7 @@ import { getAccessToken } from '@/lib/tokens'
 import { startConnection, getConnection } from '@/lib/signalr'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Bell, CalendarCheck, MessageCircle } from 'lucide-react'
+import { Bell, CalendarCheck, MessageCircle, Wallet } from 'lucide-react'
 import { playAmountVoice } from '@/lib/voice-amount'
 import { formatTime } from '@/lib/utils'
 import http from '@/lib/http'
@@ -21,7 +21,7 @@ import type { Order, Reservation, ApiResponse, PaginatedResponse, Dish, Table, D
 
 interface Notification {
   id: string
-  type: 'order' | 'reservation' | 'chat'
+  type: 'order' | 'reservation' | 'chat' | 'payment'
   title: string
   subtitle: string
   time: string
@@ -112,28 +112,51 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       })
 
-      conn.on('PaymentReceived', (order: Order) => {
-        toast.success(`Bàn ${order.tableNumber} đã thanh toán ${order.totalPrice.toLocaleString('vi-VN')}đ`, {
+      // "Loa báo thu": every incoming bank transfer (matched order or not).
+      // This is the SINGLE place the amount is read aloud, so it never doubles up.
+      conn.on('MoneyReceived', (tx: {
+        transactionId: number
+        amount: number
+        content: string | null
+        gateway: string | null
+        transactionDate: string
+        matchedOrderId: number | null
+        tableNumber: number | null
+      }) => {
+        const amountText = tx.amount.toLocaleString('vi-VN')
+        const isOrder = tx.matchedOrderId != null
+        const title = isOrder
+          ? `Bàn ${tx.tableNumber} đã thanh toán ${amountText}đ`
+          : `Đã nhận được ${amountText}đ`
+        const link = isOrder ? '/manage/orders' : '/manage/transactions'
+
+        setNotifications((prev) => [{
+          id: `payment-${tx.transactionId}-${Date.now()}`,
+          type: 'payment',
+          title,
+          subtitle: tx.content || tx.gateway || 'Chuyển khoản',
+          time: tx.transactionDate,
+          link,
+        }, ...prev])
+
+        // Đọc số tiền bằng giọng mp3. Chờ 1.5s cho thiết bị âm thanh "thức dậy" -> không mất chữ đầu.
+        setTimeout(() => { void playAmountVoice(tx.amount) }, 1500)
+
+        toast.success(title, {
           duration: 8000,
           action: {
-            label: 'Đơn hàng',
-            onClick: () => router.push('/manage/orders'),
+            label: isOrder ? 'Đơn hàng' : 'Sổ thu',
+            onClick: () => router.push(link),
           },
         })
 
-        playAmountVoice(order.totalPrice)
-
-        queryClient.invalidateQueries({ queryKey: ['orders'] })
-        queryClient.invalidateQueries({ queryKey: ['orders-infinite'] })
-        queryClient.invalidateQueries({ queryKey: ['tables'] })
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Nhất Nướng - Thanh toán', {
-            body: `Bàn ${order.tableNumber} đã thanh toán ${order.totalPrice.toLocaleString('vi-VN')}đ`,
-            icon: '/images/logo/logo.jpg',
-          })
+          new Notification('Nhất Nướng - Báo thu', { body: title, icon: '/images/logo/logo.jpg' })
         }
+
+        queryClient.invalidateQueries({ queryKey: ['transactions'] })
+        queryClient.invalidateQueries({ queryKey: ['transactions-summary'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       })
 
       conn.on('TableStatusChanged', () => {
@@ -199,7 +222,7 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
       const conn = getConnection()
       conn.off('NewOrder')
       conn.off('OrderStatusChanged')
-      conn.off('PaymentReceived')
+      conn.off('MoneyReceived')
       conn.off('TableStatusChanged')
       conn.off('StockChanged')
       conn.off('DishStatusChanged')
@@ -375,10 +398,12 @@ export default function ManageLayout({ children }: { children: ReactNode }) {
                             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
                               notif.type === 'reservation' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
                               notif.type === 'chat' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                              notif.type === 'payment' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
                               'bg-primary/10 text-primary'
                             }`}>
                               {notif.type === 'reservation' ? <CalendarCheck className="h-4 w-4" /> :
                                notif.type === 'chat' ? <MessageCircle className="h-4 w-4" /> :
+                               notif.type === 'payment' ? <Wallet className="h-4 w-4" /> :
                                <Bell className="h-4 w-4" />}
                             </div>
                             <div className="min-w-0">

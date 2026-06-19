@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<Reservation> Reservations => Set<Reservation>();
     public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+    public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -175,6 +176,22 @@ public class AppDbContext : DbContext
                   .WithMany(s => s.Messages)
                   .HasForeignKey(e => e.SessionId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // BankTransaction
+        modelBuilder.Entity<BankTransaction>(entity =>
+        {
+            // Unique only for real SePay ids (>0) so the idempotency guard never
+            // rejects fallback rows that arrive without an id.
+            entity.HasIndex(e => e.SePayId).IsUnique().HasFilter("[SePayId] > 0");
+            entity.HasIndex(e => e.TransactionDate);
+            entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.TransferType).HasMaxLength(10);
+            entity.Property(e => e.Gateway).HasMaxLength(100);
+            entity.Property(e => e.AccountNumber).HasMaxLength(50);
+            entity.Property(e => e.Content).HasMaxLength(500);
+            entity.Property(e => e.Code).HasMaxLength(100);
+            entity.Property(e => e.ReferenceCode).HasMaxLength(100);
         });
     }
 }

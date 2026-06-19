@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using OnlineMenu.API.Extensions;
 using OnlineMenu.API.Hubs;
 using Microsoft.EntityFrameworkCore;
+using OnlineMenu.Core.Entities;
 using OnlineMenu.Core.Enums;
 using OnlineMenu.Core.Interfaces.Repositories;
 using OnlineMenu.Infrastructure.Data;
@@ -40,11 +42,15 @@ public class PaymentController : ControllerBase
 
     /// <summary>
     /// Webhook endpoint for SePay (https://sepay.vn) to notify of incoming bank transfers.
-    /// SePay sends one transaction per request:
-    ///   { "content": "...", "transferAmount": 50000, "transferType": "in", "code": null }
+    /// SePay sends one transaction per request, e.g.
+    ///   { "id": 92704, "gateway": "TPBank", "transactionDate": "2026-06-18 14:02:37",
+    ///     "accountNumber": "...", "content": "DH5 Ban3", "transferType": "in",
+    ///     "transferAmount": 150000, "code": null, "referenceCode": "..." }
     /// and authenticates with header `Authorization: Apikey {SePay:ApiKey}`.
-    /// When the order code (DH{id}) is matched and the amount is sufficient,
-    /// the order is automatically marked as Paid.
+    ///
+    /// EVERY incoming ("in") transfer is recorded in BankTransactions and announced to the
+    /// management UI via the "MoneyReceived" event (the "loa báo thu"). When the content also
+    /// carries an order code (DH{id}) and covers the order total, the order is marked Paid.
     /// </summary>
     [HttpPost("webhook")]
     public async Task<IActionResult> SePayWebhook([FromBody] JsonElement body)
@@ -67,83 +73,123 @@ public class PaymentController : ControllerBase
             return Unauthorized();
         }
 
-        // Only auto-confirm incoming money (transferType = "in").
+        // Only record/announce incoming money (transferType = "in").
         var transferType = body.TryGetProperty("transferType", out var tt) ? tt.GetString() : "in";
         if (!string.Equals(transferType, "in", StringComparison.OrdinalIgnoreCase))
             return Ok(new { success = true });
 
+        // ----- Parse the SePay payload -----
+        var sePayId = body.TryGetProperty("id", out var idEl) ? ReadLong(idEl) : 0;
         var amount = body.TryGetProperty("transferAmount", out var amt) ? ReadAmount(amt) : 0;
-
-        // Order code lives in the transfer content (e.g. "DH5 Ban3").
-        // Fall back to SePay's parsed "code" field when content has no DH code.
         var content = body.TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
-        var description = content;
-        if (!Regex.IsMatch(description, @"DH\d+", RegexOptions.IgnoreCase)
-            && body.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.String)
+        var gateway = body.TryGetProperty("gateway", out var g) ? g.GetString() : null;
+        var accountNumber = body.TryGetProperty("accountNumber", out var an) ? an.GetString() : null;
+        var referenceCode = body.TryGetProperty("referenceCode", out var rc) ? rc.GetString() : null;
+        var sePayCode = body.TryGetProperty("code", out var codeEl) && codeEl.ValueKind == JsonValueKind.String
+            ? codeEl.GetString() : null;
+        var transactionDate = body.TryGetProperty("transactionDate", out var td)
+            ? ParseTransactionDate(td.GetString()) : DateTime.UtcNow;
+
+        // Idempotency: SePay may retry. Ignore a transaction we have already stored.
+        if (sePayId > 0 && await _context.BankTransactions.AnyAsync(t => t.SePayId == sePayId))
         {
-            description = code.GetString() ?? description;
+            _logger.LogInformation("SePay webhook: transaction {SePayId} already recorded, skipping", sePayId);
+            return Ok(new { success = true });
         }
 
         _logger.LogInformation("SePay webhook received: content='{Content}', amount={Amount}", content, amount);
 
-        // Parse order ID from description (e.g. "DH5 Ban3" or "DH5")
+        // ----- Try to match an order via the DH code in the content (fallback to SePay's code) -----
+        var description = content;
+        if (!Regex.IsMatch(description, @"DH\d+", RegexOptions.IgnoreCase) && !string.IsNullOrEmpty(sePayCode))
+            description = sePayCode;
+
+        Order? referencedOrder = null;
         var match = Regex.Match(description, @"DH(\d+)", RegexOptions.IgnoreCase);
-        if (!match.Success)
+        if (match.Success)
         {
-            _logger.LogWarning("SePay webhook: no order code (DHxxx) found in '{Description}'", description);
+            var orderId = int.Parse(match.Groups[1].Value);
+            referencedOrder = await _orderRepo.GetWithItemsAsync(orderId);
+            if (referencedOrder == null)
+                _logger.LogWarning("SePay webhook: order {OrderId} not found", orderId);
+        }
+
+        // ----- Record the transaction (unique SePayId index also guards duplicate webhooks) -----
+        var transaction = new BankTransaction
+        {
+            SePayId = sePayId,
+            Gateway = gateway,
+            AccountNumber = accountNumber,
+            Amount = amount,
+            TransferType = "in",
+            Content = content,
+            Code = sePayCode,
+            ReferenceCode = referenceCode,
+            TransactionDate = transactionDate,
+            MatchedOrderId = referencedOrder?.Id,
+        };
+        _context.BankTransactions.Add(transaction);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Lost a race against a duplicate webhook (unique SePayId). Already recorded → done.
+            _logger.LogInformation("SePay webhook: transaction {SePayId} recorded concurrently, skipping", sePayId);
             return Ok(new { success = true });
         }
 
-        var orderId = int.Parse(match.Groups[1].Value);
-        var order = await _orderRepo.GetWithItemsAsync(orderId);
+        // ----- If the transfer covers an open order, mark it Paid -----
+        int? paidOrderId = null;
+        int? paidTableNumber = null;
 
-        if (order == null)
+        if (referencedOrder != null
+            && referencedOrder.Status != OrderStatus.Paid
+            && referencedOrder.Status != OrderStatus.Cancelled
+            && amount >= (int)referencedOrder.TotalPrice)
         {
-            _logger.LogWarning("SePay webhook: order {OrderId} not found", orderId);
-            return Ok(new { success = true });
+            // Atomic update: only mark Paid if still open. Prevents double-processing.
+            var updated = await _context.Orders
+                .Where(o => o.Id == referencedOrder.Id && o.Status != OrderStatus.Paid && o.Status != OrderStatus.Cancelled)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(o => o.Status, OrderStatus.Paid)
+                    .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
+
+            if (updated > 0)
+            {
+                referencedOrder.Status = OrderStatus.Paid;
+                referencedOrder.UpdatedAt = DateTime.UtcNow;
+                paidOrderId = referencedOrder.Id;
+                paidTableNumber = referencedOrder.TableNumber;
+
+                await OrderHelper.TryFreeTableAsync(referencedOrder.TableId, referencedOrder.Id, _orderRepo, _tableRepo, _hubContext);
+
+                var orderDto = OrderHelper.MapToDto(referencedOrder);
+                await _hubContext.Clients.Group("management").SendAsync("PaymentReceived", orderDto);
+                await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
+                await _hubContext.Clients.Group($"table-{referencedOrder.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
+
+                _logger.LogInformation("Order {OrderId} auto-marked as Paid via SePay bank transfer", referencedOrder.Id);
+            }
+        }
+        else if (referencedOrder != null && amount < (int)referencedOrder.TotalPrice)
+        {
+            _logger.LogWarning("SePay webhook: amount {Actual} insufficient for order {OrderId} (needs {Expected})",
+                amount, referencedOrder.Id, (int)referencedOrder.TotalPrice);
         }
 
-        if (order.Status == OrderStatus.Paid || order.Status == OrderStatus.Cancelled)
+        // ----- Announce the incoming money to the management UI (single voice/toast source) -----
+        await _hubContext.Clients.Group("management").SendAsync("MoneyReceived", new
         {
-            _logger.LogInformation("SePay webhook: order {OrderId} already {Status}", orderId, order.Status);
-            return Ok(new { success = true });
-        }
-
-        // Verify the transferred amount covers the order total.
-        if (amount < (int)order.TotalPrice)
-        {
-            _logger.LogWarning("SePay webhook: amount mismatch for order {OrderId}. Expected {Expected}, got {Actual}",
-                orderId, (int)order.TotalPrice, amount);
-            return Ok(new { success = true });
-        }
-
-        // Atomic status update: only mark as Paid if not already Paid/Cancelled.
-        // This prevents race conditions from duplicate webhook calls.
-        var updated = await _context.Orders
-            .Where(o => o.Id == orderId && o.Status != OrderStatus.Paid && o.Status != OrderStatus.Cancelled)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(o => o.Status, OrderStatus.Paid)
-                .SetProperty(o => o.UpdatedAt, DateTime.UtcNow));
-
-        if (updated == 0)
-        {
-            _logger.LogInformation("SePay webhook: order {OrderId} already processed (race condition avoided)", orderId);
-            return Ok(new { success = true });
-        }
-
-        // Update in-memory object to match DB state before broadcasting.
-        order.Status = OrderStatus.Paid;
-        order.UpdatedAt = DateTime.UtcNow;
-
-        await OrderHelper.TryFreeTableAsync(order.TableId, order.Id, _orderRepo, _tableRepo, _hubContext);
-
-        // Notify via SignalR
-        var orderDto = OrderHelper.MapToDto(order);
-        await _hubContext.Clients.Group("management").SendAsync("PaymentReceived", orderDto);
-        await _hubContext.Clients.Group("management").SendAsync("OrderStatusChanged", orderDto);
-        await _hubContext.Clients.Group($"table-{order.TableNumber}").SendAsync("OrderStatusChanged", orderDto);
-
-        _logger.LogInformation("Order {OrderId} auto-marked as Paid via SePay bank transfer", orderId);
+            transactionId = transaction.Id,
+            amount,
+            content,
+            gateway,
+            transactionDate,
+            matchedOrderId = paidOrderId,
+            tableNumber = paidTableNumber,
+        });
 
         return Ok(new { success = true });
     }
@@ -156,5 +202,26 @@ public class PaymentController : ControllerBase
         if (el.ValueKind == JsonValueKind.String && decimal.TryParse(el.GetString(), out var d))
             return (int)d;
         return 0;
+    }
+
+    // Reads a JSON id that may be an integer or a numeric string.
+    private static long ReadLong(JsonElement el)
+    {
+        if (el.ValueKind == JsonValueKind.Number)
+            return el.TryGetInt64(out var l) ? l : (long)el.GetDecimal();
+        if (el.ValueKind == JsonValueKind.String && long.TryParse(el.GetString(), out var d))
+            return d;
+        return 0;
+    }
+
+    // SePay sends transactionDate as Vietnam local time ("yyyy-MM-dd HH:mm:ss"). Store it as UTC.
+    private static DateTime ParseTransactionDate(string? raw)
+    {
+        if (!string.IsNullOrWhiteSpace(raw)
+            && DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local))
+        {
+            return DateTime.SpecifyKind(local.AddHours(-7), DateTimeKind.Utc);
+        }
+        return DateTime.UtcNow;
     }
 }

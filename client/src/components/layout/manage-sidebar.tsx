@@ -22,6 +22,7 @@ import {
   X,
   ScrollText,
   MessageCircle,
+  Wallet,
 } from 'lucide-react'
 
 const getNavItems = (role: Role | undefined) => {
@@ -29,6 +30,7 @@ const getNavItems = (role: Role | undefined) => {
     { href: '/manage/home', icon: ScrollText, label: 'Xem thực đơn' },
     ...(role === Role.Manager ? [{ href: '/manage/dashboard', icon: LayoutDashboard, label: 'Thống kê' }] : []),
     { href: '/manage/orders', icon: ClipboardList, label: 'Quản lý đơn hàng' },
+    { href: '/manage/transactions', icon: Wallet, label: 'Sổ thu' },
     { href: '/manage/categories', icon: FolderOpen, label: 'Quản lý danh mục' },
     { href: '/manage/dishes', icon: UtensilsCrossed, label: 'Quản lý món ăn' },
     { href: '/manage/tables', icon: Armchair, label: 'Quản lý bàn ăn' },
