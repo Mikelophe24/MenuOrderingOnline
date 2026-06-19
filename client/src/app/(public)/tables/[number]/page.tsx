@@ -84,8 +84,13 @@ function TableMenuContent() {
     }
   }, [queryClient])
 
-  // Hide dishes manually hidden by staff, keep Available + Unavailable (out of stock)
-  const allDishes: Dish[] = (data?.data?.data ?? []).filter((d) => d.status !== 'Hidden')
+  // Hide dishes manually hidden by staff, keep Available + Unavailable (out of stock).
+  // Memo hoa theo `data` de reference on dinh -> shuffle ben duoi khong chay lai moi render
+  // (truoc day moi lan them mon / go tim kiem deu lam danh sach bi xao tron lai).
+  const allDishes: Dish[] = useMemo(
+    () => (data?.data?.data ?? []).filter((d) => d.status !== 'Hidden'),
+    [data]
+  )
   const categories: Category[] = catData?.data ?? []
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
