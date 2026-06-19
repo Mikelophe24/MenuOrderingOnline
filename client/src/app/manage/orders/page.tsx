@@ -665,6 +665,19 @@ export default function ManageOrdersPage() {
   }
 
   const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
+    // Xác nhận trước khi hủy — cảnh báo mạnh hơn với đơn đã nấu/đã giao (sẽ hoàn nguyên liệu về kho)
+    if (newStatus === OrderStatus.Cancelled) {
+      const advanced = order.status === OrderStatus.Processing || order.status === OrderStatus.Delivered
+      const statusLabel =
+        order.status === OrderStatus.Delivered ? 'Đã giao'
+        : order.status === OrderStatus.Processing ? 'Đang xử lý'
+        : 'Chờ xác nhận'
+      const message = advanced
+        ? `Đơn #${order.id} đang ở trạng thái "${statusLabel}".\nBạn chắc chắn muốn HỦY? Nguyên liệu đã trừ sẽ được hoàn lại về kho.`
+        : `Bạn chắc chắn muốn hủy đơn #${order.id}?`
+      if (!confirm(message)) return
+    }
+
     updateStatus.mutate(
       { id: order.id, status: newStatus },
       {
