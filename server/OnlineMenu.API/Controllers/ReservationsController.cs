@@ -132,7 +132,7 @@ public class ReservationsController : ControllerBase
                 (status == null || r.Status.ToString() == status) &&
                 (fromDate == null || r.ReservationTime >= fromDate) &&
                 (toDate == null || r.ReservationTime <= toDate),
-            orderBy: q => q.OrderByDescending(r => r.ReservationTime),
+            orderBy: q => q.OrderByDescending(r => r.CreatedAt),
             includeProperties: "Table,ProcessedBy"
         );
 
