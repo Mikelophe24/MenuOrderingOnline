@@ -413,13 +413,17 @@ public static class SeedData
 
     // ===== REVIEWS =====
     // Seed 1-3 đánh giá cho mỗi món, đa phần là tốt (4-5 sao), xen kẽ vài đánh giá 3 sao.
-    // Idempotent: chỉ chạy khi bảng DishReviews còn rỗng -> có thể bổ sung review vào DB đã có sẵn món.
+    // Idempotent & an toàn: chỉ thêm review cho món CHƯA có review nào -> giữ nguyên
+    // review thật của khách, và chạy lại nhiều lần không tạo bản trùng.
     private static void SeedReviews(AppDbContext context)
     {
-        if (context.DishReviews.Any()) return; // đã có review -> bỏ qua
-
         var dishes = context.Dishes.OrderBy(d => d.Id).ToList();
         if (dishes.Count == 0) return;
+
+        // Bỏ qua những món đã có sẵn review (vd review thật của khách)
+        var dishesWithReview = context.DishReviews.Select(r => r.DishId).Distinct().ToHashSet();
+        var targets = dishes.Where(d => !dishesWithReview.Contains(d.Id)).ToList();
+        if (targets.Count == 0) return;
 
         // Tên khách ẩn danh
         var names = new[]
@@ -463,9 +467,9 @@ public static class SeedData
         };
 
         var reviews = new List<DishReview>();
-        for (int idx = 0; idx < dishes.Count; idx++)
+        for (int idx = 0; idx < targets.Count; idx++)
         {
-            var dish = dishes[idx];
+            var dish = targets[idx];
             int count = 1 + (idx % 3); // 1, 2, 3 luân phiên -> trung bình 2 review/món
 
             for (int k = 0; k < count; k++)
