@@ -7,6 +7,12 @@ public static class SeedData
 {
     public static void Seed(AppDbContext context)
     {
+        SeedMenu(context);
+        SeedReviews(context);
+    }
+
+    private static void SeedMenu(AppDbContext context)
+    {
         if (context.Categories.Any()) return; // Da co data -> skip
 
         // ===== CATEGORIES =====
@@ -403,5 +409,90 @@ public static class SeedData
         Add("Bia Chai Heineken", "Bia Heineken", 1);
 
         return r;
+    }
+
+    // ===== REVIEWS =====
+    // Seed 1-3 đánh giá cho mỗi món, đa phần là tốt (4-5 sao), xen kẽ vài đánh giá 3 sao.
+    // Idempotent: chỉ chạy khi bảng DishReviews còn rỗng -> có thể bổ sung review vào DB đã có sẵn món.
+    private static void SeedReviews(AppDbContext context)
+    {
+        if (context.DishReviews.Any()) return; // đã có review -> bỏ qua
+
+        var dishes = context.Dishes.OrderBy(d => d.Id).ToList();
+        if (dishes.Count == 0) return;
+
+        // Tên khách ẩn danh
+        var names = new[]
+        {
+            "Minh Anh", "Quang Huy", "Thu Hà", "Đức Anh", "Phương Linh", "Tuấn Kiệt",
+            "Ngọc Mai", "Hoàng Nam", "Thanh Tâm", "Bảo Châu", "Việt Hưng", "Khánh Vy",
+            "Gia Bảo", "Hải Đăng", "Mỹ Duyên", "Trọng Nghĩa", "Lan Hương", "Đình Phong",
+        };
+
+        // Bình luận 5 sao (rất tốt) - viết chung chung để hợp mọi món, kể cả đồ uống
+        var good5 = new[]
+        {
+            "Món ăn rất ngon, mình sẽ quay lại!",
+            "Chất lượng tuyệt vời, đáng đồng tiền.",
+            "Ngon xuất sắc, cả nhà đều thích.",
+            "Phục vụ nhanh, đồ nóng hổi và ngon.",
+            "Quá ngon, không có gì để chê.",
+            "Hương vị đậm đà, rất hài lòng.",
+            "10 điểm, sẽ giới thiệu cho bạn bè.",
+            "Tươi ngon, trình bày đẹp mắt.",
+        };
+
+        // Bình luận 4 sao (tốt)
+        var good4 = new[]
+        {
+            "Ngon, giá hợp lý.",
+            "Khá ổn, sẽ thử lại lần sau.",
+            "Đồ ăn ngon, nhân viên thân thiện.",
+            "Ngon nhưng phần hơi ít một chút.",
+            "Tốt, đáng để thử.",
+            "Hài lòng với chất lượng.",
+        };
+
+        // Bình luận 3 sao (tạm ổn) - chiếm thiểu số
+        var ok3 = new[]
+        {
+            "Tạm ổn, hơi mặn một chút.",
+            "Bình thường, không có gì đặc biệt.",
+            "Ổn nhưng phải chờ hơi lâu.",
+            "Được, nhưng có thể ngon hơn.",
+        };
+
+        var reviews = new List<DishReview>();
+        for (int idx = 0; idx < dishes.Count; idx++)
+        {
+            var dish = dishes[idx];
+            int count = 1 + (idx % 3); // 1, 2, 3 luân phiên -> trung bình 2 review/món
+
+            for (int k = 0; k < count; k++)
+            {
+                int seed = idx * 7 + k * 13;       // số giả ngẫu nhiên xác định (tái lập được)
+                int bucket = (idx * 3 + k) % 10;    // 0..9 -> quyết định số sao
+
+                int rating;
+                string comment;
+                if (bucket == 0)        { rating = 3; comment = ok3[seed % ok3.Length]; }     // ~10% (3 sao)
+                else if (bucket <= 3)   { rating = 4; comment = good4[seed % good4.Length]; } // ~30% (4 sao)
+                else                    { rating = 5; comment = good5[seed % good5.Length]; } // ~60% (5 sao)
+
+                reviews.Add(new DishReview
+                {
+                    DishId = dish.Id,
+                    GuestName = names[seed % names.Length],
+                    TableNumber = 1 + (seed % 20),
+                    Rating = rating,
+                    Comment = comment,
+                    // Trải đánh giá trong ~2 tháng gần đây cho thực tế
+                    CreatedAt = DateTime.UtcNow.AddDays(-(seed % 60)).AddHours(-(seed % 24)),
+                });
+            }
+        }
+
+        context.DishReviews.AddRange(reviews);
+        context.SaveChanges();
     }
 }
