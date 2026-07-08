@@ -2,17 +2,38 @@
 client/node_modules/
 client/.next/
 client/out/
+*.tsbuildinfo
 
 # Backups
 backups/
 
+# Claude Code
+.claude/
+
 # Environment
 .env
+.env.*
+!.env.example
 client/.env.local
 client/.env.*.local
 
 # Secrets: appsettings.Development.json chua API key thuc (Groq, ...) — chi giu local
 server/OnlineMenu.API/appsettings.Development.json
+appsettings.Production.json
+secrets.json
+
+# Khoa bao mat / chung chi
+*.pem
+*.key
+*.pfx
+*.p12
+*.jks
+*.keystore
+*.ppk
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
 
 # .NET
 server/**/bin/
